@@ -1,0 +1,6457 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Pilates Studio API",
+    "description": "Gestão de estúdios de pilates (multitenant: um banco por estúdio). Salas, turmas, alunos, professores, planos, chamada, reposições e remuneração de professores.",
+    "version": "0.2.0"
+  },
+  "paths": {
+    "/health": {
+      "get": {
+        "tags": [
+          "health"
+        ],
+        "summary": "Health",
+        "operationId": "health_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/platform/auth/login": {
+      "post": {
+        "tags": [
+          "platform"
+        ],
+        "summary": "Login",
+        "operationId": "login_api_v1_platform_auth_login_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PlatformLogin"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlatformToken"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/platform/studios": {
+      "get": {
+        "tags": [
+          "platform"
+        ],
+        "summary": "List Studios",
+        "operationId": "list_studios_api_v1_platform_studios_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/StudioRead"
+                  },
+                  "type": "array",
+                  "title": "Response List Studios Api V1 Platform Studios Get"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "Platform": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "platform"
+        ],
+        "summary": "Cria o estúdio, provisiona o banco dele e o primeiro admin",
+        "operationId": "new_studio_api_v1_platform_studios_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StudioCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StudioRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "Platform": []
+          }
+        ]
+      }
+    },
+    "/api/v1/platform/studios/{studio_id}": {
+      "get": {
+        "tags": [
+          "platform"
+        ],
+        "summary": "Get Studio",
+        "operationId": "get_studio_api_v1_platform_studios__studio_id__get",
+        "security": [
+          {
+            "Platform": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "studio_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Studio Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StudioRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "platform"
+        ],
+        "summary": "Atualiza ou ativa/desativa um estúdio",
+        "operationId": "update_studio_api_v1_platform_studios__studio_id__patch",
+        "security": [
+          {
+            "Platform": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "studio_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Studio Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StudioUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StudioRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/login": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Login no estúdio (JSON) — front/mobile",
+        "operationId": "login_api_v1_auth_login_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Token"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/token": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Login OAuth2 (Swagger): client_id = slug do estúdio",
+        "operationId": "login_form_api_v1_auth_token_post",
+        "requestBody": {
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_login_form_api_v1_auth_token_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Token"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/me": {
+      "get": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Me",
+        "operationId": "me_api_v1_auth_me_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Me"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "Studio": []
+          }
+        ]
+      }
+    },
+    "/api/v1/auth/me/password": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Change Password",
+        "operationId": "change_password_api_v1_auth_me_password_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PasswordChange"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Message"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "Studio": []
+          }
+        ]
+      }
+    },
+    "/api/v1/studio": {
+      "get": {
+        "tags": [
+          "studio"
+        ],
+        "summary": "Get Studio",
+        "operationId": "get_studio_api_v1_studio_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StudioRead"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "Studio": []
+          }
+        ]
+      },
+      "patch": {
+        "tags": [
+          "studio"
+        ],
+        "summary": "Update Studio",
+        "operationId": "update_studio_api_v1_studio_patch",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StudioSettingsUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StudioRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "Studio": []
+          }
+        ]
+      }
+    },
+    "/api/v1/users": {
+      "get": {
+        "tags": [
+          "users"
+        ],
+        "summary": "List Users",
+        "operationId": "list_users_api_v1_users_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/UserRead"
+                  },
+                  "type": "array",
+                  "title": "Response List Users Api V1 Users Get"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "Studio": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "users"
+        ],
+        "summary": "Create User",
+        "operationId": "create_user_api_v1_users_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "Studio": []
+          }
+        ]
+      }
+    },
+    "/api/v1/users/{user_id}": {
+      "patch": {
+        "tags": [
+          "users"
+        ],
+        "summary": "Update User",
+        "operationId": "update_user_api_v1_users__user_id__patch",
+        "security": [
+          {
+            "Studio": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "User Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/rooms": {
+      "get": {
+        "tags": [
+          "rooms, plans & discounts"
+        ],
+        "summary": "List Rooms",
+        "operationId": "list_rooms_api_v1_rooms_get",
+        "security": [
+          {
+            "Studio": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "is_active",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": true,
+              "title": "Is Active"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/RoomRead"
+                  },
+                  "title": "Response List Rooms Api V1 Rooms Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "rooms, plans & discounts"
+        ],
+        "summary": "Create Room",
+        "operationId": "create_room_api_v1_rooms_post",
+        "security": [
+          {
+            "Studio": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RoomCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoomRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/rooms/{room_id}": {
+      "patch": {
+        "tags": [
+          "rooms, plans & discounts"
+        ],
+        "summary": "Update Room",
+        "operationId": "update_room_api_v1_rooms__room_id__patch",
+        "security": [
+          {
+            "Studio": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "room_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Room Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RoomUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoomRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "rooms, plans & discounts"
+        ],
+        "summary": "Inativa a sala",
+        "operationId": "deactivate_room_api_v1_rooms__room_id__delete",
+        "security": [
+          {
+            "Studio": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "room_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Room Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/plans": {
+      "get": {
+        "tags": [
+          "rooms, plans & discounts"
+        ],
+        "summary": "List Plans",
+        "operationId": "list_plans_api_v1_plans_get",
+        "security": [
+          {
+            "Studio": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "is_active",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": true,
+              "title": "Is Active"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PlanRead"
+                  },
+                  "title": "Response List Plans Api V1 Plans Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "rooms, plans & discounts"
+        ],
+        "summary": "Create Plan",
+        "operationId": "create_plan_api_v1_plans_post",
+        "security": [
+          {
+            "Studio": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PlanCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlanRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/plans/{plan_id}": {
+      "get": {
+        "tags": [
+          "rooms, plans & discounts"
+        ],
+        "summary": "Get Plan",
+        "operationId": "get_plan_api_v1_plans__plan_id__get",
+        "security": [
+          {
+            "Studio": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "plan_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Plan Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlanRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "rooms, plans & discounts"
+        ],
+        "summary": "Altera o plano (não afeta planos já contratados)",
+        "operationId": "update_plan_api_v1_plans__plan_id__patch",
+        "security": [
+          {
+            "Studio": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "plan_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Plan Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PlanUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlanRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "rooms, plans & discounts"
+        ],
+        "summary": "Inativa o plano",
+        "operationId": "deactivate_plan_api_v1_plans__plan_id__delete",
+        "security": [
+          {
+            "Studio": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "plan_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Plan Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/plans/{plan_id}/price": {
+      "get": {
+        "tags": [
+          "rooms, plans & discounts"
+        ],
+        "summary": "Simula o preço com desconto",
+        "operationId": "plan_price_api_v1_plans__plan_id__price_get",
+        "security": [
+          {
+            "Studio": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "plan_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Plan Id"
+            }
+          },
+          {
+            "name": "discount_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Discount Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PricePreview"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/discounts": {
+      "get": {
+        "tags": [
+          "rooms, plans & discounts"
+        ],
+        "summary": "List Discounts",
+        "operationId": "list_discounts_api_v1_discounts_get",
+        "security": [
+          {
+            "Studio": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "plan_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Plan Id"
+            }
+          },
+          {
+            "name": "is_active",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": true,
+              "title": "Is Active"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/DiscountRead"
+                  },
+                  "title": "Response List Discounts Api V1 Discounts Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "rooms, plans & discounts"
+        ],
+        "summary": "Create Discount",
+        "operationId": "create_discount_api_v1_discounts_post",
+        "security": [
+          {
+            "Studio": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DiscountCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DiscountRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/discounts/{discount_id}": {
+      "patch": {
+        "tags": [
+          "rooms, plans & discounts"
+        ],
+        "summary": "Update Discount",
+        "operationId": "update_discount_api_v1_discounts__discount_id__patch",
+        "security": [
+          {
+            "Studio": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "discount_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Discount Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DiscountUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DiscountRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "rooms, plans & discounts"
+        ],
+        "summary": "Inativa o desconto",
+        "operationId": "deactivate_discount_api_v1_discounts__discount_id__delete",
+        "security": [
+          {
+            "Studio": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "discount_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Discount Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/teachers": {
+      "get": {
+        "tags": [
+          "teachers"
+        ],
+        "summary": "List Teachers",
+        "operationId": "list_teachers_api_v1_teachers_get",
+        "security": [
+          {
+            "Studio": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "is_active",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": true,
+              "title": "Is Active"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TeacherRead"
+                  },
+                  "title": "Response List Teachers Api V1 Teachers Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "teachers"
+        ],
+        "summary": "Create Teacher",
+        "operationId": "create_teacher_api_v1_teachers_post",
+        "security": [
+          {
+            "Studio": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TeacherCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TeacherRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/teachers/{teacher_id}": {
+      "get": {
+        "tags": [
+          "teachers"
+        ],
+        "summary": "Get Teacher",
+        "operationId": "get_teacher_api_v1_teachers__teacher_id__get",
+        "security": [
+          {
+            "Studio": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "teacher_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Teacher Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TeacherRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "teachers"
+        ],
+        "summary": "Update Teacher",
+        "operationId": "update_teacher_api_v1_teachers__teacher_id__patch",
+        "security": [
+          {
+            "Studio": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "teacher_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Teacher Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TeacherUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TeacherRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "teachers"
+        ],
+        "summary": "Inativa o professor",
+        "operationId": "deactivate_teacher_api_v1_teachers__teacher_id__delete",
+        "security": [
+          {
+            "Studio": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "teacher_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Teacher Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/students": {
+      "get": {
+        "tags": [
+          "students"
+        ],
+        "summary": "List Students",
+        "operationId": "list_students_api_v1_students_get",
+        "security": [
+          {
+            "Studio": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Q"
+            }
+          },
+          {
+            "name": "is_active",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": true,
+              "title": "Is Active"
+            }
+          },
+          {
+            "name": "skip",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 0,
+              "title": "Skip"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 100,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/StudentRead"
+                  },
+                  "title": "Response List Students Api V1 Students Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "students"
+        ],
+        "summary": "Cadastra aluno (opcionalmente já com plano e turmas padrão)",
+        "operationId": "create_student_api_v1_students_post",
+        "security": [
+          {
+            "Studio": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StudentCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StudentDetail"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/students/{student_id}": {
+      "get": {
+        "tags": [
+          "students"
+        ],
+        "summary": "Ficha do aluno: contatos, plano, turmas",
+        "operationId": "get_student_api_v1_students__student_id__get",
+        "security": [
+          {
+            "Studio": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "student_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Student Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StudentDetail"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "students"
+        ],
+        "summary": "Update Student",
+        "operationId": "update_student_api_v1_students__student_id__patch",
+        "security": [
+          {
+            "Studio": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "student_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Student Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StudentUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StudentDetail"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "students"
+        ],
+        "summary": "Inativa o aluno e libera as vagas",
+        "operationId": "deactivate_student_api_v1_students__student_id__delete",
+        "security": [
+          {
+            "Studio": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "student_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Student Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/students/{student_id}/reactivate": {
+      "post": {
+        "tags": [
+          "students"
+        ],
+        "summary": "Reactivate Student",
+        "operationId": "reactivate_student_api_v1_students__student_id__reactivate_post",
+        "security": [
+          {
+            "Studio": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "student_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Student Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StudentDetail"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/students/{student_id}/subscriptions": {
+      "get": {
+        "tags": [
+          "students"
+        ],
+        "summary": "List Subscriptions",
+        "operationId": "list_subscriptions_api_v1_students__student_id__subscriptions_get",
+        "security": [
+          {
+            "Studio": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "student_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Student Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SubscriptionRead"
+                  },
+                  "title": "Response List Subscriptions Api V1 Students  Student Id  Subscriptions Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "students"
+        ],
+        "summary": "Vincula/renova o plano do aluno (com desconto opcional)",
+        "operationId": "add_subscription_api_v1_students__student_id__subscriptions_post",
+        "security": [
+          {
+            "Studio": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "student_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Student Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SubscriptionCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubscriptionRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/students/{student_id}/subscriptions/{subscription_id}/cancel": {
+      "post": {
+        "tags": [
+          "students"
+        ],
+        "summary": "Cancel Subscription",
+        "operationId": "cancel_subscription_api_v1_students__student_id__subscriptions__subscription_id__cancel_post",
+        "security": [
+          {
+            "Studio": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "student_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Student Id"
+            }
+          },
+          {
+            "name": "subscription_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Subscription Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubscriptionRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/students/{student_id}/schedule": {
+      "get": {
+        "tags": [
+          "students"
+        ],
+        "summary": "Get Schedule",
+        "operationId": "get_schedule_api_v1_students__student_id__schedule_get",
+        "security": [
+          {
+            "Studio": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "student_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Student Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ScheduleItem"
+                  },
+                  "title": "Response Get Schedule Api V1 Students  Student Id  Schedule Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "students"
+        ],
+        "summary": "Altera as turmas padrão do aluno a partir de uma data",
+        "operationId": "update_schedule_api_v1_students__student_id__schedule_put",
+        "security": [
+          {
+            "Studio": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "student_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Student Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ScheduleUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StudentDetail"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/students/{student_id}/attendances": {
+      "get": {
+        "tags": [
+          "students"
+        ],
+        "summary": "Histórico de chamadas",
+        "operationId": "attendance_history_api_v1_students__student_id__attendances_get",
+        "security": [
+          {
+            "Studio": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "student_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Student Id"
+            }
+          },
+          {
+            "name": "skip",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 0,
+              "title": "Skip"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 50,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/StudentAttendanceRead"
+                  },
+                  "title": "Response Attendance History Api V1 Students  Student Id  Attendances Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/class-groups": {
+      "get": {
+        "tags": [
+          "class groups (turmas)"
+        ],
+        "summary": "List Groups",
+        "operationId": "list_groups_api_v1_class_groups_get",
+        "security": [
+          {
+            "Studio": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "weekday",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Weekday"
+            }
+          },
+          {
+            "name": "room_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Room Id"
+            }
+          },
+          {
+            "name": "teacher_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Teacher Id"
+            }
+          },
+          {
+            "name": "include_ended",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false,
+              "title": "Include Ended"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ClassGroupRead"
+                  },
+                  "title": "Response List Groups Api V1 Class Groups Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "class groups (turmas)"
+        ],
+        "summary": "Cria turma (seg-sex, 1h, sem conflito de sala/professor)",
+        "operationId": "create_group_api_v1_class_groups_post",
+        "security": [
+          {
+            "Studio": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ClassGroupCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClassGroupDetail"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/class-groups/{group_id}": {
+      "get": {
+        "tags": [
+          "class groups (turmas)"
+        ],
+        "summary": "Get Group",
+        "operationId": "get_group_api_v1_class_groups__group_id__get",
+        "security": [
+          {
+            "Studio": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "group_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Group Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClassGroupDetail"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "class groups (turmas)"
+        ],
+        "summary": "Altera sala, professor, nome ou capacidade (dia/hora: crie outra turma)",
+        "operationId": "update_group_api_v1_class_groups__group_id__patch",
+        "security": [
+          {
+            "Studio": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "group_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Group Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ClassGroupUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClassGroupDetail"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "class groups (turmas)"
+        ],
+        "summary": "Encerra a turma a partir de uma data e libera os alunos",
+        "operationId": "end_group_api_v1_class_groups__group_id__delete",
+        "security": [
+          {
+            "Studio": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "group_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Group Id"
+            }
+          },
+          {
+            "name": "end_date",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "End Date"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/calendar": {
+      "get": {
+        "tags": [
+          "calendar & lessons"
+        ],
+        "summary": "Aulas por data e hora (padrão: semana atual, seg-sex)",
+        "operationId": "get_calendar_api_v1_calendar_get",
+        "security": [
+          {
+            "Studio": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "date_from",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Date From"
+            }
+          },
+          {
+            "name": "date_to",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Date To"
+            }
+          },
+          {
+            "name": "room_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Room Id"
+            }
+          },
+          {
+            "name": "teacher_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Teacher Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CalendarEntry"
+                  },
+                  "title": "Response Get Calendar Api V1 Calendar Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/lessons/{class_group_id}/{lesson_date}": {
+      "get": {
+        "tags": [
+          "calendar & lessons"
+        ],
+        "summary": "Detalhes da aula: alunos, professor, dia, hora, status",
+        "operationId": "get_lesson_api_v1_lessons__class_group_id___lesson_date__get",
+        "security": [
+          {
+            "Studio": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "class_group_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Class Group Id"
+            }
+          },
+          {
+            "name": "lesson_date",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date",
+              "title": "Lesson Date"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LessonDetail"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "calendar & lessons"
+        ],
+        "summary": "Professor substituto / observações da aula",
+        "operationId": "update_lesson_api_v1_lessons__class_group_id___lesson_date__patch",
+        "security": [
+          {
+            "Studio": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "class_group_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Class Group Id"
+            }
+          },
+          {
+            "name": "lesson_date",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date",
+              "title": "Lesson Date"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LessonUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LessonDetail"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/lessons/{class_group_id}/{lesson_date}/attendance": {
+      "post": {
+        "tags": [
+          "calendar & lessons"
+        ],
+        "summary": "Chamada: marca presença ou falta (debita aulas do plano)",
+        "operationId": "take_attendance_api_v1_lessons__class_group_id___lesson_date__attendance_post",
+        "security": [
+          {
+            "Studio": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "class_group_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Class Group Id"
+            }
+          },
+          {
+            "name": "lesson_date",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date",
+              "title": "Lesson Date"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AttendanceSubmit"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LessonDetail"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/lessons/{class_group_id}/{lesson_date}/reschedule": {
+      "post": {
+        "tags": [
+          "calendar & lessons"
+        ],
+        "summary": "Reagenda o aluno para outra aula (reposição); não altera o horário padrão",
+        "operationId": "reschedule_api_v1_lessons__class_group_id___lesson_date__reschedule_post",
+        "security": [
+          {
+            "Studio": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "class_group_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Class Group Id"
+            }
+          },
+          {
+            "name": "lesson_date",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date",
+              "title": "Lesson Date"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RescheduleRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LessonDetail"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/lessons/{class_group_id}/{lesson_date}/reschedule/{student_id}": {
+      "delete": {
+        "tags": [
+          "calendar & lessons"
+        ],
+        "summary": "Desfaz um reagendamento feito a partir desta aula",
+        "operationId": "undo_reschedule_api_v1_lessons__class_group_id___lesson_date__reschedule__student_id__delete",
+        "security": [
+          {
+            "Studio": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "class_group_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Class Group Id"
+            }
+          },
+          {
+            "name": "lesson_date",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date",
+              "title": "Lesson Date"
+            }
+          },
+          {
+            "name": "student_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Student Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LessonDetail"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/lessons/{class_group_id}/{lesson_date}/cancel": {
+      "post": {
+        "tags": [
+          "calendar & lessons"
+        ],
+        "summary": "Cancela a aula (professor/estúdio)",
+        "operationId": "cancel_lesson_api_v1_lessons__class_group_id___lesson_date__cancel_post",
+        "security": [
+          {
+            "Studio": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "class_group_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Class Group Id"
+            }
+          },
+          {
+            "name": "lesson_date",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date",
+              "title": "Lesson Date"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LessonCancel"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LessonDetail"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/lessons/{class_group_id}/{lesson_date}/restore": {
+      "post": {
+        "tags": [
+          "calendar & lessons"
+        ],
+        "summary": "Desfaz o cancelamento",
+        "operationId": "restore_lesson_api_v1_lessons__class_group_id___lesson_date__restore_post",
+        "security": [
+          {
+            "Studio": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "class_group_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Class Group Id"
+            }
+          },
+          {
+            "name": "lesson_date",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date",
+              "title": "Lesson Date"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LessonDetail"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/notifications": {
+      "get": {
+        "tags": [
+          "notifications"
+        ],
+        "summary": "Avisos (ex.: alunos que precisam renovar o plano)",
+        "operationId": "list_notifications_api_v1_notifications_get",
+        "security": [
+          {
+            "Studio": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "unread_only",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false,
+              "title": "Unread Only"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 50,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/NotificationRead"
+                  },
+                  "title": "Response List Notifications Api V1 Notifications Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/notifications/{notification_id}/read": {
+      "post": {
+        "tags": [
+          "notifications"
+        ],
+        "summary": "Mark Read",
+        "operationId": "mark_read_api_v1_notifications__notification_id__read_post",
+        "security": [
+          {
+            "Studio": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "notification_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Notification Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotificationRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/notifications/read-all": {
+      "post": {
+        "tags": [
+          "notifications"
+        ],
+        "summary": "Mark All Read",
+        "operationId": "mark_all_read_api_v1_notifications_read_all_post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Message"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "Studio": []
+          }
+        ]
+      }
+    },
+    "/api/v1/reports/teacher-payments": {
+      "get": {
+        "tags": [
+          "reports"
+        ],
+        "summary": "Aulas dadas por professor, alunos presentes e valor a receber",
+        "operationId": "get_teacher_payments_api_v1_reports_teacher_payments_get",
+        "security": [
+          {
+            "Studio": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "date_from",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date",
+              "title": "Date From"
+            }
+          },
+          {
+            "name": "date_to",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date",
+              "title": "Date To"
+            }
+          },
+          {
+            "name": "teacher_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Teacher Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TeacherPaymentsResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "AttendanceItem": {
+        "properties": {
+          "student_id": {
+            "type": "integer",
+            "title": "Student Id"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "present",
+              "absent"
+            ],
+            "title": "Status"
+          }
+        },
+        "type": "object",
+        "required": [
+          "student_id",
+          "status"
+        ],
+        "title": "AttendanceItem"
+      },
+      "AttendanceStatus": {
+        "type": "string",
+        "enum": [
+          "pending",
+          "present",
+          "absent",
+          "rescheduled"
+        ],
+        "title": "AttendanceStatus"
+      },
+      "AttendanceSubmit": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/AttendanceItem"
+            },
+            "type": "array",
+            "minItems": 1,
+            "title": "Items"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items"
+        ],
+        "title": "AttendanceSubmit"
+      },
+      "Body_login_form_api_v1_auth_token_post": {
+        "properties": {
+          "grant_type": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^password$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Grant Type"
+          },
+          "username": {
+            "type": "string",
+            "title": "Username"
+          },
+          "password": {
+            "type": "string",
+            "format": "password",
+            "title": "Password"
+          },
+          "scope": {
+            "type": "string",
+            "title": "Scope",
+            "default": ""
+          },
+          "client_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Client Id"
+          },
+          "client_secret": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "format": "password",
+            "title": "Client Secret"
+          }
+        },
+        "type": "object",
+        "required": [
+          "username",
+          "password"
+        ],
+        "title": "Body_login_form_api_v1_auth_token_post"
+      },
+      "CalendarEntry": {
+        "properties": {
+          "class_group_id": {
+            "type": "integer",
+            "title": "Class Group Id"
+          },
+          "class_group_name": {
+            "type": "string",
+            "title": "Class Group Name"
+          },
+          "lesson_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lesson Id",
+            "description": "Nulo enquanto nada foi registrado na aula"
+          },
+          "date": {
+            "type": "string",
+            "format": "date",
+            "title": "Date"
+          },
+          "starts_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Starts At"
+          },
+          "ends_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Ends At"
+          },
+          "room": {
+            "$ref": "#/components/schemas/RoomSummary"
+          },
+          "teacher": {
+            "$ref": "#/components/schemas/TeacherSummary"
+          },
+          "capacity": {
+            "type": "integer",
+            "title": "Capacity"
+          },
+          "attendees_count": {
+            "type": "integer",
+            "title": "Attendees Count"
+          },
+          "available_spots": {
+            "type": "integer",
+            "title": "Available Spots"
+          },
+          "status": {
+            "$ref": "#/components/schemas/LessonStatus"
+          }
+        },
+        "type": "object",
+        "required": [
+          "class_group_id",
+          "class_group_name",
+          "lesson_id",
+          "date",
+          "starts_at",
+          "ends_at",
+          "room",
+          "teacher",
+          "capacity",
+          "attendees_count",
+          "available_spots",
+          "status"
+        ],
+        "title": "CalendarEntry"
+      },
+      "ClassGroupCreate": {
+        "properties": {
+          "name": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 120
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name",
+            "description": "Opcional; padrão: 'Segunda 07h - Sala 1'"
+          },
+          "room_id": {
+            "type": "integer",
+            "title": "Room Id"
+          },
+          "teacher_id": {
+            "type": "integer",
+            "title": "Teacher Id"
+          },
+          "weekday": {
+            "type": "integer",
+            "maximum": 4.0,
+            "minimum": 0.0,
+            "title": "Weekday",
+            "description": "0 = segunda ... 4 = sexta"
+          },
+          "start_hour": {
+            "type": "integer",
+            "maximum": 23.0,
+            "minimum": 0.0,
+            "title": "Start Hour",
+            "description": "Hora de início; a aula dura 1h"
+          },
+          "capacity": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 50.0,
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Capacity",
+            "description": "Padrão: capacidade da sala"
+          },
+          "start_date": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Start Date",
+            "description": "Padrão: hoje"
+          }
+        },
+        "type": "object",
+        "required": [
+          "room_id",
+          "teacher_id",
+          "weekday",
+          "start_hour"
+        ],
+        "title": "ClassGroupCreate"
+      },
+      "ClassGroupDetail": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "display_name": {
+            "type": "string",
+            "title": "Display Name"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "weekday": {
+            "type": "integer",
+            "title": "Weekday"
+          },
+          "weekday_name": {
+            "type": "string",
+            "title": "Weekday Name"
+          },
+          "start_hour": {
+            "type": "integer",
+            "title": "Start Hour"
+          },
+          "end_hour": {
+            "type": "integer",
+            "title": "End Hour"
+          },
+          "capacity": {
+            "type": "integer",
+            "title": "Capacity"
+          },
+          "room": {
+            "$ref": "#/components/schemas/RoomSummary"
+          },
+          "teacher": {
+            "$ref": "#/components/schemas/TeacherSummary"
+          },
+          "start_date": {
+            "type": "string",
+            "format": "date",
+            "title": "Start Date"
+          },
+          "end_date": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "End Date"
+          },
+          "enrolled_count": {
+            "type": "integer",
+            "title": "Enrolled Count",
+            "default": 0
+          },
+          "students": {
+            "items": {
+              "$ref": "#/components/schemas/StudentSummary"
+            },
+            "type": "array",
+            "title": "Students"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "display_name",
+          "name",
+          "weekday",
+          "weekday_name",
+          "start_hour",
+          "end_hour",
+          "capacity",
+          "room",
+          "teacher",
+          "start_date",
+          "end_date",
+          "students"
+        ],
+        "title": "ClassGroupDetail"
+      },
+      "ClassGroupRead": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "display_name": {
+            "type": "string",
+            "title": "Display Name"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "weekday": {
+            "type": "integer",
+            "title": "Weekday"
+          },
+          "weekday_name": {
+            "type": "string",
+            "title": "Weekday Name"
+          },
+          "start_hour": {
+            "type": "integer",
+            "title": "Start Hour"
+          },
+          "end_hour": {
+            "type": "integer",
+            "title": "End Hour"
+          },
+          "capacity": {
+            "type": "integer",
+            "title": "Capacity"
+          },
+          "room": {
+            "$ref": "#/components/schemas/RoomSummary"
+          },
+          "teacher": {
+            "$ref": "#/components/schemas/TeacherSummary"
+          },
+          "start_date": {
+            "type": "string",
+            "format": "date",
+            "title": "Start Date"
+          },
+          "end_date": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "End Date"
+          },
+          "enrolled_count": {
+            "type": "integer",
+            "title": "Enrolled Count",
+            "default": 0
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "display_name",
+          "name",
+          "weekday",
+          "weekday_name",
+          "start_hour",
+          "end_hour",
+          "capacity",
+          "room",
+          "teacher",
+          "start_date",
+          "end_date"
+        ],
+        "title": "ClassGroupRead"
+      },
+      "ClassGroupUpdate": {
+        "properties": {
+          "name": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 120
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "room_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Room Id"
+          },
+          "teacher_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Teacher Id"
+          },
+          "capacity": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 50.0,
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Capacity"
+          }
+        },
+        "type": "object",
+        "title": "ClassGroupUpdate"
+      },
+      "DiscountCreate": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 120,
+            "minLength": 2,
+            "title": "Name"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/DiscountKind"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "type": "number",
+                "exclusiveMinimum": 0.0
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "title": "Value"
+          },
+          "plan_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Plan Id",
+            "description": "Restringe o desconto a um plano; vazio = todos"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "kind",
+          "value"
+        ],
+        "title": "DiscountCreate"
+      },
+      "DiscountKind": {
+        "type": "string",
+        "enum": [
+          "percent",
+          "fixed"
+        ],
+        "title": "DiscountKind"
+      },
+      "DiscountRead": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/DiscountKind"
+          },
+          "value": {
+            "type": "string",
+            "title": "Value"
+          },
+          "plan_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Plan Id"
+          },
+          "is_active": {
+            "type": "boolean",
+            "title": "Is Active"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "kind",
+          "value",
+          "plan_id",
+          "is_active"
+        ],
+        "title": "DiscountRead"
+      },
+      "DiscountSummary": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/DiscountKind"
+          },
+          "value": {
+            "type": "string",
+            "title": "Value"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "kind",
+          "value"
+        ],
+        "title": "DiscountSummary"
+      },
+      "DiscountUpdate": {
+        "properties": {
+          "name": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 120,
+                "minLength": 2
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "is_active": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Is Active"
+          }
+        },
+        "type": "object",
+        "title": "DiscountUpdate"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "LessonCancel": {
+        "properties": {
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 255
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          }
+        },
+        "type": "object",
+        "title": "LessonCancel"
+      },
+      "LessonDetail": {
+        "properties": {
+          "class_group_id": {
+            "type": "integer",
+            "title": "Class Group Id"
+          },
+          "class_group_name": {
+            "type": "string",
+            "title": "Class Group Name"
+          },
+          "lesson_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lesson Id",
+            "description": "Nulo enquanto nada foi registrado na aula"
+          },
+          "date": {
+            "type": "string",
+            "format": "date",
+            "title": "Date"
+          },
+          "starts_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Starts At"
+          },
+          "ends_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Ends At"
+          },
+          "room": {
+            "$ref": "#/components/schemas/RoomSummary"
+          },
+          "teacher": {
+            "$ref": "#/components/schemas/TeacherSummary"
+          },
+          "capacity": {
+            "type": "integer",
+            "title": "Capacity"
+          },
+          "attendees_count": {
+            "type": "integer",
+            "title": "Attendees Count"
+          },
+          "available_spots": {
+            "type": "integer",
+            "title": "Available Spots"
+          },
+          "status": {
+            "$ref": "#/components/schemas/LessonStatus"
+          },
+          "cancel_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cancel Reason"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          },
+          "students": {
+            "items": {
+              "$ref": "#/components/schemas/RosterEntry"
+            },
+            "type": "array",
+            "title": "Students"
+          }
+        },
+        "type": "object",
+        "required": [
+          "class_group_id",
+          "class_group_name",
+          "lesson_id",
+          "date",
+          "starts_at",
+          "ends_at",
+          "room",
+          "teacher",
+          "capacity",
+          "attendees_count",
+          "available_spots",
+          "status",
+          "cancel_reason",
+          "notes",
+          "students"
+        ],
+        "title": "LessonDetail"
+      },
+      "LessonRef": {
+        "properties": {
+          "class_group_id": {
+            "type": "integer",
+            "title": "Class Group Id"
+          },
+          "class_group_name": {
+            "type": "string",
+            "title": "Class Group Name"
+          },
+          "date": {
+            "type": "string",
+            "format": "date",
+            "title": "Date"
+          },
+          "start_hour": {
+            "type": "integer",
+            "title": "Start Hour"
+          }
+        },
+        "type": "object",
+        "required": [
+          "class_group_id",
+          "class_group_name",
+          "date",
+          "start_hour"
+        ],
+        "title": "LessonRef"
+      },
+      "LessonStatus": {
+        "type": "string",
+        "enum": [
+          "confirmed",
+          "inactive",
+          "cancelled"
+        ],
+        "title": "LessonStatus"
+      },
+      "LessonUpdate": {
+        "properties": {
+          "teacher_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Teacher Id",
+            "description": "Professor substituto nesta data"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          }
+        },
+        "type": "object",
+        "title": "LessonUpdate"
+      },
+      "LoginRequest": {
+        "properties": {
+          "studio": {
+            "type": "string",
+            "title": "Studio",
+            "description": "Slug do estúdio"
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "title": "Email"
+          },
+          "password": {
+            "type": "string",
+            "title": "Password"
+          }
+        },
+        "type": "object",
+        "required": [
+          "studio",
+          "email",
+          "password"
+        ],
+        "title": "LoginRequest"
+      },
+      "Me": {
+        "properties": {
+          "user": {
+            "$ref": "#/components/schemas/UserRead"
+          },
+          "studio": {
+            "$ref": "#/components/schemas/StudioRead"
+          }
+        },
+        "type": "object",
+        "required": [
+          "user",
+          "studio"
+        ],
+        "title": "Me"
+      },
+      "Message": {
+        "properties": {
+          "detail": {
+            "type": "string",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "required": [
+          "detail"
+        ],
+        "title": "Message"
+      },
+      "NotificationKind": {
+        "type": "string",
+        "enum": [
+          "plan_exhausted",
+          "no_credits"
+        ],
+        "title": "NotificationKind"
+      },
+      "NotificationRead": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/NotificationKind"
+          },
+          "student": {
+            "$ref": "#/components/schemas/StudentSummary"
+          },
+          "subscription_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Subscription Id"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message"
+          },
+          "is_read": {
+            "type": "boolean",
+            "title": "Is Read"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "kind",
+          "student",
+          "subscription_id",
+          "message",
+          "is_read",
+          "created_at"
+        ],
+        "title": "NotificationRead"
+      },
+      "PasswordChange": {
+        "properties": {
+          "current_password": {
+            "type": "string",
+            "title": "Current Password"
+          },
+          "new_password": {
+            "type": "string",
+            "maxLength": 128,
+            "minLength": 6,
+            "title": "New Password"
+          }
+        },
+        "type": "object",
+        "required": [
+          "current_password",
+          "new_password"
+        ],
+        "title": "PasswordChange"
+      },
+      "PlanCreate": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 120,
+            "minLength": 2,
+            "title": "Name"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "sessions_per_week": {
+            "type": "integer",
+            "maximum": 3.0,
+            "minimum": 1.0,
+            "title": "Sessions Per Week",
+            "description": "Aulas por semana: 1, 2 ou 3"
+          },
+          "total_classes": {
+            "type": "integer",
+            "maximum": 500.0,
+            "minimum": 1.0,
+            "title": "Total Classes",
+            "description": "Quantidade de aulas do pacote"
+          },
+          "price": {
+            "anyOf": [
+              {
+                "type": "number",
+                "minimum": 0.0
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "title": "Price"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "sessions_per_week",
+          "total_classes",
+          "price"
+        ],
+        "title": "PlanCreate"
+      },
+      "PlanRead": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "sessions_per_week": {
+            "type": "integer",
+            "title": "Sessions Per Week"
+          },
+          "total_classes": {
+            "type": "integer",
+            "title": "Total Classes"
+          },
+          "price": {
+            "type": "string",
+            "title": "Price"
+          },
+          "is_active": {
+            "type": "boolean",
+            "title": "Is Active"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "description",
+          "sessions_per_week",
+          "total_classes",
+          "price",
+          "is_active",
+          "created_at"
+        ],
+        "title": "PlanRead"
+      },
+      "PlanSummary": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "sessions_per_week": {
+            "type": "integer",
+            "title": "Sessions Per Week"
+          },
+          "total_classes": {
+            "type": "integer",
+            "title": "Total Classes"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "sessions_per_week",
+          "total_classes"
+        ],
+        "title": "PlanSummary"
+      },
+      "PlanUpdate": {
+        "properties": {
+          "name": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 120,
+                "minLength": 2
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "sessions_per_week": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 3.0,
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sessions Per Week"
+          },
+          "total_classes": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 500.0,
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Total Classes"
+          },
+          "price": {
+            "anyOf": [
+              {
+                "type": "number",
+                "minimum": 0.0
+              },
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Price"
+          },
+          "is_active": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Is Active"
+          }
+        },
+        "type": "object",
+        "title": "PlanUpdate"
+      },
+      "PlatformLogin": {
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email",
+            "title": "Email"
+          },
+          "password": {
+            "type": "string",
+            "title": "Password"
+          }
+        },
+        "type": "object",
+        "required": [
+          "email",
+          "password"
+        ],
+        "title": "PlatformLogin"
+      },
+      "PlatformToken": {
+        "properties": {
+          "access_token": {
+            "type": "string",
+            "title": "Access Token"
+          },
+          "token_type": {
+            "type": "string",
+            "title": "Token Type",
+            "default": "bearer"
+          }
+        },
+        "type": "object",
+        "required": [
+          "access_token"
+        ],
+        "title": "PlatformToken"
+      },
+      "PricePreview": {
+        "properties": {
+          "plan_id": {
+            "type": "integer",
+            "title": "Plan Id"
+          },
+          "discount_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Discount Id"
+          },
+          "base_price": {
+            "type": "string",
+            "title": "Base Price"
+          },
+          "discount_amount": {
+            "type": "string",
+            "title": "Discount Amount"
+          },
+          "final_price": {
+            "type": "string",
+            "title": "Final Price"
+          }
+        },
+        "type": "object",
+        "required": [
+          "plan_id",
+          "discount_id",
+          "base_price",
+          "discount_amount",
+          "final_price"
+        ],
+        "title": "PricePreview"
+      },
+      "RescheduleRequest": {
+        "properties": {
+          "student_id": {
+            "type": "integer",
+            "title": "Student Id"
+          },
+          "target_class_group_id": {
+            "type": "integer",
+            "title": "Target Class Group Id"
+          },
+          "target_date": {
+            "type": "string",
+            "format": "date",
+            "title": "Target Date"
+          }
+        },
+        "type": "object",
+        "required": [
+          "student_id",
+          "target_class_group_id",
+          "target_date"
+        ],
+        "title": "RescheduleRequest"
+      },
+      "RoomCreate": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 80,
+            "minLength": 1,
+            "title": "Name"
+          },
+          "capacity": {
+            "type": "integer",
+            "maximum": 50.0,
+            "minimum": 1.0,
+            "title": "Capacity"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "capacity"
+        ],
+        "title": "RoomCreate"
+      },
+      "RoomRead": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "capacity": {
+            "type": "integer",
+            "title": "Capacity"
+          },
+          "is_active": {
+            "type": "boolean",
+            "title": "Is Active"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "capacity",
+          "is_active"
+        ],
+        "title": "RoomRead"
+      },
+      "RoomSummary": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name"
+        ],
+        "title": "RoomSummary"
+      },
+      "RoomUpdate": {
+        "properties": {
+          "name": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 80,
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "capacity": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 50.0,
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Capacity"
+          },
+          "is_active": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Is Active"
+          }
+        },
+        "type": "object",
+        "title": "RoomUpdate"
+      },
+      "RosterEntry": {
+        "properties": {
+          "student": {
+            "$ref": "#/components/schemas/StudentSummary"
+          },
+          "status": {
+            "$ref": "#/components/schemas/AttendanceStatus"
+          },
+          "is_makeup": {
+            "type": "boolean",
+            "title": "Is Makeup",
+            "description": "Aluno veio por reposição de outra aula"
+          },
+          "makeup_from": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/LessonRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "rescheduled_to": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/LessonRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "credits_remaining": {
+            "type": "integer",
+            "title": "Credits Remaining"
+          }
+        },
+        "type": "object",
+        "required": [
+          "student",
+          "status",
+          "is_makeup",
+          "credits_remaining"
+        ],
+        "title": "RosterEntry"
+      },
+      "ScheduleItem": {
+        "properties": {
+          "enrollment_id": {
+            "type": "integer",
+            "title": "Enrollment Id"
+          },
+          "class_group_id": {
+            "type": "integer",
+            "title": "Class Group Id"
+          },
+          "class_group_name": {
+            "type": "string",
+            "title": "Class Group Name"
+          },
+          "weekday": {
+            "type": "integer",
+            "title": "Weekday"
+          },
+          "weekday_name": {
+            "type": "string",
+            "title": "Weekday Name"
+          },
+          "start_hour": {
+            "type": "integer",
+            "title": "Start Hour"
+          },
+          "end_hour": {
+            "type": "integer",
+            "title": "End Hour"
+          },
+          "room": {
+            "type": "string",
+            "title": "Room"
+          },
+          "teacher": {
+            "type": "string",
+            "title": "Teacher"
+          },
+          "start_date": {
+            "type": "string",
+            "format": "date",
+            "title": "Start Date"
+          }
+        },
+        "type": "object",
+        "required": [
+          "enrollment_id",
+          "class_group_id",
+          "class_group_name",
+          "weekday",
+          "weekday_name",
+          "start_hour",
+          "end_hour",
+          "room",
+          "teacher",
+          "start_date"
+        ],
+        "title": "ScheduleItem",
+        "description": "Turma padrão do aluno."
+      },
+      "ScheduleUpdate": {
+        "properties": {
+          "class_group_ids": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array",
+            "title": "Class Group Ids",
+            "description": "Conjunto completo de turmas padrão"
+          },
+          "effective_from": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Effective From",
+            "description": "Data a partir da qual vale o novo horário (padrão: hoje)"
+          }
+        },
+        "type": "object",
+        "required": [
+          "class_group_ids"
+        ],
+        "title": "ScheduleUpdate"
+      },
+      "StudentAttendanceRead": {
+        "properties": {
+          "lesson": {
+            "$ref": "#/components/schemas/LessonRef"
+          },
+          "status": {
+            "$ref": "#/components/schemas/AttendanceStatus"
+          },
+          "is_makeup": {
+            "type": "boolean",
+            "title": "Is Makeup"
+          },
+          "debited": {
+            "type": "boolean",
+            "title": "Debited",
+            "description": "A aula foi debitada de um plano"
+          }
+        },
+        "type": "object",
+        "required": [
+          "lesson",
+          "status",
+          "is_makeup",
+          "debited"
+        ],
+        "title": "StudentAttendanceRead"
+      },
+      "StudentCreate": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 120,
+            "minLength": 2,
+            "title": "Name"
+          },
+          "phones": {
+            "items": {
+              "type": "string",
+              "maxLength": 30,
+              "minLength": 8
+            },
+            "type": "array",
+            "maxItems": 5,
+            "title": "Phones",
+            "default": []
+          },
+          "emails": {
+            "items": {
+              "type": "string",
+              "format": "email"
+            },
+            "type": "array",
+            "maxItems": 5,
+            "title": "Emails",
+            "default": []
+          },
+          "birth_date": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Birth Date"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          },
+          "subscription": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SubscriptionCreate"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Já vincula um plano no cadastro"
+          },
+          "class_group_ids": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array",
+            "title": "Class Group Ids",
+            "description": "Turmas padrão (exige plano)",
+            "default": []
+          }
+        },
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "title": "StudentCreate"
+      },
+      "StudentDetail": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "phones": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Phones"
+          },
+          "emails": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Emails"
+          },
+          "birth_date": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Birth Date"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          },
+          "is_active": {
+            "type": "boolean",
+            "title": "Is Active"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "subscription": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SubscriptionRead"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Plano atual"
+          },
+          "credits_remaining": {
+            "type": "integer",
+            "title": "Credits Remaining",
+            "description": "Soma das aulas restantes nos planos ativos"
+          },
+          "needs_renewal": {
+            "type": "boolean",
+            "title": "Needs Renewal"
+          },
+          "schedule": {
+            "items": {
+              "$ref": "#/components/schemas/ScheduleItem"
+            },
+            "type": "array",
+            "title": "Schedule"
+          },
+          "free_schedule_slots": {
+            "type": "integer",
+            "title": "Free Schedule Slots",
+            "description": "Turmas que o plano ainda permite escolher"
+          },
+          "upcoming_makeups": {
+            "items": {
+              "$ref": "#/components/schemas/UpcomingMakeup"
+            },
+            "type": "array",
+            "title": "Upcoming Makeups"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "phones",
+          "emails",
+          "birth_date",
+          "notes",
+          "is_active",
+          "created_at",
+          "subscription",
+          "credits_remaining",
+          "needs_renewal",
+          "schedule",
+          "free_schedule_slots",
+          "upcoming_makeups"
+        ],
+        "title": "StudentDetail"
+      },
+      "StudentRead": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "phones": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Phones"
+          },
+          "emails": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Emails"
+          },
+          "birth_date": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Birth Date"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          },
+          "is_active": {
+            "type": "boolean",
+            "title": "Is Active"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "phones",
+          "emails",
+          "birth_date",
+          "notes",
+          "is_active",
+          "created_at"
+        ],
+        "title": "StudentRead"
+      },
+      "StudentSummary": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name"
+        ],
+        "title": "StudentSummary"
+      },
+      "StudentUpdate": {
+        "properties": {
+          "name": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 120,
+                "minLength": 2
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "phones": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string",
+                  "maxLength": 30,
+                  "minLength": 8
+                },
+                "type": "array",
+                "maxItems": 5
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Phones"
+          },
+          "emails": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string",
+                  "format": "email"
+                },
+                "type": "array",
+                "maxItems": 5
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Emails"
+          },
+          "birth_date": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Birth Date"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          }
+        },
+        "type": "object",
+        "title": "StudentUpdate"
+      },
+      "StudioCreate": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 120,
+            "minLength": 2,
+            "title": "Name"
+          },
+          "slug": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9-]{1,38}[a-z0-9]$",
+            "title": "Slug",
+            "description": "Identificador único usado no login (ex.: studio-centro)"
+          },
+          "email": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "email"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Email"
+          },
+          "phone": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 30
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Phone"
+          },
+          "address": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 255
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Address"
+          },
+          "open_hour": {
+            "type": "integer",
+            "maximum": 23.0,
+            "minimum": 0.0,
+            "title": "Open Hour",
+            "default": 6
+          },
+          "close_hour": {
+            "type": "integer",
+            "maximum": 24.0,
+            "minimum": 1.0,
+            "title": "Close Hour",
+            "default": 19
+          },
+          "absence_consumes_credit": {
+            "type": "boolean",
+            "title": "Absence Consumes Credit",
+            "default": true
+          },
+          "admin_name": {
+            "type": "string",
+            "maxLength": 120,
+            "minLength": 2,
+            "title": "Admin Name"
+          },
+          "admin_email": {
+            "type": "string",
+            "format": "email",
+            "title": "Admin Email"
+          },
+          "admin_password": {
+            "type": "string",
+            "maxLength": 128,
+            "minLength": 6,
+            "title": "Admin Password"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "slug",
+          "admin_name",
+          "admin_email",
+          "admin_password"
+        ],
+        "title": "StudioCreate"
+      },
+      "StudioRead": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "slug": {
+            "type": "string",
+            "title": "Slug"
+          },
+          "email": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Email"
+          },
+          "phone": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Phone"
+          },
+          "address": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Address"
+          },
+          "open_hour": {
+            "type": "integer",
+            "title": "Open Hour"
+          },
+          "close_hour": {
+            "type": "integer",
+            "title": "Close Hour"
+          },
+          "absence_consumes_credit": {
+            "type": "boolean",
+            "title": "Absence Consumes Credit"
+          },
+          "is_active": {
+            "type": "boolean",
+            "title": "Is Active"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "slug",
+          "email",
+          "phone",
+          "address",
+          "open_hour",
+          "close_hour",
+          "absence_consumes_credit",
+          "is_active",
+          "created_at"
+        ],
+        "title": "StudioRead"
+      },
+      "StudioSettingsUpdate": {
+        "properties": {
+          "name": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 120,
+                "minLength": 2
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "email": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "email"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Email"
+          },
+          "phone": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 30
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Phone"
+          },
+          "address": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 255
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Address"
+          },
+          "open_hour": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 23.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Open Hour"
+          },
+          "close_hour": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 24.0,
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Close Hour"
+          },
+          "absence_consumes_credit": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Absence Consumes Credit"
+          }
+        },
+        "type": "object",
+        "title": "StudioSettingsUpdate",
+        "description": "Campos que o admin do estúdio pode alterar."
+      },
+      "StudioUpdate": {
+        "properties": {
+          "name": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 120,
+                "minLength": 2
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "email": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "email"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Email"
+          },
+          "phone": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 30
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Phone"
+          },
+          "address": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 255
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Address"
+          },
+          "open_hour": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 23.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Open Hour"
+          },
+          "close_hour": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 24.0,
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Close Hour"
+          },
+          "absence_consumes_credit": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Absence Consumes Credit"
+          },
+          "is_active": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Is Active"
+          }
+        },
+        "type": "object",
+        "title": "StudioUpdate"
+      },
+      "SubscriptionCreate": {
+        "properties": {
+          "plan_id": {
+            "type": "integer",
+            "title": "Plan Id"
+          },
+          "discount_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Discount Id"
+          },
+          "start_date": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Start Date",
+            "description": "Padrão: hoje"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          }
+        },
+        "type": "object",
+        "required": [
+          "plan_id"
+        ],
+        "title": "SubscriptionCreate"
+      },
+      "SubscriptionRead": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "student_id": {
+            "type": "integer",
+            "title": "Student Id"
+          },
+          "plan": {
+            "$ref": "#/components/schemas/PlanSummary"
+          },
+          "discount": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DiscountSummary"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "start_date": {
+            "type": "string",
+            "format": "date",
+            "title": "Start Date"
+          },
+          "total_classes": {
+            "type": "integer",
+            "title": "Total Classes"
+          },
+          "sessions_per_week": {
+            "type": "integer",
+            "title": "Sessions Per Week"
+          },
+          "base_price": {
+            "type": "string",
+            "title": "Base Price"
+          },
+          "discount_amount": {
+            "type": "string",
+            "title": "Discount Amount"
+          },
+          "final_price": {
+            "type": "string",
+            "title": "Final Price"
+          },
+          "status": {
+            "$ref": "#/components/schemas/SubscriptionStatus"
+          },
+          "credits_used": {
+            "type": "integer",
+            "title": "Credits Used"
+          },
+          "credits_remaining": {
+            "type": "integer",
+            "title": "Credits Remaining"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "student_id",
+          "plan",
+          "discount",
+          "start_date",
+          "total_classes",
+          "sessions_per_week",
+          "base_price",
+          "discount_amount",
+          "final_price",
+          "status",
+          "credits_used",
+          "credits_remaining",
+          "notes",
+          "created_at"
+        ],
+        "title": "SubscriptionRead"
+      },
+      "SubscriptionStatus": {
+        "type": "string",
+        "enum": [
+          "active",
+          "exhausted",
+          "cancelled"
+        ],
+        "title": "SubscriptionStatus"
+      },
+      "TeacherCreate": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 120,
+            "minLength": 2,
+            "title": "Name"
+          },
+          "phones": {
+            "items": {
+              "type": "string",
+              "maxLength": 30,
+              "minLength": 8
+            },
+            "type": "array",
+            "maxItems": 5,
+            "title": "Phones",
+            "default": []
+          },
+          "emails": {
+            "items": {
+              "type": "string",
+              "format": "email"
+            },
+            "type": "array",
+            "maxItems": 5,
+            "title": "Emails",
+            "default": []
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          },
+          "pay_per_class": {
+            "anyOf": [
+              {
+                "type": "number",
+                "minimum": 0.0
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "title": "Pay Per Class",
+            "default": "0"
+          },
+          "pay_per_student": {
+            "anyOf": [
+              {
+                "type": "number",
+                "minimum": 0.0
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "title": "Pay Per Student",
+            "default": "0"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "title": "TeacherCreate"
+      },
+      "TeacherLessonReport": {
+        "properties": {
+          "date": {
+            "type": "string",
+            "format": "date",
+            "title": "Date"
+          },
+          "start_hour": {
+            "type": "integer",
+            "title": "Start Hour"
+          },
+          "class_group_id": {
+            "type": "integer",
+            "title": "Class Group Id"
+          },
+          "class_group_name": {
+            "type": "string",
+            "title": "Class Group Name"
+          },
+          "room": {
+            "type": "string",
+            "title": "Room"
+          },
+          "present_students": {
+            "items": {
+              "$ref": "#/components/schemas/StudentSummary"
+            },
+            "type": "array",
+            "title": "Present Students"
+          },
+          "absent_students": {
+            "items": {
+              "$ref": "#/components/schemas/StudentSummary"
+            },
+            "type": "array",
+            "title": "Absent Students"
+          },
+          "amount": {
+            "type": "string",
+            "title": "Amount"
+          }
+        },
+        "type": "object",
+        "required": [
+          "date",
+          "start_hour",
+          "class_group_id",
+          "class_group_name",
+          "room",
+          "present_students",
+          "absent_students",
+          "amount"
+        ],
+        "title": "TeacherLessonReport"
+      },
+      "TeacherPaymentReport": {
+        "properties": {
+          "teacher": {
+            "$ref": "#/components/schemas/TeacherSummary"
+          },
+          "pay_per_class": {
+            "type": "string",
+            "title": "Pay Per Class"
+          },
+          "pay_per_student": {
+            "type": "string",
+            "title": "Pay Per Student"
+          },
+          "lessons_given": {
+            "type": "integer",
+            "title": "Lessons Given"
+          },
+          "total_presences": {
+            "type": "integer",
+            "title": "Total Presences"
+          },
+          "amount": {
+            "type": "string",
+            "title": "Amount"
+          },
+          "lessons": {
+            "items": {
+              "$ref": "#/components/schemas/TeacherLessonReport"
+            },
+            "type": "array",
+            "title": "Lessons"
+          }
+        },
+        "type": "object",
+        "required": [
+          "teacher",
+          "pay_per_class",
+          "pay_per_student",
+          "lessons_given",
+          "total_presences",
+          "amount",
+          "lessons"
+        ],
+        "title": "TeacherPaymentReport"
+      },
+      "TeacherPaymentsResponse": {
+        "properties": {
+          "date_from": {
+            "type": "string",
+            "format": "date",
+            "title": "Date From"
+          },
+          "date_to": {
+            "type": "string",
+            "format": "date",
+            "title": "Date To"
+          },
+          "total_amount": {
+            "type": "string",
+            "title": "Total Amount"
+          },
+          "teachers": {
+            "items": {
+              "$ref": "#/components/schemas/TeacherPaymentReport"
+            },
+            "type": "array",
+            "title": "Teachers"
+          }
+        },
+        "type": "object",
+        "required": [
+          "date_from",
+          "date_to",
+          "total_amount",
+          "teachers"
+        ],
+        "title": "TeacherPaymentsResponse"
+      },
+      "TeacherRead": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "phones": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Phones"
+          },
+          "emails": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Emails"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          },
+          "pay_per_class": {
+            "type": "string",
+            "title": "Pay Per Class"
+          },
+          "pay_per_student": {
+            "type": "string",
+            "title": "Pay Per Student"
+          },
+          "is_active": {
+            "type": "boolean",
+            "title": "Is Active"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "phones",
+          "emails",
+          "notes",
+          "pay_per_class",
+          "pay_per_student",
+          "is_active",
+          "created_at"
+        ],
+        "title": "TeacherRead"
+      },
+      "TeacherSummary": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name"
+        ],
+        "title": "TeacherSummary"
+      },
+      "TeacherUpdate": {
+        "properties": {
+          "name": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 120,
+                "minLength": 2
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "phones": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string",
+                  "maxLength": 30,
+                  "minLength": 8
+                },
+                "type": "array",
+                "maxItems": 5
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Phones"
+          },
+          "emails": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string",
+                  "format": "email"
+                },
+                "type": "array",
+                "maxItems": 5
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Emails"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          },
+          "pay_per_class": {
+            "anyOf": [
+              {
+                "type": "number",
+                "minimum": 0.0
+              },
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pay Per Class"
+          },
+          "pay_per_student": {
+            "anyOf": [
+              {
+                "type": "number",
+                "minimum": 0.0
+              },
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pay Per Student"
+          },
+          "is_active": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Is Active"
+          }
+        },
+        "type": "object",
+        "title": "TeacherUpdate"
+      },
+      "Token": {
+        "properties": {
+          "access_token": {
+            "type": "string",
+            "title": "Access Token"
+          },
+          "token_type": {
+            "type": "string",
+            "title": "Token Type",
+            "default": "bearer"
+          },
+          "user": {
+            "$ref": "#/components/schemas/UserRead"
+          },
+          "studio": {
+            "$ref": "#/components/schemas/StudioRead"
+          }
+        },
+        "type": "object",
+        "required": [
+          "access_token",
+          "user",
+          "studio"
+        ],
+        "title": "Token"
+      },
+      "UpcomingMakeup": {
+        "properties": {
+          "class_group_id": {
+            "type": "integer",
+            "title": "Class Group Id"
+          },
+          "class_group_name": {
+            "type": "string",
+            "title": "Class Group Name"
+          },
+          "date": {
+            "type": "string",
+            "format": "date",
+            "title": "Date"
+          },
+          "start_hour": {
+            "type": "integer",
+            "title": "Start Hour"
+          },
+          "room": {
+            "type": "string",
+            "title": "Room"
+          }
+        },
+        "type": "object",
+        "required": [
+          "class_group_id",
+          "class_group_name",
+          "date",
+          "start_hour",
+          "room"
+        ],
+        "title": "UpcomingMakeup"
+      },
+      "UserCreate": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 120,
+            "minLength": 2,
+            "title": "Name"
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "title": "Email"
+          },
+          "password": {
+            "type": "string",
+            "maxLength": 128,
+            "minLength": 6,
+            "title": "Password"
+          },
+          "role": {
+            "$ref": "#/components/schemas/UserRole",
+            "default": "teacher"
+          },
+          "teacher_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Teacher Id",
+            "description": "Obrigatório para usuários com papel teacher"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "email",
+          "password"
+        ],
+        "title": "UserCreate"
+      },
+      "UserRead": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "email": {
+            "type": "string",
+            "title": "Email"
+          },
+          "role": {
+            "$ref": "#/components/schemas/UserRole"
+          },
+          "teacher_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Teacher Id"
+          },
+          "is_active": {
+            "type": "boolean",
+            "title": "Is Active"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "email",
+          "role",
+          "teacher_id",
+          "is_active",
+          "created_at"
+        ],
+        "title": "UserRead"
+      },
+      "UserRole": {
+        "type": "string",
+        "enum": [
+          "admin",
+          "teacher"
+        ],
+        "title": "UserRole"
+      },
+      "UserUpdate": {
+        "properties": {
+          "name": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 120,
+                "minLength": 2
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "email": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "email"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Email"
+          },
+          "password": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 128,
+                "minLength": 6
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Password"
+          },
+          "role": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/UserRole"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "teacher_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Teacher Id"
+          },
+          "is_active": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Is Active"
+          }
+        },
+        "type": "object",
+        "title": "UserUpdate"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      }
+    },
+    "securitySchemes": {
+      "Platform": {
+        "type": "oauth2",
+        "flows": {
+          "password": {
+            "scopes": {},
+            "tokenUrl": "/api/v1/platform/auth/token"
+          }
+        }
+      },
+      "Studio": {
+        "type": "oauth2",
+        "description": "client_id = slug do estúdio",
+        "flows": {
+          "password": {
+            "scopes": {},
+            "tokenUrl": "/api/v1/auth/token"
+          }
+        }
+      }
+    }
+  }
+}

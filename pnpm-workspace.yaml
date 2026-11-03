@@ -1,0 +1,4 @@
+packages:
+  - front
+  - mobile
+  - packages/*
