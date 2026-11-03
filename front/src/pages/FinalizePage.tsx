@@ -5,7 +5,7 @@ import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import { ReschedulePicker } from "../components/ReschedulePicker";
 import { Badge, Empty, ErrorBox, Loading } from "../components/ui";
 import { api, call } from "../lib/api";
-import { fmtDate, fmtHour, fmtShortDay, fmtWeekday, parseISO, todayISO } from "../lib/format";
+import { fmtDate, fmtHour, fmtShortDay, fmtWeekday, money, parseISO, todayISO } from "../lib/format";
 import { useAsync } from "../lib/hooks";
 import { lessonStatus } from "../lib/labels";
 
@@ -21,8 +21,107 @@ type Decision = {
 const hourOf = (iso: string) => Number(iso.slice(11, 13));
 
 export function FinalizePage() {
-  const { groupId, date } = useParams();
+  const { groupId, date, sessionId } = useParams();
+  if (sessionId) return <ServiceFinalizeForm sessionId={Number(sessionId)} />;
   return groupId && date ? <FinalizeForm groupId={Number(groupId)} date={date} /> : <PendingList />;
+}
+
+// ---------- Sessão de serviço avulso ----------
+function ServiceFinalizeForm({ sessionId }: { sessionId: number }) {
+  const navigate = useNavigate();
+  const detail = useAsync(
+    () => call(api.GET("/api/v1/service-sessions/{session_id}", { params: { path: { session_id: sessionId } } })),
+    [sessionId],
+  );
+  const [choice, setChoice] = useState<"present" | "absent" | null>(null);
+  const [justification, setJustification] = useState("");
+  const [error, setError] = useState<string>();
+  const [busy, setBusy] = useState(false);
+
+  if (detail.loading && !detail.data) return <div className="page"><Loading /></div>;
+  if (detail.error) return <div className="page"><ErrorBox message={detail.error} /></div>;
+  const s = detail.data!;
+
+  async function submit() {
+    if (!choice) return;
+    setBusy(true);
+    setError(undefined);
+    try {
+      await call(
+        api.POST("/api/v1/service-sessions/{session_id}/complete", {
+          params: { path: { session_id: sessionId } },
+          body: { status: choice, justification: choice === "absent" && justification ? justification : null },
+        }),
+      );
+      navigate("/finalizar", { state: { done: `${s.service_name} · ${s.student.name}` } });
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="page page-narrow">
+      <p className="small">
+        <Link to="/finalizar">← Aulas pendentes</Link>
+      </p>
+      <header className="page-header">
+        <div>
+          <div className="eyebrow">{fmtWeekday(s.date)}</div>
+          <h1>
+            {s.start_hour != null && `${fmtHour(s.start_hour)} · `}
+            {s.service_name}
+          </h1>
+          <p className="muted">
+            {s.room?.name} · {s.teacher?.name} · {money(s.price)}
+          </p>
+        </div>
+        <Badge tone="info">Serviço avulso</Badge>
+      </header>
+      {s.notes && <div className="alert alert-info">📝 {s.notes}</div>}
+
+      {!s.can_complete ? (
+        <div className="alert alert-info">
+          {s.completed_at ? "Esta sessão já foi finalizada." : s.status === "cancelled" ? "Sessão cancelada." : "A sessão ainda não começou."}{" "}
+          <Link to="/">Ver na agenda</Link>
+        </div>
+      ) : (
+        <>
+          <div className={`card finalize-row ${choice ? `is-${choice === "present" ? "present" : "absent"}` : ""}`}>
+            <div className="finalize-head">
+              <Link to={`/alunos/${s.student.id}`} className="roster-name">
+                {s.student.name}
+              </Link>
+              <div className="segmented" role="group" aria-label="Resultado da sessão">
+                <button type="button" className={`seg seg-present ${choice === "present" ? "is-on" : ""}`} onClick={() => setChoice("present")}>
+                  Presente
+                </button>
+                <button type="button" className={`seg seg-absent ${choice === "absent" ? "is-on" : ""}`} onClick={() => setChoice("absent")}>
+                  Falta
+                </button>
+              </div>
+            </div>
+            {choice === "absent" && (
+              <label className="field finalize-field">
+                <span>Justificativa (opcional)</span>
+                <input value={justification} onChange={(e) => setJustification(e.target.value)} maxLength={500} />
+              </label>
+            )}
+          </div>
+          {error && <ErrorBox message={error} />}
+          <div className="finalize-bar">
+            <span className="muted small">
+              Presente: o profissional recebe o percentual dele sobre {money(s.price)}. Falta: não gera valor.
+            </span>
+            <button className="btn btn-primary" disabled={!choice || busy} onClick={submit}>
+              {busy ? "Finalizando…" : "Finalizar sessão"}
+            </button>
+          </div>
+        </>
+      )}
+    </div>
+  );
 }
 
 // ---------- Lista de aulas pendentes ----------
@@ -66,19 +165,33 @@ function PendingList() {
                 </Badge>
               </div>
               <ul className="pending-list">
-                {entries.map((e) => (
-                  <li key={e.class_group_id}>
-                    <Link to={`/finalizar/${e.class_group_id}/${e.date}`} className="pending-item">
-                      <span className="pending-time">{fmtHour(hourOf(e.starts_at))}</span>
-                      <span>
-                        <span className="list-title">{e.room.name}</span>
-                        <span className="muted small"> · {e.teacher.name}</span>
-                      </span>
-                      <span className="muted small">{e.attendees_count} aluno(s)</span>
-                      <span className="btn btn-sm btn-primary">Finalizar</span>
-                    </Link>
-                  </li>
-                ))}
+                {entries.map((e) =>
+                  e.kind === "service" ? (
+                    <li key={`s-${e.service_session_id}`}>
+                      <Link to={`/finalizar/servico/${e.service_session_id}`} className="pending-item pending-service">
+                        <span className="pending-time">{fmtHour(hourOf(e.starts_at))}</span>
+                        <span>
+                          <span className="list-title">✚ {e.class_group_name}</span>
+                          <span className="muted small"> · {e.room.name} · {e.teacher.name}</span>
+                        </span>
+                        <span className="muted small">serviço</span>
+                        <span className="btn btn-sm btn-primary">Finalizar</span>
+                      </Link>
+                    </li>
+                  ) : (
+                    <li key={`l-${e.class_group_id}`}>
+                      <Link to={`/finalizar/${e.class_group_id}/${e.date}`} className="pending-item">
+                        <span className="pending-time">{fmtHour(hourOf(e.starts_at))}</span>
+                        <span>
+                          <span className="list-title">{e.room.name}</span>
+                          <span className="muted small"> · {e.teacher.name}</span>
+                        </span>
+                        <span className="muted small">{e.attendees_count} aluno(s)</span>
+                        <span className="btn btn-sm btn-primary">Finalizar</span>
+                      </Link>
+                    </li>
+                  ),
+                )}
               </ul>
             </section>
           );
@@ -204,6 +317,15 @@ function FinalizeForm({ groupId, date }: { groupId: number; date: string }) {
                       <div className="roster-meta">
                         {s.is_makeup && s.makeup_from && (
                           <Badge tone="warning">Reposição de {fmtDate(s.makeup_from.date)}</Badge>
+                        )}
+                        {s.reschedule_count > 0 && (
+                          <span
+                            className={`resched-count ${s.reschedule_count >= 2 ? "is-high" : ""}`}
+                            title="Quantas vezes esta aula já foi reagendada"
+                          >
+                            ↻ reagendada {s.reschedule_count}x
+                            {s.original_lesson && <> · original {fmtDate(s.original_lesson.date)}</>}
+                          </span>
                         )}
                         <span className={`small ${s.credits_remaining === 0 ? "text-danger" : "muted"}`}>
                           {s.credits_remaining === 0 ? "Sem aulas no plano" : `${s.credits_remaining} aula(s) no plano`}

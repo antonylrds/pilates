@@ -86,11 +86,18 @@ export function TeachersPage() {
                     <span className="muted small">
                       {money(t.pay_per_class)}/aula + {pct(t.student_share_percent)} por aluno
                       {Number(t.min_pay_per_lesson) > 0 && <> · mín. {money(t.min_pay_per_lesson)}</>}
+                      {" "}· serviços {pct(t.service_share_percent)}
                     </span>
                     <span className="small">
                       {t.lessons_given} aula(s) · {t.total_presences} presença(s)
                       {t.lessons_without_presence > 0 && (
                         <span className="muted"> · {t.lessons_without_presence} sem presença</span>
+                      )}
+                      {t.services.length > 0 && (
+                        <span className="muted">
+                          {" "}
+                          · ✚ {t.services_given} atendimento(s) {money(t.services_amount)}
+                        </span>
                       )}
                     </span>
                     <span className="teacher-amount">{money(t.amount)}</span>
@@ -153,6 +160,45 @@ export function TeachersPage() {
                     </tbody>
                   </table>
                 )}
+                {open === t.teacher.id && t.services.length > 0 && (
+                  <table className="table">
+                    <thead>
+                      <tr>
+                        <th>Data</th>
+                        <th>Serviço avulso</th>
+                        <th>Cliente</th>
+                        <th className="num">Valor ao profissional</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {t.services.map((s) => (
+                        <tr key={s.session_id}>
+                          <td>
+                            {fmtDate(s.date)} {fmtHour(s.start_hour)}
+                          </td>
+                          <td>
+                            ✚ {s.service_name} <span className="muted small">· {s.room}</span>
+                          </td>
+                          <td>
+                            {s.student.name}
+                            {!s.present && <span className="text-danger small"> · falta</span>}
+                          </td>
+                          <td className="num" title={`${pct(s.share_percent)} de ${money(s.price)}`}>
+                            {money(s.amount)}
+                          </td>
+                        </tr>
+                      ))}
+                      <tr>
+                        <td colSpan={3} className="muted small">
+                          Aulas {money(t.lessons_amount)} + serviços {money(t.services_amount)}
+                        </td>
+                        <td className="num">
+                          <strong>{money(t.amount)}</strong>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                )}
               </div>
             ))}
           </div>
@@ -178,6 +224,7 @@ function PayModal({ report, onClose, onSaved }: { report: Report; onClose: () =>
   const [perClass, setPerClass] = useState(report.pay_per_class);
   const [percent, setPercent] = useState(report.student_share_percent);
   const [minimum, setMinimum] = useState(report.min_pay_per_lesson);
+  const [servicePercent, setServicePercent] = useState(report.service_share_percent);
   const [error, setError] = useState<string>();
   const [busy, setBusy] = useState(false);
 
@@ -193,7 +240,12 @@ function PayModal({ report, onClose, onSaved }: { report: Report; onClose: () =>
       await call(
         api.PATCH("/api/v1/teachers/{teacher_id}", {
           params: { path: { teacher_id: report.teacher.id } },
-          body: { pay_per_class: perClass || "0", student_share_percent: percent || "0", min_pay_per_lesson: minimum || "0" },
+          body: {
+            pay_per_class: perClass || "0",
+            student_share_percent: percent || "0",
+            min_pay_per_lesson: minimum || "0",
+            service_share_percent: servicePercent || "0",
+          },
         }),
       );
       onSaved();
@@ -237,11 +289,18 @@ function PayModal({ report, onClose, onSaved }: { report: Report; onClose: () =>
             <small className="muted">Do valor de uma aula do plano do aluno</small>
           </label>
         </div>
-        <label className="field">
-          <span>Valor mínimo por aula</span>
-          {prefixed("R$", minimum, setMinimum)}
-          <small className="muted">Garantido por aula concluída, inclusive quando todos os alunos faltam</small>
-        </label>
+        <div className="form-row">
+          <label className="field">
+            <span>Valor mínimo por aula</span>
+            {prefixed("R$", minimum, setMinimum)}
+            <small className="muted">Garantido por aula concluída, inclusive quando todos os alunos faltam</small>
+          </label>
+          <label className="field">
+            <span>% em serviços avulsos</span>
+            {prefixed("%", servicePercent, setServicePercent, 100)}
+            <small className="muted">Do valor da sessão (fisioterapia, RPG…), quando o cliente comparece</small>
+          </label>
+        </div>
       </form>
 
       <div className="pay-examples">

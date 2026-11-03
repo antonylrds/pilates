@@ -9,6 +9,7 @@ const NAV = [
   { to: "/finalizar", label: "Finalizar aulas", icon: "✓", badge: "pending" },
   { to: "/salas", label: "Salas e turmas", icon: "▤" },
   { to: "/alunos", label: "Alunos", icon: "◉" },
+  { to: "/catalogo", label: "Planos e serviços", icon: "★" },
   { to: "/professores", label: "Professores", icon: "✦" },
   { to: "/avisos", label: "Avisos", icon: "◔", badge: "unread" },
 ] as const;

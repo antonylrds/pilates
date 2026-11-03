@@ -16,6 +16,8 @@ export function RenewPlanModal({ student, onClose, onSaved }: Props) {
   const [discountId, setDiscountId] = useState<number | "">("");
   const [startDate, setStartDate] = useState(todayISO());
   const [notes, setNotes] = useState("");
+  const [isPaid, setIsPaid] = useState(false);
+  const [paidAt, setPaidAt] = useState(todayISO());
   const [error, setError] = useState<string>();
   const [busy, setBusy] = useState(false);
 
@@ -54,6 +56,8 @@ export function RenewPlanModal({ student, onClose, onSaved }: Props) {
             plan_id: planId,
             discount_id: discountId === "" ? null : discountId,
             start_date: startDate,
+            is_paid: isPaid,
+            paid_at: isPaid ? paidAt : null,
             notes: notes || null,
           },
         }),
@@ -125,11 +129,23 @@ export function RenewPlanModal({ student, onClose, onSaved }: Props) {
             <span>Data da contratação</span>
             <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
           </label>
-          <label className="field">
-            <span>Observação (opcional)</span>
-            <input value={notes} onChange={(e) => setNotes(e.target.value)} maxLength={500} />
-          </label>
+          <div className="field">
+            <span>Pagamento</span>
+            <div className="paid-row">
+              <label className="check">
+                <input type="checkbox" checked={isPaid} onChange={(e) => setIsPaid(e.target.checked)} />
+                <span>Já foi pago</span>
+              </label>
+              {isPaid && (
+                <input type="date" value={paidAt} onChange={(e) => setPaidAt(e.target.value)} aria-label="Data do pagamento" />
+              )}
+            </div>
+          </div>
         </div>
+        <label className="field">
+          <span>Observação (opcional)</span>
+          <input value={notes} onChange={(e) => setNotes(e.target.value)} maxLength={500} />
+        </label>
       </form>
 
       {price.data && plan && (

@@ -4,6 +4,10 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { LessonPanel } from "../components/LessonPanel";
 import { PlanHistory } from "../components/PlanHistory";
 import { RenewPlanModal } from "../components/RenewPlanModal";
+import { RescheduleTracking } from "../components/RescheduleTracking";
+import { StudentFormModal } from "../components/StudentFormModal";
+import { AttendanceHistory, ChangeLog, ScheduleHistory } from "../components/StudentHistory";
+import { StudentServices } from "../components/StudentServices";
 import { Badge, Empty, ErrorBox, Loading } from "../components/ui";
 import { api, call } from "../lib/api";
 import { addDays, fmtDate, fmtHour, fmtShortDay, money, parseISO, toISO, todayISO } from "../lib/format";
@@ -15,6 +19,8 @@ export function StudentsPage() {
   const { studentId } = useParams();
   const navigate = useNavigate();
   const [q, setQ] = useState("");
+  const [creating, setCreating] = useState(false);
+  const { isAdmin } = useSession();
   const list = useAsync(
     () => call(api.GET("/api/v1/students", { params: { query: { q: q || undefined } } })),
     [q],
@@ -27,7 +33,22 @@ export function StudentsPage() {
           <h1>Alunos</h1>
           <p className="muted">{list.data ? `${list.data.length} aluno(s) ativo(s)` : " "}</p>
         </div>
+        {isAdmin && (
+          <button className="btn btn-primary" onClick={() => setCreating(true)}>
+            + Novo aluno
+          </button>
+        )}
       </header>
+      {creating && (
+        <StudentFormModal
+          onClose={() => setCreating(false)}
+          onSaved={(id) => {
+            setCreating(false);
+            list.reload();
+            navigate(`/alunos/${id}`);
+          }}
+        />
+      )}
 
       <div className="split">
         <section className="card list-card">
@@ -57,7 +78,11 @@ export function StudentsPage() {
         </section>
 
         <section className="detail">
-          {studentId ? <StudentDetail id={Number(studentId)} /> : <Empty>Selecione um aluno para ver a ficha.</Empty>}
+          {studentId ? (
+            <StudentDetail id={Number(studentId)} onEdited={list.reload} />
+          ) : (
+            <Empty>Selecione um aluno para ver a ficha.</Empty>
+          )}
         </section>
       </div>
     </div>
@@ -85,13 +110,15 @@ function nextOccurrence(weekday: number, startHour: number, startDate: string): 
   return toISO(base);
 }
 
-function StudentDetail({ id }: { id: number }) {
+function StudentDetail({ id, onEdited }: { id: number; onEdited: () => void }) {
   const student = useAsync(
     () => call(api.GET("/api/v1/students/{student_id}", { params: { path: { student_id: id } } })),
     [id],
   );
   const [lesson, setLesson] = useState<{ groupId: number; date: string } | null>(null);
   const [renewing, setRenewing] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [showScheduleHistory, setShowScheduleHistory] = useState(false);
   const [historyVersion, setHistoryVersion] = useState(0);
   const { isAdmin } = useSession();
   if (student.loading && !student.data) return <Loading />;
@@ -99,16 +126,36 @@ function StudentDetail({ id }: { id: number }) {
   const s = student.data!;
   const sub = s.subscription;
   const usedPct = sub ? Math.min(100, (sub.credits_used / sub.total_classes) * 100) : 0;
+  const refresh = () => {
+    student.reload();
+    setHistoryVersion((v) => v + 1);
+  };
 
   return (
     <div className="stack">
       <div className="card profile">
         <span className="avatar avatar-lg">{initials(s.name)}</span>
-        <div>
+        <div className="profile-main">
           <h2>{s.name}</h2>
           <p className="muted small">Aluno desde {fmtDate(s.created_at.slice(0, 10))}</p>
         </div>
+        {isAdmin && (
+          <button className="btn" onClick={() => setEditing(true)}>
+            ✎ Editar
+          </button>
+        )}
       </div>
+      {editing && (
+        <StudentFormModal
+          student={s}
+          onClose={() => setEditing(false)}
+          onSaved={() => {
+            setEditing(false);
+            refresh();
+            onEdited();
+          }}
+        />
+      )}
 
       {s.needs_renewal && (
         <div className="alert alert-warning">
@@ -166,6 +213,13 @@ function StudentDetail({ id }: { id: number }) {
                   </>
                 )}{" "}
                 · {money(sub.price_per_lesson)}/aula · contratado em {fmtDate(sub.start_date)}
+              </p>
+              <p className="small">
+                {sub.is_paid ? (
+                  <Badge tone="success">Pago{sub.paid_at && ` em ${fmtDate(sub.paid_at)}`}</Badge>
+                ) : (
+                  <Badge tone="warning">Pagamento pendente</Badge>
+                )}
               </p>
               {s.queued_subscriptions.length > 0 && (
                 <div className="queued">
@@ -231,7 +285,7 @@ function StudentDetail({ id }: { id: number }) {
                     <span className="slot-time">{fmtHour(m.start_hour)}</span>
                     <span className="muted small">{m.room}</span>
                     <span className="slot-next">
-                      Ver aula <span aria-hidden>›</span>
+                      ↻ {m.reschedule_count}x · original {fmtDate(m.original_date)} <span aria-hidden>›</span>
                     </span>
                   </button>
                 </li>
@@ -239,9 +293,34 @@ function StudentDetail({ id }: { id: number }) {
             </ul>
           </>
         )}
+        <button className="btn btn-ghost btn-sm history-toggle" onClick={() => setShowScheduleHistory((v) => !v)}>
+          {showScheduleHistory ? "▴ Ocultar histórico de horários" : "▾ Histórico de horários"}
+        </button>
+        {showScheduleHistory && <ScheduleHistory studentId={s.id} version={historyVersion} />}
       </div>
 
+      <AttendanceHistory
+        studentId={s.id}
+        version={historyVersion}
+        onOpenLesson={(groupId, date) => setLesson({ groupId, date })}
+      />
+
+      <RescheduleTracking
+        studentId={s.id}
+        version={historyVersion}
+        onOpenLesson={(groupId, date) => setLesson({ groupId, date })}
+      />
+
       <PlanHistory studentId={s.id} version={historyVersion} />
+
+      <StudentServices
+        studentId={s.id}
+        active={s.is_active}
+        version={historyVersion}
+        onChanged={() => setHistoryVersion((v) => v + 1)}
+      />
+
+      <ChangeLog studentId={s.id} version={historyVersion} />
 
       {lesson && (
         <LessonPanel

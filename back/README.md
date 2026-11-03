@@ -60,7 +60,7 @@ cancelamento e substituição apenas nas próprias aulas; vê apenas o próprio 
 | Horário padrão | O aluno escolhe até N turmas (N = aulas/semana do plano), sem dois horários iguais e respeitando a lotação. `PUT /students/{id}/schedule` altera a partir de uma data, sem mexer no histórico. |
 | Aula | Ocorrência da turma em uma data. Status: `confirmed` (há alunos previstos), `inactive` (nenhum aluno), `cancelled` ou `completed` (finalizada). |
 | Finalização | Depois que a aula começa, o professor informa `present`, `absent` ou `rescheduled` para **todos** os alunos (justificativa opcional em falta/reagendamento) e a aula fica `completed`. Só então presenças são registradas e aulas do plano debitadas (falta também debita, configurável: `absence_consumes_credit`). Admin pode reabrir, devolvendo os débitos. |
-| Reagendamento | Move o aluno para outra aula (reposição) sem alterar o horário padrão e sem consumir aula; a reposição consome quando a aula de destino for finalizada. Pode ser feito antes da aula ou na finalização. |
+| Reagendamento | Move o aluno para outra aula (reposição) sem alterar o horário padrão e sem consumir aula; a reposição consome quando a aula de destino for finalizada. Pode ser feito antes da aula ou na finalização. Uma reposição pode ser reagendada de novo; `GET /students/{id}/reschedules` mostra cada aula original e quantas vezes foi reagendada. |
 | Renovação | Renovar antes do fim: o plano em uso continua sendo debitado até acabar; o novo fica `queued` e assume em seguida. Quando o último plano com aulas acaba, é criada a notificação `plan_exhausted`; aula registrada sem saldo gera `no_credits`. Nome, preço, desconto e aulas ficam congelados na contratação (histórico em `GET /students/{id}/subscriptions`). |
 | Professor | Por aula **concluída**: `pay_per_class` + para cada presente `student_share_percent` (padrão 40%) × preço pago no plano ÷ aulas do plano, nunca abaixo de `min_pay_per_lesson`; se todos faltarem, recebe o mínimo. O valor é **congelado na conclusão** (mudar a remuneração não altera o histórico). Aulas não concluídas não contam. Substituições contam para quem deu a aula. |
 
@@ -76,7 +76,14 @@ cancelamento e substituição apenas nas próprias aulas; vê apenas o próprio 
 | `/students` | Cadastro (pode já incluir plano e turmas), ficha completa em `GET /students/{id}` |
 | `/students/{id}/subscriptions` | Vincular/renovar/cancelar plano |
 | `/students/{id}/schedule` | Ver/alterar turmas padrão |
-| `/students/{id}/attendances` | Histórico de presenças |
+| `/students/{id}/attendances` | Histórico de aulas (independe do horário atual) |
+| `/students/{id}/schedule/history` | Histórico de horários padrão (atuais, futuros, encerrados) |
+| `/students/{id}/history` | Registro de alterações: o que mudou, quem e quando |
+| `/students/{id}/subscriptions/{sid}/payment` | Marca o plano como pago/pendente |
+| `/services` | Catálogo de serviços avulsos (fisioterapia, RPG…) |
+| `/catalog/overview` | Uso de cada plano (em uso, na fila, pendentes) e serviço (contratos, sessões futuras) |
+| `/students/{id}/services` | Serviços avulsos do aluno: contratar (sala, profissional, horário, valor editável, recorrência opcional), histórico, observações, cancelar |
+| `/service-sessions/{id}` | Sessão de serviço: detalhe, `complete` (presente/falta), `reopen` (admin) |
 | `/class-groups` | Turmas (com alunos no detalhe) |
 | `/calendar?date_from&date_to&room_id&teacher_id` | Aulas por data/hora (padrão: semana atual) |
 | `/lessons/{class_group_id}/{date}` | Detalhe da aula: alunos, professor, dia, hora, status |

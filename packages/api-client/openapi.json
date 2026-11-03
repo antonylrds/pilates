@@ -1225,7 +1225,7 @@
         "tags": [
           "rooms, plans & discounts"
         ],
-        "summary": "Update Discount",
+        "summary": "Altera o desconto (não afeta planos já contratados)",
         "operationId": "update_discount_api_v1_discounts__discount_id__patch",
         "security": [
           {
@@ -1301,6 +1301,646 @@
         "responses": {
           "204": {
             "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/catalog/overview": {
+      "get": {
+        "tags": [
+          "rooms, plans & discounts"
+        ],
+        "summary": "Uso de cada plano e serviço avulso (alunos em uso, na fila, pagamentos pendentes)",
+        "operationId": "catalog_overview_api_v1_catalog_overview_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CatalogOverview"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "Studio": []
+          }
+        ]
+      }
+    },
+    "/api/v1/services": {
+      "get": {
+        "tags": [
+          "extra services"
+        ],
+        "summary": "Catálogo de serviços avulsos",
+        "operationId": "list_services_api_v1_services_get",
+        "security": [
+          {
+            "Studio": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "is_active",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": true,
+              "title": "Is Active"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ServiceRead"
+                  },
+                  "title": "Response List Services Api V1 Services Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "extra services"
+        ],
+        "summary": "Create Service",
+        "operationId": "create_service_api_v1_services_post",
+        "security": [
+          {
+            "Studio": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ServiceCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/services/{service_id}": {
+      "patch": {
+        "tags": [
+          "extra services"
+        ],
+        "summary": "Altera o serviço (não afeta contratações já feitas)",
+        "operationId": "update_service_api_v1_services__service_id__patch",
+        "security": [
+          {
+            "Studio": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "service_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Service Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ServiceUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/students/{student_id}/services": {
+      "get": {
+        "tags": [
+          "extra services"
+        ],
+        "summary": "Histórico de serviços avulsos do aluno",
+        "operationId": "student_services_api_v1_students__student_id__services_get",
+        "security": [
+          {
+            "Studio": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "student_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Student Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ServiceContractRead"
+                  },
+                  "title": "Response Student Services Api V1 Students  Student Id  Services Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "extra services"
+        ],
+        "summary": "Contrata um serviço avulso (valor do catálogo ou alterado; recorrência opcional)",
+        "operationId": "contract_api_v1_students__student_id__services_post",
+        "security": [
+          {
+            "Studio": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "student_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Student Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ServiceContractCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceContractRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/students/{student_id}/services/{contract_id}": {
+      "patch": {
+        "tags": [
+          "extra services"
+        ],
+        "summary": "Altera observações e pagamento de um serviço contratado",
+        "operationId": "update_contract_api_v1_students__student_id__services__contract_id__patch",
+        "security": [
+          {
+            "Studio": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "student_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Student Id"
+            }
+          },
+          {
+            "name": "contract_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Contract Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ServiceContractUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceContractRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/students/{student_id}/services/{contract_id}/cancel": {
+      "post": {
+        "tags": [
+          "extra services"
+        ],
+        "summary": "Cancela o serviço contratado e as sessões futuras",
+        "operationId": "cancel_api_v1_students__student_id__services__contract_id__cancel_post",
+        "security": [
+          {
+            "Studio": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "student_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Student Id"
+            }
+          },
+          {
+            "name": "contract_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Contract Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceContractRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/students/{student_id}/services/{contract_id}/sessions/{session_id}": {
+      "patch": {
+        "tags": [
+          "extra services"
+        ],
+        "summary": "Cancela ou reativa uma sessão ainda não finalizada",
+        "operationId": "update_session_api_v1_students__student_id__services__contract_id__sessions__session_id__patch",
+        "security": [
+          {
+            "Studio": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "student_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Student Id"
+            }
+          },
+          {
+            "name": "contract_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Contract Id"
+            }
+          },
+          {
+            "name": "session_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Session Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ServiceSessionUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceContractRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/service-sessions/{session_id}": {
+      "get": {
+        "tags": [
+          "extra services"
+        ],
+        "summary": "Detalhe da sessão de serviço",
+        "operationId": "get_session_api_v1_service_sessions__session_id__get",
+        "security": [
+          {
+            "Studio": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "session_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Session Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceSessionDetail"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/service-sessions/{session_id}/complete": {
+      "post": {
+        "tags": [
+          "extra services"
+        ],
+        "summary": "Finaliza a sessão (presente/falta); presente gera % do valor ao profissional",
+        "operationId": "complete_api_v1_service_sessions__session_id__complete_post",
+        "security": [
+          {
+            "Studio": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "session_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Session Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ServiceSessionComplete"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceSessionDetail"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/service-sessions/{session_id}/reopen": {
+      "post": {
+        "tags": [
+          "extra services"
+        ],
+        "summary": "Reabre uma sessão finalizada (admin)",
+        "operationId": "reopen_api_v1_service_sessions__session_id__reopen_post",
+        "security": [
+          {
+            "Studio": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "session_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Session Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceSessionDetail"
+                }
+              }
+            }
           },
           "422": {
             "description": "Validation Error",
@@ -1656,7 +2296,7 @@
         "tags": [
           "students"
         ],
-        "summary": "Cadastra aluno (opcionalmente já com plano e turmas padrão)",
+        "summary": "Cadastra aluno (opcionalmente já com plano, pagamento e turmas padrão)",
         "operationId": "create_student_api_v1_students_post",
         "security": [
           {
@@ -1747,7 +2387,7 @@
         "tags": [
           "students"
         ],
-        "summary": "Update Student",
+        "summary": "Altera os dados do aluno (registra a alteração)",
         "operationId": "update_student_api_v1_students__student_id__patch",
         "security": [
           {
@@ -1938,7 +2578,7 @@
         "tags": [
           "students"
         ],
-        "summary": "Vincula/renova o plano do aluno (com desconto opcional)",
+        "summary": "Vincula/renova o plano do aluno (com desconto e pagamento opcionais)",
         "description": "Renovação antecipada: o plano em uso continua sendo debitado até acabar as aulas; o novo começa a contar em seguida (usage = queued até lá).",
         "operationId": "add_subscription_api_v1_students__student_id__subscriptions_post",
         "security": [
@@ -2047,6 +2687,72 @@
         }
       }
     },
+    "/api/v1/students/{student_id}/subscriptions/{subscription_id}/payment": {
+      "patch": {
+        "tags": [
+          "students"
+        ],
+        "summary": "Marca o plano como pago ou pendente",
+        "operationId": "update_payment_api_v1_students__student_id__subscriptions__subscription_id__payment_patch",
+        "security": [
+          {
+            "Studio": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "student_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Student Id"
+            }
+          },
+          {
+            "name": "subscription_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Subscription Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SubscriptionPayment"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubscriptionRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/students/{student_id}/schedule": {
       "get": {
         "tags": [
@@ -2101,7 +2807,7 @@
         "tags": [
           "students"
         ],
-        "summary": "Altera as turmas padrão do aluno a partir de uma data",
+        "summary": "Altera as turmas padrão do aluno a partir de uma data (registra a alteração)",
         "operationId": "update_schedule_api_v1_students__student_id__schedule_put",
         "security": [
           {
@@ -2136,6 +2842,169 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/StudentDetail"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/students/{student_id}/schedule/history": {
+      "get": {
+        "tags": [
+          "students"
+        ],
+        "summary": "Histórico de horários padrão (atuais, futuros e encerrados)",
+        "operationId": "schedule_history_api_v1_students__student_id__schedule_history_get",
+        "security": [
+          {
+            "Studio": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "student_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Student Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ScheduleHistoryItem"
+                  },
+                  "title": "Response Schedule History Api V1 Students  Student Id  Schedule History Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/students/{student_id}/history": {
+      "get": {
+        "tags": [
+          "students"
+        ],
+        "summary": "Registro de alterações do aluno: o que mudou, quem fez e quando",
+        "operationId": "change_history_api_v1_students__student_id__history_get",
+        "security": [
+          {
+            "Studio": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "student_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Student Id"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 100,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AuditLogRead"
+                  },
+                  "title": "Response Change History Api V1 Students  Student Id  History Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/students/{student_id}/reschedules": {
+      "get": {
+        "tags": [
+          "students"
+        ],
+        "summary": "Acompanhamento dos reagendamentos: cada aula original e quantas vezes foi reagendada",
+        "operationId": "student_reschedules_api_v1_students__student_id__reschedules_get",
+        "security": [
+          {
+            "Studio": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "student_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Student Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/RescheduleChain"
+                  },
+                  "title": "Response Student Reschedules Api V1 Students  Student Id  Reschedules Get"
                 }
               }
             }
@@ -3435,6 +4304,55 @@
         ],
         "title": "AttendanceStatus"
       },
+      "AuditLogRead": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "action": {
+            "type": "string",
+            "title": "Action"
+          },
+          "description": {
+            "type": "string",
+            "title": "Description"
+          },
+          "changes": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Changes"
+          },
+          "user_name": {
+            "type": "string",
+            "title": "User Name",
+            "description": "Quem fez a alteração"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At",
+            "description": "Quando"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "action",
+          "description",
+          "changes",
+          "user_name",
+          "created_at"
+        ],
+        "title": "AuditLogRead"
+      },
       "Body_login_form_api_v1_auth_token_post": {
         "properties": {
           "grant_type": {
@@ -3496,13 +4414,54 @@
       },
       "CalendarEntry": {
         "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "lesson",
+              "service"
+            ],
+            "title": "Kind",
+            "description": "Aula de turma ou sessão de serviço avulso",
+            "default": "lesson"
+          },
           "class_group_id": {
-            "type": "integer",
-            "title": "Class Group Id"
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Class Group Id",
+            "description": "Nulo em sessões de serviço"
           },
           "class_group_name": {
             "type": "string",
-            "title": "Class Group Name"
+            "title": "Class Group Name",
+            "description": "Turma ou 'Serviço · Aluno'"
+          },
+          "service_session_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Service Session Id"
+          },
+          "student": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/StudentSummary"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Cliente (sessões de serviço)"
           },
           "lesson_id": {
             "anyOf": [
@@ -3581,6 +4540,30 @@
           "status"
         ],
         "title": "CalendarEntry"
+      },
+      "CatalogOverview": {
+        "properties": {
+          "plans": {
+            "items": {
+              "$ref": "#/components/schemas/PlanUsage"
+            },
+            "type": "array",
+            "title": "Plans"
+          },
+          "services": {
+            "items": {
+              "$ref": "#/components/schemas/ServiceUsage"
+            },
+            "type": "array",
+            "title": "Services"
+          }
+        },
+        "type": "object",
+        "required": [
+          "plans",
+          "services"
+        ],
+        "title": "CatalogOverview"
       },
       "ClassGroupCreate": {
         "properties": {
@@ -4091,6 +5074,43 @@
             ],
             "title": "Name"
           },
+          "kind": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DiscountKind"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "value": {
+            "anyOf": [
+              {
+                "type": "number",
+                "exclusiveMinimum": 0.0
+              },
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value"
+          },
+          "plan_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Plan Id",
+            "description": "Restringe a um plano; envie null para valer para todos"
+          },
           "is_active": {
             "anyOf": [
               {
@@ -4104,7 +5124,8 @@
           }
         },
         "type": "object",
-        "title": "DiscountUpdate"
+        "title": "DiscountUpdate",
+        "description": "Alterar o desconto vale só para novas contratações (o valor já aplicado fica congelado)."
       },
       "HTTPValidationError": {
         "properties": {
@@ -4156,13 +5177,54 @@
       },
       "LessonDetail": {
         "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "lesson",
+              "service"
+            ],
+            "title": "Kind",
+            "description": "Aula de turma ou sessão de serviço avulso",
+            "default": "lesson"
+          },
           "class_group_id": {
-            "type": "integer",
-            "title": "Class Group Id"
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Class Group Id",
+            "description": "Nulo em sessões de serviço"
           },
           "class_group_name": {
             "type": "string",
-            "title": "Class Group Name"
+            "title": "Class Group Name",
+            "description": "Turma ou 'Serviço · Aluno'"
+          },
+          "service_session_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Service Session Id"
+          },
+          "student": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/StudentSummary"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Cliente (sessões de serviço)"
           },
           "lesson_id": {
             "anyOf": [
@@ -4711,6 +5773,37 @@
         "type": "object",
         "title": "PlanUpdate"
       },
+      "PlanUsage": {
+        "properties": {
+          "plan_id": {
+            "type": "integer",
+            "title": "Plan Id"
+          },
+          "in_use": {
+            "type": "integer",
+            "title": "In Use",
+            "description": "Alunos com este plano em uso"
+          },
+          "queued": {
+            "type": "integer",
+            "title": "Queued",
+            "description": "Renovações antecipadas aguardando"
+          },
+          "unpaid": {
+            "type": "integer",
+            "title": "Unpaid",
+            "description": "Contratações ativas com pagamento pendente"
+          }
+        },
+        "type": "object",
+        "required": [
+          "plan_id",
+          "in_use",
+          "queued",
+          "unpaid"
+        ],
+        "title": "PlanUsage"
+      },
       "PlatformLogin": {
         "properties": {
           "email": {
@@ -4831,6 +5924,47 @@
         ],
         "title": "PricePreview"
       },
+      "RescheduleChain": {
+        "properties": {
+          "original_lesson": {
+            "$ref": "#/components/schemas/LessonRef",
+            "description": "Aula do horário padrão que foi reagendada"
+          },
+          "reschedule_count": {
+            "type": "integer",
+            "title": "Reschedule Count"
+          },
+          "steps": {
+            "items": {
+              "$ref": "#/components/schemas/RescheduleStep"
+            },
+            "type": "array",
+            "title": "Steps"
+          },
+          "current_lesson": {
+            "$ref": "#/components/schemas/LessonRef",
+            "description": "Onde a aula está agora"
+          },
+          "current_status": {
+            "$ref": "#/components/schemas/AttendanceStatus"
+          },
+          "current_completed": {
+            "type": "boolean",
+            "title": "Current Completed"
+          }
+        },
+        "type": "object",
+        "required": [
+          "original_lesson",
+          "reschedule_count",
+          "steps",
+          "current_lesson",
+          "current_status",
+          "current_completed"
+        ],
+        "title": "RescheduleChain",
+        "description": "Acompanhamento dos reagendamentos de uma aula específica do aluno."
+      },
       "RescheduleRequest": {
         "properties": {
           "student_id": {
@@ -4866,6 +6000,47 @@
           "target_date"
         ],
         "title": "RescheduleRequest"
+      },
+      "RescheduleStep": {
+        "properties": {
+          "from_lesson": {
+            "$ref": "#/components/schemas/LessonRef"
+          },
+          "to_lesson": {
+            "$ref": "#/components/schemas/LessonRef"
+          },
+          "justification": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Justification"
+          },
+          "rescheduled_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rescheduled At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "from_lesson",
+          "to_lesson",
+          "justification",
+          "rescheduled_at"
+        ],
+        "title": "RescheduleStep"
       },
       "RoomCreate": {
         "properties": {
@@ -5022,6 +6197,23 @@
               }
             ]
           },
+          "reschedule_count": {
+            "type": "integer",
+            "title": "Reschedule Count",
+            "description": "Quantas vezes a aula original deste aluno já foi reagendada",
+            "default": 0
+          },
+          "original_lesson": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/LessonRef"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Aula original (horário padrão), se for reposição"
+          },
           "credits_remaining": {
             "type": "integer",
             "title": "Credits Remaining"
@@ -5035,6 +6227,79 @@
           "credits_remaining"
         ],
         "title": "RosterEntry"
+      },
+      "ScheduleHistoryItem": {
+        "properties": {
+          "enrollment_id": {
+            "type": "integer",
+            "title": "Enrollment Id"
+          },
+          "class_group_id": {
+            "type": "integer",
+            "title": "Class Group Id"
+          },
+          "class_group_name": {
+            "type": "string",
+            "title": "Class Group Name"
+          },
+          "weekday_name": {
+            "type": "string",
+            "title": "Weekday Name"
+          },
+          "start_hour": {
+            "type": "integer",
+            "title": "Start Hour"
+          },
+          "room": {
+            "type": "string",
+            "title": "Room"
+          },
+          "teacher": {
+            "type": "string",
+            "title": "Teacher"
+          },
+          "start_date": {
+            "type": "string",
+            "format": "date",
+            "title": "Start Date"
+          },
+          "end_date": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "End Date"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "current",
+              "future",
+              "ended"
+            ],
+            "title": "Status"
+          }
+        },
+        "type": "object",
+        "required": [
+          "enrollment_id",
+          "class_group_id",
+          "class_group_name",
+          "weekday_name",
+          "start_hour",
+          "room",
+          "teacher",
+          "start_date",
+          "end_date",
+          "status"
+        ],
+        "title": "ScheduleHistoryItem",
+        "description": "Um horário padrão do aluno e o período em que valeu."
       },
       "ScheduleItem": {
         "properties": {
@@ -5126,6 +6391,829 @@
         ],
         "title": "ScheduleUpdate"
       },
+      "ServiceContractCreate": {
+        "properties": {
+          "service_id": {
+            "type": "integer",
+            "title": "Service Id"
+          },
+          "room_id": {
+            "type": "integer",
+            "title": "Room Id",
+            "description": "Sala ocupada pelas sessões"
+          },
+          "teacher_id": {
+            "type": "integer",
+            "title": "Teacher Id",
+            "description": "Profissional que atende"
+          },
+          "start_hour": {
+            "type": "integer",
+            "maximum": 23.0,
+            "minimum": 0.0,
+            "title": "Start Hour",
+            "description": "Hora de início (sessões de 1h)"
+          },
+          "price": {
+            "anyOf": [
+              {
+                "type": "number",
+                "minimum": 0.0
+              },
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Price",
+            "description": "Valor por sessão (padrão: valor do catálogo)"
+          },
+          "recurrence": {
+            "$ref": "#/components/schemas/ServiceRecurrence",
+            "description": "Padrão: sem recorrência",
+            "default": "none"
+          },
+          "occurrences": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 52.0,
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Occurrences",
+            "description": "Nº de sessões (recorrente; padrão 4)"
+          },
+          "start_date": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Start Date",
+            "description": "Data da (primeira) sessão; padrão: hoje"
+          },
+          "is_paid": {
+            "type": "boolean",
+            "title": "Is Paid",
+            "default": false
+          },
+          "paid_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Paid At"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 2000
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          }
+        },
+        "type": "object",
+        "required": [
+          "service_id",
+          "room_id",
+          "teacher_id",
+          "start_hour"
+        ],
+        "title": "ServiceContractCreate"
+      },
+      "ServiceContractRead": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "student_id": {
+            "type": "integer",
+            "title": "Student Id"
+          },
+          "service_id": {
+            "type": "integer",
+            "title": "Service Id"
+          },
+          "service_name": {
+            "type": "string",
+            "title": "Service Name",
+            "description": "Nome do serviço na contratação"
+          },
+          "list_price": {
+            "type": "string",
+            "title": "List Price",
+            "description": "Valor do catálogo na contratação"
+          },
+          "price": {
+            "type": "string",
+            "title": "Price",
+            "description": "Valor combinado por sessão"
+          },
+          "price_changed": {
+            "type": "boolean",
+            "title": "Price Changed"
+          },
+          "total_price": {
+            "type": "string",
+            "title": "Total Price"
+          },
+          "recurrence": {
+            "$ref": "#/components/schemas/ServiceRecurrence"
+          },
+          "occurrences": {
+            "type": "integer",
+            "title": "Occurrences"
+          },
+          "start_date": {
+            "type": "string",
+            "format": "date",
+            "title": "Start Date"
+          },
+          "start_hour": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Start Hour"
+          },
+          "room": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RoomSummary"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "teacher": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TeacherSummary"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "status": {
+            "$ref": "#/components/schemas/ServiceContractStatus"
+          },
+          "situation": {
+            "type": "string",
+            "enum": [
+              "active",
+              "completed",
+              "cancelled"
+            ],
+            "title": "Situation"
+          },
+          "done_count": {
+            "type": "integer",
+            "title": "Done Count"
+          },
+          "next_date": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Date"
+          },
+          "is_paid": {
+            "type": "boolean",
+            "title": "Is Paid"
+          },
+          "paid_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Paid At"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "sessions": {
+            "items": {
+              "$ref": "#/components/schemas/ServiceSessionRead"
+            },
+            "type": "array",
+            "title": "Sessions"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "student_id",
+          "service_id",
+          "service_name",
+          "list_price",
+          "price",
+          "price_changed",
+          "total_price",
+          "recurrence",
+          "occurrences",
+          "start_date",
+          "start_hour",
+          "room",
+          "teacher",
+          "status",
+          "situation",
+          "done_count",
+          "next_date",
+          "is_paid",
+          "paid_at",
+          "notes",
+          "created_at",
+          "sessions"
+        ],
+        "title": "ServiceContractRead"
+      },
+      "ServiceContractStatus": {
+        "type": "string",
+        "enum": [
+          "active",
+          "cancelled"
+        ],
+        "title": "ServiceContractStatus"
+      },
+      "ServiceContractUpdate": {
+        "properties": {
+          "notes": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 2000
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          },
+          "is_paid": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Is Paid"
+          },
+          "paid_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Paid At"
+          }
+        },
+        "type": "object",
+        "title": "ServiceContractUpdate",
+        "description": "Após a contratação o valor fica congelado; dá para alterar observações e pagamento."
+      },
+      "ServiceCreate": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 120,
+            "minLength": 2,
+            "title": "Name"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "price": {
+            "anyOf": [
+              {
+                "type": "number",
+                "minimum": 0.0
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "title": "Price",
+            "description": "Valor padrão por sessão"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "price"
+        ],
+        "title": "ServiceCreate"
+      },
+      "ServiceRead": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "price": {
+            "type": "string",
+            "title": "Price"
+          },
+          "is_active": {
+            "type": "boolean",
+            "title": "Is Active"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "description",
+          "price",
+          "is_active",
+          "created_at"
+        ],
+        "title": "ServiceRead"
+      },
+      "ServiceRecurrence": {
+        "type": "string",
+        "enum": [
+          "none",
+          "weekly",
+          "biweekly",
+          "monthly"
+        ],
+        "title": "ServiceRecurrence"
+      },
+      "ServiceSessionComplete": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "present",
+              "absent"
+            ],
+            "title": "Status"
+          },
+          "justification": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 500
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Justification",
+            "description": "Justificativa opcional da falta"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status"
+        ],
+        "title": "ServiceSessionComplete"
+      },
+      "ServiceSessionDetail": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "date": {
+            "type": "string",
+            "format": "date",
+            "title": "Date"
+          },
+          "start_hour": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Start Hour"
+          },
+          "room": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RoomSummary"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "teacher": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TeacherSummary"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "status": {
+            "$ref": "#/components/schemas/ServiceSessionStatus"
+          },
+          "justification": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Justification"
+          },
+          "completed_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Completed At"
+          },
+          "share_percent": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Share Percent",
+            "description": "% do profissional congelado na finalização"
+          },
+          "teacher_pay": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Teacher Pay",
+            "description": "Valor gerado ao profissional (congelado na finalização)"
+          },
+          "contract_id": {
+            "type": "integer",
+            "title": "Contract Id"
+          },
+          "service_name": {
+            "type": "string",
+            "title": "Service Name"
+          },
+          "student": {
+            "$ref": "#/components/schemas/StudentSummary"
+          },
+          "price": {
+            "type": "string",
+            "title": "Price"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          },
+          "can_complete": {
+            "type": "boolean",
+            "title": "Can Complete"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "date",
+          "start_hour",
+          "room",
+          "teacher",
+          "status",
+          "justification",
+          "completed_at",
+          "share_percent",
+          "teacher_pay",
+          "contract_id",
+          "service_name",
+          "student",
+          "price",
+          "notes",
+          "can_complete"
+        ],
+        "title": "ServiceSessionDetail",
+        "description": "Sessão com os dados da contratação (agenda e finalização)."
+      },
+      "ServiceSessionRead": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "date": {
+            "type": "string",
+            "format": "date",
+            "title": "Date"
+          },
+          "start_hour": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Start Hour"
+          },
+          "room": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RoomSummary"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "teacher": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TeacherSummary"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "status": {
+            "$ref": "#/components/schemas/ServiceSessionStatus"
+          },
+          "justification": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Justification"
+          },
+          "completed_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Completed At"
+          },
+          "share_percent": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Share Percent",
+            "description": "% do profissional congelado na finalização"
+          },
+          "teacher_pay": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Teacher Pay",
+            "description": "Valor gerado ao profissional (congelado na finalização)"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "date",
+          "start_hour",
+          "room",
+          "teacher",
+          "status",
+          "justification",
+          "completed_at",
+          "share_percent",
+          "teacher_pay"
+        ],
+        "title": "ServiceSessionRead"
+      },
+      "ServiceSessionStatus": {
+        "type": "string",
+        "enum": [
+          "scheduled",
+          "done",
+          "missed",
+          "cancelled"
+        ],
+        "title": "ServiceSessionStatus"
+      },
+      "ServiceSessionUpdate": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "scheduled",
+              "cancelled"
+            ],
+            "title": "Status"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status"
+        ],
+        "title": "ServiceSessionUpdate",
+        "description": "Cancela ou reativa uma sessão ainda não finalizada (finalização é por /complete)."
+      },
+      "ServiceUpdate": {
+        "properties": {
+          "name": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 120,
+                "minLength": 2
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "price": {
+            "anyOf": [
+              {
+                "type": "number",
+                "minimum": 0.0
+              },
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Price"
+          },
+          "is_active": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Is Active"
+          }
+        },
+        "type": "object",
+        "title": "ServiceUpdate"
+      },
+      "ServiceUsage": {
+        "properties": {
+          "service_id": {
+            "type": "integer",
+            "title": "Service Id"
+          },
+          "active_contracts": {
+            "type": "integer",
+            "title": "Active Contracts"
+          },
+          "upcoming_sessions": {
+            "type": "integer",
+            "title": "Upcoming Sessions",
+            "description": "Sessões agendadas de hoje em diante"
+          }
+        },
+        "type": "object",
+        "required": [
+          "service_id",
+          "active_contracts",
+          "upcoming_sessions"
+        ],
+        "title": "ServiceUsage"
+      },
       "StudentAttendanceRead": {
         "properties": {
           "lesson": {
@@ -5144,6 +7232,11 @@
               }
             ],
             "title": "Justification"
+          },
+          "reschedule_count": {
+            "type": "integer",
+            "title": "Reschedule Count",
+            "default": 0
           },
           "is_makeup": {
             "type": "boolean",
@@ -5943,6 +8036,25 @@
             "title": "Start Date",
             "description": "Padrão: hoje"
           },
+          "is_paid": {
+            "type": "boolean",
+            "title": "Is Paid",
+            "description": "O plano já foi pago",
+            "default": false
+          },
+          "paid_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Paid At",
+            "description": "Data do pagamento (padrão: hoje, se pago)"
+          },
           "notes": {
             "anyOf": [
               {
@@ -5960,6 +8072,32 @@
           "plan_id"
         ],
         "title": "SubscriptionCreate"
+      },
+      "SubscriptionPayment": {
+        "properties": {
+          "is_paid": {
+            "type": "boolean",
+            "title": "Is Paid"
+          },
+          "paid_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Paid At",
+            "description": "Padrão: hoje, se pago"
+          }
+        },
+        "type": "object",
+        "required": [
+          "is_paid"
+        ],
+        "title": "SubscriptionPayment"
       },
       "SubscriptionRead": {
         "properties": {
@@ -6043,6 +8181,22 @@
           "status": {
             "$ref": "#/components/schemas/SubscriptionStatus"
           },
+          "is_paid": {
+            "type": "boolean",
+            "title": "Is Paid"
+          },
+          "paid_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Paid At"
+          },
           "usage": {
             "$ref": "#/components/schemas/SubscriptionUsage",
             "description": "in_use | queued (renovação antecipada) | finished | cancelled"
@@ -6114,6 +8268,8 @@
           "final_price",
           "price_per_lesson",
           "status",
+          "is_paid",
+          "paid_at",
           "usage",
           "credits_used",
           "credits_remaining",
@@ -6226,6 +8382,21 @@
             "title": "Min Pay Per Lesson",
             "description": "Valor mínimo por aula concluída (pago mesmo se todos faltarem)",
             "default": "0"
+          },
+          "service_share_percent": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 100.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "title": "Service Share Percent",
+            "description": "% do valor da sessão de serviço avulso pago ao profissional",
+            "default": "40"
           }
         },
         "type": "object",
@@ -6336,6 +8507,10 @@
             "type": "string",
             "title": "Min Pay Per Lesson"
           },
+          "service_share_percent": {
+            "type": "string",
+            "title": "Service Share Percent"
+          },
           "lessons_given": {
             "type": "integer",
             "title": "Lessons Given",
@@ -6350,9 +8525,23 @@
             "type": "integer",
             "title": "Total Presences"
           },
+          "lessons_amount": {
+            "type": "string",
+            "title": "Lessons Amount"
+          },
+          "services_given": {
+            "type": "integer",
+            "title": "Services Given",
+            "description": "Sessões de serviço finalizadas com cliente presente"
+          },
+          "services_amount": {
+            "type": "string",
+            "title": "Services Amount"
+          },
           "amount": {
             "type": "string",
-            "title": "Amount"
+            "title": "Amount",
+            "description": "Total: aulas + serviços"
           },
           "lessons": {
             "items": {
@@ -6360,6 +8549,13 @@
             },
             "type": "array",
             "title": "Lessons"
+          },
+          "services": {
+            "items": {
+              "$ref": "#/components/schemas/TeacherServiceReport"
+            },
+            "type": "array",
+            "title": "Services"
           }
         },
         "type": "object",
@@ -6368,11 +8564,16 @@
           "pay_per_class",
           "student_share_percent",
           "min_pay_per_lesson",
+          "service_share_percent",
           "lessons_given",
           "lessons_without_presence",
           "total_presences",
+          "lessons_amount",
+          "services_given",
+          "services_amount",
           "amount",
-          "lessons"
+          "lessons",
+          "services"
         ],
         "title": "TeacherPaymentReport"
       },
@@ -6456,6 +8657,10 @@
             "type": "string",
             "title": "Min Pay Per Lesson"
           },
+          "service_share_percent": {
+            "type": "string",
+            "title": "Service Share Percent"
+          },
           "is_active": {
             "type": "boolean",
             "title": "Is Active"
@@ -6476,10 +8681,73 @@
           "pay_per_class",
           "student_share_percent",
           "min_pay_per_lesson",
+          "service_share_percent",
           "is_active",
           "created_at"
         ],
         "title": "TeacherRead"
+      },
+      "TeacherServiceReport": {
+        "properties": {
+          "session_id": {
+            "type": "integer",
+            "title": "Session Id"
+          },
+          "date": {
+            "type": "string",
+            "format": "date",
+            "title": "Date"
+          },
+          "start_hour": {
+            "type": "integer",
+            "title": "Start Hour"
+          },
+          "service_name": {
+            "type": "string",
+            "title": "Service Name"
+          },
+          "student": {
+            "$ref": "#/components/schemas/StudentSummary"
+          },
+          "room": {
+            "type": "string",
+            "title": "Room"
+          },
+          "present": {
+            "type": "boolean",
+            "title": "Present"
+          },
+          "price": {
+            "type": "string",
+            "title": "Price",
+            "description": "Valor da sessão para o cliente"
+          },
+          "share_percent": {
+            "type": "string",
+            "title": "Share Percent",
+            "description": "% do profissional na finalização"
+          },
+          "amount": {
+            "type": "string",
+            "title": "Amount",
+            "description": "Valor ao profissional (congelado)"
+          }
+        },
+        "type": "object",
+        "required": [
+          "session_id",
+          "date",
+          "start_hour",
+          "service_name",
+          "student",
+          "room",
+          "present",
+          "price",
+          "share_percent",
+          "amount"
+        ],
+        "title": "TeacherServiceReport",
+        "description": "Sessão de serviço avulso finalizada pelo profissional."
       },
       "TeacherSummary": {
         "properties": {
@@ -6604,6 +8872,22 @@
             ],
             "title": "Min Pay Per Lesson"
           },
+          "service_share_percent": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 100.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Service Share Percent"
+          },
           "is_active": {
             "anyOf": [
               {
@@ -6667,6 +8951,17 @@
           "room": {
             "type": "string",
             "title": "Room"
+          },
+          "reschedule_count": {
+            "type": "integer",
+            "title": "Reschedule Count",
+            "description": "Quantas vezes esta aula já foi reagendada"
+          },
+          "original_date": {
+            "type": "string",
+            "format": "date",
+            "title": "Original Date",
+            "description": "Data da aula original (horário padrão)"
           }
         },
         "type": "object",
@@ -6675,7 +8970,9 @@
           "class_group_name",
           "date",
           "start_hour",
-          "room"
+          "room",
+          "reschedule_count",
+          "original_date"
         ],
         "title": "UpcomingMakeup"
       },

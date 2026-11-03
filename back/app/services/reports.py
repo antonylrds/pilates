@@ -16,10 +16,24 @@ from decimal import ROUND_HALF_UP, Decimal
 from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
-from app.models.tenant import Attendance, ClassGroup, Lesson, Subscription, Teacher
-from app.models.tenant.enums import AttendanceStatus
+from app.models.tenant import (
+    Attendance,
+    ClassGroup,
+    Lesson,
+    ServiceContract,
+    ServiceSession,
+    Subscription,
+    Teacher,
+)
+from app.models.tenant.enums import AttendanceStatus, ServiceSessionStatus
 from app.schemas.people import StudentSummary, TeacherSummary
-from app.schemas.schedule import PresentStudent, TeacherLessonReport, TeacherPaymentReport, TeacherPaymentsResponse
+from app.schemas.schedule import (
+    PresentStudent,
+    TeacherLessonReport,
+    TeacherPaymentReport,
+    TeacherPaymentsResponse,
+    TeacherServiceReport,
+)
 
 CENT = Decimal("0.01")
 ZERO = Decimal("0.00")
@@ -104,9 +118,43 @@ def teacher_payments(
     for lesson in db.scalars(query):
         by_teacher[lesson.teacher_id].append(lesson)
 
+    # Sessões de serviços avulsos finalizadas (presente gera valor; falta aparece com R$ 0)
+    sessions_query = (
+        select(ServiceSession)
+        .options(
+            selectinload(ServiceSession.contract).selectinload(ServiceContract.student),
+            selectinload(ServiceSession.room),
+        )
+        .where(
+            ServiceSession.date >= date_from,
+            ServiceSession.date <= date_to,
+            ServiceSession.completed_at.is_not(None),
+        )
+        .order_by(ServiceSession.date, ServiceSession.start_hour)
+    )
+    if teacher_id is not None:
+        sessions_query = sessions_query.where(ServiceSession.teacher_id == teacher_id)
+    services_by_teacher: dict[int, list[TeacherServiceReport]] = defaultdict(list)
+    for s in db.scalars(sessions_query):
+        services_by_teacher[s.teacher_id].append(
+            TeacherServiceReport(
+                session_id=s.id,
+                date=s.date,
+                start_hour=s.start_hour or 0,
+                service_name=s.contract.service_name,
+                student=StudentSummary.model_validate(s.contract.student),
+                room=s.room.name if s.room else "—",
+                present=s.status == ServiceSessionStatus.DONE,
+                price=s.contract.price,
+                share_percent=s.share_percent or ZERO,
+                amount=s.teacher_pay or ZERO,
+            )
+        )
+
     reports: list[TeacherPaymentReport] = []
     for teacher in db.scalars(teachers_query):
-        if teacher_id is None and teacher.id not in by_teacher and not teacher.is_active:
+        busy = teacher.id in by_teacher or teacher.id in services_by_teacher
+        if teacher_id is None and not busy and not teacher.is_active:
             continue
         lesson_reports = []
         for lesson in sorted(by_teacher.get(teacher.id, []), key=lambda l: (l.date, l.class_group.start_hour)):
@@ -143,17 +191,25 @@ def teacher_payments(
                     min_pay_per_lesson=lesson.min_pay_per_lesson or ZERO,
                 )
             )
+        service_reports = services_by_teacher.get(teacher.id, [])
+        lessons_amount = sum((r.amount for r in lesson_reports), ZERO)
+        services_amount = sum((r.amount for r in service_reports), ZERO)
         reports.append(
             TeacherPaymentReport(
                 teacher=TeacherSummary.model_validate(teacher),
                 pay_per_class=teacher.pay_per_class,
                 student_share_percent=teacher.student_share_percent,
                 min_pay_per_lesson=teacher.min_pay_per_lesson,
+                service_share_percent=teacher.service_share_percent,
                 lessons_given=len(lesson_reports),
                 lessons_without_presence=sum(1 for r in lesson_reports if not r.present_students),
                 total_presences=sum(len(r.present_students) for r in lesson_reports),
-                amount=sum((r.amount for r in lesson_reports), ZERO),
+                lessons_amount=lessons_amount,
+                services_given=sum(1 for r in service_reports if r.present),
+                services_amount=services_amount,
+                amount=lessons_amount + services_amount,
                 lessons=lesson_reports,
+                services=service_reports,
             )
         )
 

@@ -149,3 +149,22 @@ class Attendance(TenantBase, TimestampMixin):
     subscription: Mapped[Subscription | None] = relationship()
     makeup_from: Mapped[Attendance | None] = relationship(remote_side="Attendance.id", back_populates="makeup_to")
     makeup_to: Mapped[Attendance | None] = relationship(back_populates="makeup_from")
+
+    def reschedule_chain(self) -> list[Attendance]:
+        """Registros desta aula desde a aula original (horário padrão) até este, em ordem."""
+        chain: list[Attendance] = [self]
+        current = self.makeup_from
+        while current is not None and len(chain) < 100:  # proteção contra ciclos
+            chain.append(current)
+            current = current.makeup_from
+        return list(reversed(chain))
+
+    @property
+    def reschedule_count(self) -> int:
+        """Quantas vezes a aula original já foi reagendada até chegar aqui (inclui este, se reagendado)."""
+        moves = len(self.reschedule_chain()) - 1
+        return moves + (1 if self.status == AttendanceStatus.RESCHEDULED else 0)
+
+    @property
+    def original(self) -> Attendance:
+        return self.reschedule_chain()[0]

@@ -6,12 +6,16 @@ import { useAsync } from "../lib/hooks";
 import { Loading } from "./ui";
 
 export type CalendarEntry = Schemas["CalendarEntry"];
+/** Aula de turma (sessões de serviço avulso não são destino de reposição). */
+export type LessonEntry = CalendarEntry & { kind: "lesson"; class_group_id: number };
+
+const isLesson = (e: CalendarEntry): e is LessonEntry => e.kind === "lesson" && e.class_group_id != null;
 
 type Props = {
   fromGroupId: number;
   fromDate: string;
   selected?: { class_group_id: number; date: string } | null;
-  onPick: (entry: CalendarEntry) => void;
+  onPick: (entry: LessonEntry) => void;
 };
 
 /** Lista as aulas com vaga nos próximos 14 dias que ainda não começaram (destino de reposição). */
@@ -26,7 +30,7 @@ export function ReschedulePicker({ fromGroupId, fromDate, selected, onPick }: Pr
   );
 
   const hourOf = (e: CalendarEntry) => Number(e.starts_at.slice(11, 13));
-  const available = (options.data ?? []).filter(
+  const available = (options.data ?? []).filter(isLesson).filter(
     (e) =>
       (e.status === "confirmed" || e.status === "inactive") &&
       e.available_spots > 0 &&

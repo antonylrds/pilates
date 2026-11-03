@@ -154,6 +154,15 @@ export function LessonPanel({ groupId, date, onClose, onChanged }: Props) {
                       {s.is_makeup && s.makeup_from && (
                         <span className="muted small">Reposição de {fmtDate(s.makeup_from.date)}</span>
                       )}
+                      {s.reschedule_count > 0 && (
+                        <span
+                          className={`resched-count ${s.reschedule_count >= 2 ? "is-high" : ""}`}
+                          title={s.original_lesson ? `Aula original: ${fmtDate(s.original_lesson.date)} ${fmtHour(s.original_lesson.start_hour)}` : undefined}
+                        >
+                          ↻ {s.reschedule_count}x
+                          {s.original_lesson && s.reschedule_count > 1 && <> · original {fmtDate(s.original_lesson.date)}</>}
+                        </span>
+                      )}
                       {s.rescheduled_to && (
                         <span className="muted small">
                           → {fmtDate(s.rescheduled_to.date)} {fmtHour(s.rescheduled_to.start_hour)}

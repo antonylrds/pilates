@@ -1,5 +1,6 @@
 from datetime import date, datetime
 from decimal import Decimal
+from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
@@ -22,6 +23,10 @@ class TeacherCreate(BaseModel):
         Decimal("0"), ge=0, max_digits=10, decimal_places=2,
         description="Valor mínimo por aula concluída (pago mesmo se todos faltarem)",
     )
+    service_share_percent: Decimal = Field(
+        Decimal("40"), ge=0, le=100, max_digits=5, decimal_places=2,
+        description="% do valor da sessão de serviço avulso pago ao profissional",
+    )
 
 
 class TeacherUpdate(BaseModel):
@@ -32,6 +37,7 @@ class TeacherUpdate(BaseModel):
     pay_per_class: Decimal | None = Field(None, ge=0, max_digits=10, decimal_places=2)
     student_share_percent: Decimal | None = Field(None, ge=0, le=100, max_digits=5, decimal_places=2)
     min_pay_per_lesson: Decimal | None = Field(None, ge=0, max_digits=10, decimal_places=2)
+    service_share_percent: Decimal | None = Field(None, ge=0, le=100, max_digits=5, decimal_places=2)
     is_active: bool | None = None
 
 
@@ -44,6 +50,7 @@ class TeacherRead(ORMModel):
     pay_per_class: Decimal
     student_share_percent: Decimal
     min_pay_per_lesson: Decimal
+    service_share_percent: Decimal
     is_active: bool
     created_at: datetime
 
@@ -109,6 +116,8 @@ class UpcomingMakeup(BaseModel):
     date: date
     start_hour: int
     room: str
+    reschedule_count: int = Field(description="Quantas vezes esta aula já foi reagendada")
+    original_date: date = Field(description="Data da aula original (horário padrão)")
 
 
 class StudentDetail(StudentRead):
@@ -121,6 +130,30 @@ class StudentDetail(StudentRead):
     schedule: list[ScheduleItem]
     free_schedule_slots: int = Field(description="Turmas que o plano ainda permite escolher")
     upcoming_makeups: list[UpcomingMakeup]
+
+
+class ScheduleHistoryItem(BaseModel):
+    """Um horário padrão do aluno e o período em que valeu."""
+
+    enrollment_id: int
+    class_group_id: int
+    class_group_name: str
+    weekday_name: str
+    start_hour: int
+    room: str
+    teacher: str
+    start_date: date
+    end_date: date | None
+    status: Literal["current", "future", "ended"]
+
+
+class AuditLogRead(ORMModel):
+    id: int
+    action: str
+    description: str
+    changes: dict[str, Any] | None
+    user_name: str = Field(description="Quem fez a alteração")
+    created_at: datetime = Field(description="Quando")
 
 
 class ScheduleUpdate(BaseModel):

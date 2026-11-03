@@ -1,21 +1,34 @@
-"""Salas, planos e descontos."""
+"""Salas, planos, descontos e resumo do catálogo."""
+
+from datetime import date
 
 from fastapi import APIRouter, HTTPException, status
 from sqlalchemy import or_, select
+from sqlalchemy.orm import selectinload
 
 from app.api.deps import Admin, Staff, apply_update, get_or_404
-from app.models.tenant import ClassGroup, Discount, Plan, Room
+from app.models.tenant import ClassGroup, Discount, Plan, Room, Service, ServiceContract, Subscription
+from app.models.tenant.enums import (
+    DiscountKind,
+    ServiceContractStatus,
+    ServiceSessionStatus,
+    SubscriptionStatus,
+    SubscriptionUsage,
+)
 from app.schemas.catalog import (
+    CatalogOverview,
     DiscountCreate,
     DiscountRead,
     DiscountUpdate,
     PlanCreate,
     PlanRead,
     PlanUpdate,
+    PlanUsage,
     PricePreview,
     RoomCreate,
     RoomRead,
     RoomUpdate,
+    ServiceUsage,
 )
 from app.services.credits import resolve_price
 
@@ -148,13 +161,66 @@ def create_discount(data: DiscountCreate, ctx: Admin):
     return discount
 
 
-@router.patch("/discounts/{discount_id}", response_model=DiscountRead)
+@router.patch(
+    "/discounts/{discount_id}",
+    response_model=DiscountRead,
+    summary="Altera o desconto (não afeta planos já contratados)",
+)
 def update_discount(discount_id: int, data: DiscountUpdate, ctx: Admin):
     discount = get_or_404(ctx.db, Discount, discount_id, "Desconto")
+    changes = data.model_dump(exclude_unset=True)
+    if changes.get("plan_id") is not None:
+        get_or_404(ctx.db, Plan, changes["plan_id"], "Plano")
+    kind = changes.get("kind", discount.kind)
+    value = changes.get("value", discount.value)
+    if kind == DiscountKind.PERCENT and value > 100:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Desconto percentual deve ser no máximo 100")
     apply_update(discount, data)
     ctx.db.commit()
     ctx.db.refresh(discount)
     return discount
+
+
+# ---------- Resumo do catálogo ----------
+@router.get(
+    "/catalog/overview",
+    response_model=CatalogOverview,
+    summary="Uso de cada plano e serviço avulso (alunos em uso, na fila, pagamentos pendentes)",
+)
+def catalog_overview(ctx: Staff):
+    db = ctx.db
+    plans: dict[int, PlanUsage] = {p.id: PlanUsage(plan_id=p.id, in_use=0, queued=0, unpaid=0) for p in db.scalars(select(Plan))}
+    active = db.scalars(select(Subscription).where(Subscription.status == SubscriptionStatus.ACTIVE))
+    for sub in active:
+        usage = plans.get(sub.plan_id)
+        if usage is None:
+            continue
+        state = sub.usage
+        if state == SubscriptionUsage.IN_USE:
+            usage.in_use += 1
+        elif state == SubscriptionUsage.QUEUED:
+            usage.queued += 1
+        if not sub.is_paid and state in (SubscriptionUsage.IN_USE, SubscriptionUsage.QUEUED):
+            usage.unpaid += 1
+
+    today = date.today()
+    services: dict[int, ServiceUsage] = {
+        s.id: ServiceUsage(service_id=s.id, active_contracts=0, upcoming_sessions=0) for s in db.scalars(select(Service))
+    }
+    contracts = db.scalars(
+        select(ServiceContract)
+        .options(selectinload(ServiceContract.sessions))
+        .where(ServiceContract.status == ServiceContractStatus.ACTIVE)
+    )
+    for contract in contracts:
+        usage = services.get(contract.service_id)
+        if usage is None or contract.situation != "active":
+            continue
+        usage.active_contracts += 1
+        usage.upcoming_sessions += sum(
+            1 for s in contract.sessions if s.status == ServiceSessionStatus.SCHEDULED and s.date >= today
+        )
+    return CatalogOverview(plans=list(plans.values()), services=list(services.values()))
 
 
 @router.delete("/discounts/{discount_id}", status_code=status.HTTP_204_NO_CONTENT, summary="Inativa o desconto")

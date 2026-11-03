@@ -1,6 +1,6 @@
 """Turmas, horários padrão dos alunos, calendário e lista de alunos de cada aula."""
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import date, datetime, time, timedelta
 
 from fastapi import HTTPException, status
@@ -12,7 +12,15 @@ from app.models.tenant import Attendance, ClassGroup, Enrollment, Lesson, Room, 
 from app.models.tenant.enums import WEEKDAYS, AttendanceStatus, LessonStatus
 from app.schemas.catalog import RoomSummary
 from app.schemas.people import StudentSummary, TeacherSummary
-from app.schemas.schedule import CalendarEntry, ClassGroupCreate, ClassGroupUpdate, LessonDetail, LessonRef
+from app.schemas.schedule import (
+    CalendarEntry,
+    ClassGroupCreate,
+    ClassGroupUpdate,
+    LessonDetail,
+    LessonRef,
+    RescheduleChain,
+    RescheduleStep,
+)
 from app.schemas.schedule import RosterEntry as RosterEntryOut
 from app.services import credits
 
@@ -68,6 +76,18 @@ def ensure_no_conflict(
                 status.HTTP_409_CONFLICT,
                 f"{other.teacher.name} já dá a turma {other.display_name} nesse horário",
             )
+    # Sessões de serviços avulsos já agendadas também ocupam sala e profissional.
+    from app.services.offerings import sessions_blocking_group
+
+    blocking = sessions_blocking_group(
+        db, weekday=weekday, hour=hour, from_date=from_date, room_id=room_id, teacher_id=teacher_id
+    )
+    if blocking is not None:
+        what = "A sala" if blocking.room_id == room_id else "O profissional"
+        raise HTTPException(
+            status.HTTP_409_CONFLICT,
+            f"{what} tem o serviço {blocking.contract.service_name} agendado em {blocking.date:%d/%m/%Y} nesse horário",
+        )
 
 
 def _active(db: Session, model, obj_id: int, label: str):
@@ -162,7 +182,7 @@ def load_group(db: Session, group_id: int) -> ClassGroup:
 
 
 # ---------- Horário padrão do aluno ----------
-def set_schedule(db: Session, student: Student, group_ids: list[int], effective_from: date) -> None:
+def set_schedule(db: Session, student: Student, group_ids: list[int], effective_from: date) -> "ScheduleChange":
     """Define o conjunto de turmas padrão do aluno a partir de uma data (não altera o passado)."""
     if len(set(group_ids)) != len(group_ids):
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Turma repetida na lista")
@@ -193,10 +213,13 @@ def set_schedule(db: Session, student: Student, group_ids: list[int], effective_
         )
     )
     kept = set()
+    change = ScheduleChange(effective_from=effective_from)
     for enrollment in current:
         if enrollment.class_group_id in group_ids:
             kept.add(enrollment.class_group_id)
-        elif enrollment.start_date >= effective_from:
+            continue
+        change.removed.append(enrollment.class_group.display_name)
+        if enrollment.start_date >= effective_from:
             db.delete(enrollment)
         else:
             enrollment.end_date = effective_from - timedelta(days=1)
@@ -212,7 +235,49 @@ def set_schedule(db: Session, student: Student, group_ids: list[int], effective_
                 student_id=student.id, class_group_id=group.id, start_date=max(effective_from, group.start_date)
             )
         )
+        change.added.append(group.display_name)
     db.flush()
+    return change
+
+
+@dataclass
+class ScheduleChange:
+    """O que mudou no horário padrão (para o registro de alterações)."""
+
+    effective_from: date
+    added: list[str] = field(default_factory=list)
+    removed: list[str] = field(default_factory=list)
+
+    @property
+    def changed(self) -> bool:
+        return bool(self.added or self.removed)
+
+    def describe(self) -> str:
+        parts = []
+        if self.removed:
+            parts.append("removeu " + ", ".join(self.removed))
+        if self.added:
+            parts.append("adicionou " + ", ".join(self.added))
+        return f"Horário padrão alterado a partir de {self.effective_from:%d/%m/%Y}: " + "; ".join(parts)
+
+    def as_changes(self) -> dict:
+        return {"effective_from": self.effective_from.isoformat(), "added": self.added, "removed": self.removed}
+
+
+def enrollment_history(db: Session, student_id: int) -> list[Enrollment]:
+    """Todos os horários padrão do aluno (atuais, futuros e encerrados), mais recentes primeiro."""
+    return list(
+        db.scalars(
+            select(Enrollment)
+            .join(Enrollment.class_group)
+            .options(
+                selectinload(Enrollment.class_group).selectinload(ClassGroup.room),
+                selectinload(Enrollment.class_group).selectinload(ClassGroup.teacher),
+            )
+            .where(Enrollment.student_id == student_id)
+            .order_by(Enrollment.start_date.desc(), ClassGroup.weekday, ClassGroup.start_hour)
+        )
+    )
 
 
 def current_enrollments(db: Session, student_id: int) -> list[Enrollment]:
@@ -349,6 +414,68 @@ def calendar(
                 continue
             entries.append(CalendarEntry(**_entry(group, day, lesson, build_roster(group, day, lesson))))
         day += timedelta(days=1)
+    entries.extend(service_calendar(db, date_from, date_to, room_id, teacher_id))
+    entries.sort(key=lambda e: (e.starts_at, e.room.name))
+    return entries
+
+
+def service_calendar(
+    db: Session, date_from: date, date_to: date, room_id: int | None = None, teacher_id: int | None = None
+) -> list[CalendarEntry]:
+    """Sessões de serviços avulsos no período, no mesmo formato das aulas."""
+    from app.models.tenant import ServiceContract, ServiceSession
+    from app.models.tenant.enums import ServiceSessionStatus
+
+    query = (
+        select(ServiceSession)
+        .options(
+            selectinload(ServiceSession.contract).selectinload(ServiceContract.student),
+            selectinload(ServiceSession.room),
+            selectinload(ServiceSession.teacher),
+        )
+        .where(
+            ServiceSession.date >= date_from,
+            ServiceSession.date <= date_to,
+            ServiceSession.start_hour.is_not(None),
+            ServiceSession.room_id.is_not(None),
+        )
+    )
+    if room_id:
+        query = query.where(ServiceSession.room_id == room_id)
+    if teacher_id:
+        query = query.where(ServiceSession.teacher_id == teacher_id)
+
+    entries = []
+    for s in db.scalars(query):
+        cancelled = s.status == ServiceSessionStatus.CANCELLED
+        status_ = (
+            LessonStatus.CANCELLED
+            if cancelled
+            else LessonStatus.COMPLETED
+            if s.is_completed
+            else LessonStatus.CONFIRMED
+        )
+        starts_at = s.starts_at
+        entries.append(
+            CalendarEntry(
+                kind="service",
+                class_group_id=None,
+                class_group_name=f"{s.contract.service_name} · {s.contract.student.name}",
+                service_session_id=s.id,
+                student=StudentSummary.model_validate(s.contract.student),
+                lesson_id=None,
+                date=s.date,
+                starts_at=starts_at,
+                ends_at=starts_at + timedelta(hours=1),
+                room=RoomSummary.model_validate(s.room),
+                teacher=TeacherSummary.model_validate(s.teacher),
+                capacity=1,
+                attendees_count=0 if cancelled else 1,
+                available_spots=0,
+                status=status_,
+                completed_at=s.completed_at,
+            )
+        )
     return entries
 
 
@@ -364,6 +491,48 @@ def lesson_ref(attendance: Attendance | None) -> LessonRef | None:
     )
 
 
+def reschedule_chains(db: Session, student_id: int) -> list[RescheduleChain]:
+    """Cada aula do horário padrão que foi reagendada, com todos os reagendamentos até a situação atual."""
+    roots = db.scalars(
+        select(Attendance)
+        .options(selectinload(Attendance.lesson).selectinload(Lesson.class_group).selectinload(ClassGroup.room))
+        .where(
+            Attendance.student_id == student_id,
+            Attendance.status == AttendanceStatus.RESCHEDULED,
+            Attendance.makeup_from_id.is_(None),
+        )
+    )
+    chains: list[RescheduleChain] = []
+    for root in roots:
+        steps: list[RescheduleStep] = []
+        current = root
+        while current.status == AttendanceStatus.RESCHEDULED and current.makeup_to is not None and len(steps) < 100:
+            target = current.makeup_to
+            steps.append(
+                RescheduleStep(
+                    from_lesson=lesson_ref(current),
+                    to_lesson=lesson_ref(target),
+                    justification=current.justification,
+                    rescheduled_at=current.marked_at,
+                )
+            )
+            current = target
+        if not steps:
+            continue
+        chains.append(
+            RescheduleChain(
+                original_lesson=lesson_ref(root),
+                reschedule_count=len(steps),
+                steps=steps,
+                current_lesson=lesson_ref(current),
+                current_status=current.status,
+                current_completed=current.lesson.is_completed,
+            )
+        )
+    chains.sort(key=lambda c: (c.original_lesson.date, c.original_lesson.start_hour), reverse=True)
+    return chains
+
+
 def lesson_detail(db: Session, group: ClassGroup, day: date) -> LessonDetail:
     lesson = find_lesson(db, group.id, day)
     if lesson is None and not group.runs_on(day):
@@ -377,6 +546,8 @@ def lesson_detail(db: Session, group: ClassGroup, day: date) -> LessonDetail:
             is_makeup=r.is_makeup,
             makeup_from=lesson_ref(r.attendance.makeup_from) if r.attendance else None,
             rescheduled_to=lesson_ref(r.attendance.makeup_to) if r.attendance else None,
+            reschedule_count=r.attendance.reschedule_count if r.attendance else 0,
+            original_lesson=lesson_ref(r.attendance.original) if r.attendance and r.attendance.is_makeup else None,
             credits_remaining=credits.credits_remaining(db, r.student.id),
         )
         for r in roster

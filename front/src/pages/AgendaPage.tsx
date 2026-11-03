@@ -2,6 +2,7 @@ import type { Schemas } from "@pilates/api-client";
 import { useState } from "react";
 
 import { LessonPanel } from "../components/LessonPanel";
+import { ServiceSessionPanel } from "../components/ServiceSessionPanel";
 import { ErrorBox } from "../components/ui";
 import { api, call } from "../lib/api";
 import { addDays, fmtDate, fmtHour, fmtShortDay, mondayOf, toISO, todayISO } from "../lib/format";
@@ -15,7 +16,12 @@ export function AgendaPage() {
   const { session } = useSession();
   const [monday, setMonday] = useState(() => mondayOf(new Date()));
   const [selected, setSelected] = useState<{ groupId: number; date: string } | null>(null);
+  const [selectedService, setSelectedService] = useState<number | null>(null);
   const days = [0, 1, 2, 3, 4].map((i) => toISO(addDays(monday, i)));
+  const open_ = (e: Entry) =>
+    e.kind === "service" && e.service_session_id != null
+      ? setSelectedService(e.service_session_id)
+      : e.class_group_id != null && setSelected({ groupId: e.class_group_id, date: e.date });
 
   const calendar = useAsync(
     () => call(api.GET("/api/v1/calendar", { params: { query: { date_from: days[0], date_to: days[4] } } })),
@@ -63,6 +69,9 @@ export function AgendaPage() {
             <span className={`dot dot-${s}`} /> {lessonStatus[s]} <b>{totals[s] ?? 0}</b>
           </span>
         ))}
+        <span className="legend-item">
+          <span className="dot dot-service" /> Serviço avulso
+        </span>
       </div>
 
       {calendar.error && <ErrorBox message={calendar.error} />}
@@ -79,20 +88,35 @@ export function AgendaPage() {
             <div className="cal-hour">{fmtHour(h)}</div>
             {days.map((d) => (
               <div key={d} className={`cal-cell ${d === today ? "is-today" : ""}`}>
-                {cell(d, h).map((e) => (
-                  <button
-                    key={e.class_group_id}
-                    className={`lesson-chip chip-${e.status}`}
-                    onClick={() => setSelected({ groupId: e.class_group_id, date: e.date })}
-                    title={`${e.class_group_name} · ${e.teacher.name}`}
-                  >
-                    <span className="chip-room">{e.room.name}</span>
-                    <span className="chip-teacher">{e.teacher.name.split(" ")[0]}</span>
-                    <span className="chip-count">
-                      {e.status === "cancelled" ? "—" : `${e.attendees_count}/${e.capacity}`}
-                    </span>
-                  </button>
-                ))}
+                {cell(d, h).map((e) =>
+                  e.kind === "service" ? (
+                    <button
+                      key={`s-${e.service_session_id}`}
+                      className={`lesson-chip service-chip chip-${e.status}`}
+                      onClick={() => open_(e)}
+                      title={`${e.class_group_name} · ${e.room.name} · ${e.teacher.name}`}
+                    >
+                      <span className="chip-room">✚ {e.class_group_name.split(" · ")[0]}</span>
+                      <span className="chip-teacher">
+                        {e.student?.name.split(" ")[0]} · {e.teacher.name.split(" ")[0]}
+                      </span>
+                      <span className="chip-count">{e.status === "completed" ? "✓" : e.status === "cancelled" ? "—" : ""}</span>
+                    </button>
+                  ) : (
+                    <button
+                      key={`l-${e.class_group_id}`}
+                      className={`lesson-chip chip-${e.status}`}
+                      onClick={() => open_(e)}
+                      title={`${e.class_group_name} · ${e.teacher.name}`}
+                    >
+                      <span className="chip-room">{e.room.name}</span>
+                      <span className="chip-teacher">{e.teacher.name.split(" ")[0]}</span>
+                      <span className="chip-count">
+                        {e.status === "cancelled" ? "—" : `${e.attendees_count}/${e.capacity}`}
+                      </span>
+                    </button>
+                  ),
+                )}
               </div>
             ))}
           </div>
@@ -104,6 +128,13 @@ export function AgendaPage() {
           groupId={selected.groupId}
           date={selected.date}
           onClose={() => setSelected(null)}
+          onChanged={calendar.reload}
+        />
+      )}
+      {selectedService != null && (
+        <ServiceSessionPanel
+          sessionId={selectedService}
+          onClose={() => setSelectedService(null)}
           onChanged={calendar.reload}
         />
       )}

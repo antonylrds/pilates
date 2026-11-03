@@ -5,7 +5,7 @@ Uso: uv run python -m app.cli seed-demo --slug demo [--reset]
 """
 
 import random
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 from decimal import Decimal
 
 from sqlalchemy import select
@@ -15,11 +15,18 @@ from app.core.security import hash_password
 from app.db.base import TenantBase
 from app.db.engines import central_session, tenant_session
 from app.models.central import Studio
-from app.models.tenant import ClassGroup, Discount, Plan, Room, Student, Teacher, User
-from app.models.tenant.enums import AttendanceStatus, DiscountKind, UserRole
+from app.models.tenant import AuditLog, ClassGroup, Discount, Plan, Room, Service, Student, Teacher, User
+from app.models.tenant.enums import (
+    AttendanceStatus,
+    DiscountKind,
+    ServiceRecurrence,
+    ServiceSessionStatus,
+    UserRole,
+)
+from app.schemas.offerings import ServiceContractCreate
 from app.schemas.catalog import SubscriptionCreate
 from app.schemas.schedule import CompletionItem
-from app.services import attendance, credits, schedule
+from app.services import attendance, audit, credits, offerings, schedule
 
 STUDENTS = [
     ("Mariana Costa", "11 98811-2233", "mariana.costa@email.com", "Hérnia de disco L4-L5. Evitar flexão profunda."),
@@ -150,8 +157,13 @@ def seed(slug: str, reset: bool = False) -> None:
             db.flush()
             plan = plans[3] if name == "Renata Dias" else plan_cycle[i % len(plan_cycle)]
             discount_id = discounts[0].id if i % 6 == 0 else None
-            credits.create_subscription(
-                db, student, SubscriptionCreate(plan_id=plan.id, discount_id=discount_id, start_date=start)
+            paid = i % 4 != 3  # alguns ficam com pagamento pendente
+            sub = credits.create_subscription(
+                db,
+                student,
+                SubscriptionCreate(
+                    plan_id=plan.id, discount_id=discount_id, start_date=start, is_paid=paid, paid_at=start if paid else None
+                ),
             )
             chosen: list[ClassGroup] = []
             for group in rng.sample(groups, len(groups)):
@@ -163,8 +175,42 @@ def seed(slug: str, reset: bool = False) -> None:
                     continue
                 chosen.append(group)
                 occupancy[group.id] += 1
-            schedule.set_schedule(db, student, [g.id for g in chosen], start)
+            change = schedule.set_schedule(db, student, [g.id for g in chosen], start)
+            audit.log(
+                ctx,
+                student.id,
+                audit.Action.STUDENT_CREATED,
+                f"Aluno cadastrado; plano {sub.plan_name} ({'pago' if paid else 'pagamento pendente'}); "
+                f"turmas padrão: {', '.join(change.added)}",
+            )
         db.commit()
+        # registros de cadastro com a data de início (dados de demonstração)
+        for entry in db.scalars(select(AuditLog)):
+            entry.created_at = datetime.combine(start, datetime.min.time()).replace(hour=9)
+        db.commit()
+
+        # Troca de horário há 2 semanas (aparece no histórico de horários e de alterações)
+        db.expire_all()
+        mover = db.scalar(select(Student).where(Student.name == STUDENTS[1][0]))
+        current_ids = [e.class_group_id for e in mover.enrollments if e.end_date is None]
+        if current_ids:
+            old = db.get(ClassGroup, current_ids[0])
+            new = next(
+                (
+                    g for g in groups
+                    if g.weekday != old.weekday and g.id not in current_ids and occupancy[g.id] < g.capacity
+                ),
+                None,
+            )
+            if new is not None:
+                switch_day = today - timedelta(days=14)
+                change = schedule.set_schedule(db, mover, [new.id, *current_ids[1:]], switch_day)
+                audit.log(ctx, mover.id, audit.Action.SCHEDULE_CHANGED, change.describe(), change.as_changes())
+                db.flush()
+                db.scalars(select(AuditLog).order_by(AuditLog.id.desc())).first().created_at = datetime.combine(
+                    switch_day - timedelta(days=1), datetime.min.time()
+                ).replace(hour=18, minute=30)
+                db.commit()
 
         # Chamadas das aulas passadas (expire_all: recarrega as turmas com os alunos recém-matriculados)
         db.expire_all()
@@ -198,6 +244,72 @@ def seed(slug: str, reset: bool = False) -> None:
         )
         db.commit()
 
+        # Serviços avulsos: catálogo e algumas contratações
+        catalog = {
+            "Fisioterapia": ("150.00", "Sessão individual de fisioterapia (50 min)"),
+            "RPG": ("180.00", "Reeducação Postural Global"),
+            "Avaliação postural": ("120.00", "Avaliação inicial com relatório"),
+        }
+        services = {}
+        for name, (price, description) in catalog.items():
+            services[name] = Service(name=name, price=Decimal(price), description=description)
+            db.add(services[name])
+        # Sala e profissional dos atendimentos
+        physio_room = Room(name="Sala de Fisioterapia", capacity=1)
+        physio = Teacher(
+            name="Daniela Rocha",
+            phones=["11 90000-1111"],
+            emails=["daniela@studio.com"],
+            notes="Fisioterapeuta, RPG",
+            pay_per_class=Decimal("0"),
+            service_share_percent=Decimal("50"),
+        )
+        db.add_all([physio_room, physio])
+        db.flush()
+
+        def weekday_from(d: date) -> date:
+            while d.weekday() > 4:
+                d += timedelta(days=1)
+            return d
+
+        examples = [
+            # (aluno, serviço, preço combinado, recorrência, sessões, início, hora, pago, observação)
+            (STUDENTS[2][0], "Fisioterapia", None, ServiceRecurrence.WEEKLY, 6, today - timedelta(days=21), 10, True,
+             "Gestante: foco em lombar e assoalho pélvico"),
+            (STUDENTS[3][0], "RPG", "160.00", ServiceRecurrence.BIWEEKLY, 4, today - timedelta(days=14), 11, False,
+             "Desconto combinado na recepção; pós-lesão no joelho"),
+            (STUDENTS[0][0], "Avaliação postural", None, ServiceRecurrence.NONE, 1, today + timedelta(days=3), 14,
+             False, None),
+        ]
+        yesterday = today - timedelta(days=1)
+        for student_name, service_name, price, recurrence, n, start_day, hour, paid, note in examples:
+            who = db.scalar(select(Student).where(Student.name == student_name))
+            start_day = weekday_from(start_day)
+            contract = offerings.contract_service(
+                db,
+                studio,
+                who,
+                ServiceContractCreate(
+                    service_id=services[service_name].id,
+                    room_id=physio_room.id,
+                    teacher_id=physio.id,
+                    start_hour=hour,
+                    price=Decimal(price) if price else None,
+                    recurrence=recurrence,
+                    occurrences=n,
+                    start_date=start_day,
+                    is_paid=paid,
+                    paid_at=start_day if paid else None,
+                    notes=note,
+                ),
+            )
+            # sessões antigas finalizadas; as de ontem e hoje ficam para a tela "Finalizar aulas"
+            for i, session in enumerate(contract.sessions):
+                if session.date < yesterday:
+                    offerings.complete_session(ctx, session, present=i != 1, justification=None if i != 1 else "Desmarcou em cima da hora")
+            audit.log(ctx, who.id, audit.Action.SERVICE_CONTRACTED, f"Serviço avulso contratado: {service_name}")
+        db.commit()
+
         # Uma reposição e uma aula cancelada na próxima semana
         next_monday = today + timedelta(days=7 - today.weekday())
         db.expire_all()
@@ -207,17 +319,33 @@ def seed(slug: str, reset: bool = False) -> None:
             if not roster:
                 continue
             student_id = roster[0].student.id
+            moved_to = None
             for target in groups:
                 target_day = next_monday + timedelta(days=target.weekday)
-                if target.weekday <= 1 or target.id == group.id:
+                if target.weekday != 2 or target.id == group.id:  # quarta
                     continue
                 try:
                     attendance.reschedule(
                         ctx, group, next_monday, student_id, target.id, target_day, "Compromisso no trabalho"
                     )
+                    moved_to = (target, target_day)
                     break
                 except Exception:
                     db.rollback()
+            # A reposição é reagendada de novo (aula reagendada 2 vezes)
+            if moved_to:
+                origin, origin_day = moved_to
+                for target in groups:
+                    if target.weekday != 4:  # sexta
+                        continue
+                    try:
+                        attendance.reschedule(
+                            ctx, schedule.load_group(db, origin.id), origin_day, student_id, target.id,
+                            next_monday + timedelta(days=4), "Consulta médica",
+                        )
+                        break
+                    except Exception:
+                        db.rollback()
             break
 
         friday = next_monday + timedelta(days=4)

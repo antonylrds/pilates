@@ -1,8 +1,15 @@
 import { type ReactNode, useEffect } from "react";
 
-type Props = { title: string; subtitle?: string; onClose: () => void; children: ReactNode; footer?: ReactNode };
+type Props = {
+  title: string;
+  subtitle?: string;
+  onClose: () => void;
+  children: ReactNode;
+  footer?: ReactNode;
+  wide?: boolean;
+};
 
-export function Modal({ title, subtitle, onClose, children, footer }: Props) {
+export function Modal({ title, subtitle, onClose, children, footer, wide }: Props) {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
     window.addEventListener("keydown", onKey);
@@ -11,7 +18,7 @@ export function Modal({ title, subtitle, onClose, children, footer }: Props) {
 
   return (
     <div className="modal-backdrop" onClick={onClose}>
-      <div className="modal" role="dialog" aria-label={title} onClick={(e) => e.stopPropagation()}>
+      <div className={`modal ${wide ? "modal-wide" : ""}`} role="dialog" aria-label={title} onClick={(e) => e.stopPropagation()}>
         <header className="modal-header">
           <div>
             <h2>{title}</h2>

@@ -45,6 +45,10 @@ class Teacher(TenantBase, TimestampMixin):
     student_share_percent: Mapped[Decimal] = mapped_column(
         Numeric(5, 2), default=Decimal("40"), server_default="40"
     )
+    # Serviços avulsos: % do valor da sessão pago ao profissional (sessão finalizada com cliente presente).
+    service_share_percent: Mapped[Decimal] = mapped_column(
+        Numeric(5, 2), default=Decimal("40"), server_default="40"
+    )
     min_pay_per_lesson: Mapped[Decimal] = mapped_column(
         Numeric(10, 2), default=Decimal("0"), server_default="0"
     )

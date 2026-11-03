@@ -6,6 +6,7 @@ from app.api.routes import (
     catalog,
     class_groups,
     notifications,
+    offerings,
     platform,
     reports,
     studio,
@@ -16,5 +17,7 @@ from app.api.routes import (
 
 api_router = APIRouter()
 api_router.include_router(platform.router)
-for module in (auth, studio, users, catalog, teachers, students, class_groups, calendar, notifications, reports):
+for module in (
+    auth, studio, users, catalog, offerings, teachers, students, class_groups, calendar, notifications, reports
+):
     api_router.include_router(module.router)

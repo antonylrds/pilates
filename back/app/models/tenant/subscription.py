@@ -4,7 +4,7 @@ from datetime import date
 from decimal import ROUND_HALF_UP, Decimal
 from typing import TYPE_CHECKING
 
-from sqlalchemy import ForeignKey, Numeric, String, Text, func, select
+from sqlalchemy import ForeignKey, Numeric, String, Text, false, func, select
 from sqlalchemy.orm import Mapped, mapped_column, object_session, relationship
 
 from app.db.base import TenantBase, TimestampMixin, str_enum
@@ -40,6 +40,8 @@ class Subscription(TenantBase, TimestampMixin):
     status: Mapped[SubscriptionStatus] = mapped_column(
         str_enum(SubscriptionStatus), default=SubscriptionStatus.ACTIVE, index=True
     )
+    is_paid: Mapped[bool] = mapped_column(default=False, server_default=false())
+    paid_at: Mapped[date | None]
     notes: Mapped[str | None] = mapped_column(Text)
 
     student: Mapped[Student] = relationship(back_populates="subscriptions")

@@ -55,15 +55,33 @@ O contrato entre elas é a API REST do back (`packages/api-client`, gerado do Op
 - **RF-08** Deve ser possível **alterar os horários padrão** do aluno.
 - **RF-09** Deve ser possível visualizar os dados do aluno: **nome, telefones, e-mails, observações, turmas e plano**.
 - **RF-10** Cada aluno tem **um plano vinculado**.
+- **RF-30** Deve haver um **modal de cadastro do aluno**, com definição do **plano**, se o plano **já foi pago** e,
+  conforme o plano, das **turmas padrão**. O **mesmo modal** é usado para **editar** o aluno.
+- **RF-31** O **histórico de aulas** do aluno fica **separado das turmas padrão**: se o aluno mudar de horário,
+  as aulas anteriores e os horários anteriores continuam no histórico.
+- **RF-32** Alterações no cadastro do aluno (dados, horário, plano, pagamento) devem deixar um **registro do que
+  mudou, por quem e em que data**.
+
+### Serviços avulsos
+- **RF-33** Os alunos podem contratar **serviços avulsos** (ex.: fisioterapia, RPG), **cadastrados à parte**.
+- **RF-34** Por padrão o serviço é **sem recorrência**, mas deve ser possível contratá-lo **com recorrência**.
+- **RF-35** Os serviços têm um **valor definido** no cadastro, que pode ser **alterado na contratação**.
+- **RF-36** Deve haver **histórico de serviços avulsos** do aluno e **observações** sobre cada serviço contratado.
+- **RF-37** Serviços avulsos **ocupam salas** (não podem coincidir com turmas ou outros serviços na mesma sala e
+  horário) e aparecem no **calendário**.
+- **RF-38** Serviços avulsos também devem ser **finalizados**; só sessões finalizadas são contabilizadas.
+- **RF-39** Os profissionais recebem pelos serviços com base em uma **porcentagem** do valor da sessão.
 
 ### Chamada e reagendamento
 - **RF-11** Deve haver uma **chamada** que identifique **presença, falta ou reagendamento** da aula.
 - **RF-12** **Reagendar uma aula não altera os horários padrão do aluno.**
+- **RF-29** Deve ser possível **acompanhar quantas vezes uma aula específica** de um aluno foi **reagendada**.
 
 ### Planos e renovação
 - **RF-13** Cada plano dá acesso a um **número X de aulas**.
 - **RF-14** Quando as aulas do plano se esgotarem, deve haver uma **notificação informando que o aluno deve renovar**.
 - **RF-15** Os planos têm **preços**, com possibilidade de **cadastrar descontos**.
+- **RF-40** Deve haver uma **tela de controle dos planos**, compartilhada com os **serviços avulsos**.
 - **RF-27** Deve ser possível visualizar o **histórico de planos** de cada aluno, com os **valores congelados**
   da contratação.
 - **RF-28** Se o aluno **renovar antes do fim do plano**, o plano em uso **continua sendo contado até que todas
@@ -131,6 +149,14 @@ O contrato entre elas é a API REST do back (`packages/api-client`, gerado do Op
 | D-18 | Valor do aluno presente = `student_share_percent` (padrão **40%**, configurável por professor) × **preço pago** no plano do aluno (já com desconto) ÷ **aulas do plano**. Usa o plano debitado naquela aula (congelado na conclusão). Presença **sem aula disponível** no plano gera R$ 0. Faltas não geram valor por aluno. Aulas concluídas antes desta regra mantêm o valor calculado na regra anterior. | Implementa RF-26. Alternativa: usar o preço cheio do plano, sem desconto. |
 | D-19 | Na contratação ficam congelados **nome do plano, nome do desconto, preço, desconto, valor pago, aulas e frequência**. O histórico mostra também valor por aula (pago ÷ aulas), aulas usadas e período de uso (1ª e última aula debitada). Situações: **em uso**, **aguardando** (renovação antecipada), **encerrado**, **cancelado**. | Implementa RF-27. |
 | D-20 | Com vários planos ativos, as aulas são debitadas do **mais antigo** (data de contratação) até acabar. O aviso de renovação só é gerado quando acaba o último plano com aulas. A ficha mostra o plano **em uso** e os planos aguardando. O limite de turmas padrão usa a **maior frequência** entre os planos ativos, para permitir ajustar o horário ao renovar para um plano maior. | Implementa RF-28. |
+| D-21 | Uma aula do horário padrão reagendada forma uma **cadeia**: original → reposição → (reagendada de novo) → …. A contagem é o número de reagendamentos desde a aula original. Aparece em cada reposição (detalhes da aula e finalização), nas reposições agendadas e no card **Reagendamentos** da ficha, com cada passo, justificativa e situação atual. Desfazer um reagendamento remove o passo da cadeia. Não há limite de reagendamentos. | Implementa RF-29. |
+| D-22 | Pagamento do plano: `is_paid` + `paid_at` (padrão: hoje). Pode ser marcado no cadastro, na renovação ou depois, na edição. É só um controle de "pago/pendente" (sem valores parciais, formas de pagamento ou cobrança). | Implementa RF-30. |
+| D-23 | Na edição, a troca de turmas padrão vale **a partir de uma data** (padrão: hoje); o horário anterior termina na véspera. "Histórico de horários" lista os horários atuais, futuros e encerrados; "Histórico de aulas" lista as chamadas, que não mudam com o horário. | Implementa RF-31. |
+| D-24 | Registro de alterações (`audit_logs`) por aluno: ação, descrição legível, campos alterados (antes/depois), **usuário** (nome gravado) e **data/hora local**. Registra cadastro, edição de dados (só campos que mudaram), troca de horário, plano contratado/cancelado, pagamento e inativação/reativação. Trocar o plano em si é feito por "Renovar plano". | Implementa RF-32. |
+| D-25 | **Serviço avulso**: catálogo (nome, descrição, valor padrão por sessão). A **contratação** congela nome, valor de tabela e **valor combinado por sessão** (editável só na contratação). Recorrência: **sem** (1 sessão, padrão), **semanal**, **quinzenal** ou **mensal** com N sessões (2–52, padrão 4); as datas são geradas. Cancelar a contratação cancela as sessões agendadas de hoje em diante. Observações e pagamento (pago/pendente) podem ser alterados depois; tudo vai para o registro de alterações. Serviços **não** usam aulas do plano. | Implementa RF-33 a RF-36. |
+| D-26 | Na contratação o serviço recebe **sala, profissional e horário** (sessões de 1h, seg–sex, no horário do estúdio), herdados por todas as sessões. Sala e profissional não podem ter **turma** (aula não cancelada) nem **outra sessão** no mesmo dia/hora; criar ou mover turmas também respeita as sessões futuras. As sessões aparecem no **calendário** (cor própria) e em **Finalizar aulas**. | Implementa RF-37. |
+| D-27 | Sessão de serviço: **agendada → presente/falta** (finalização pelo profissional da sessão ou admin, depois do início; justificativa opcional na falta) ou **cancelada**. Admin pode reabrir. Presente gera ao profissional `service_share_percent` (padrão **40%**, por profissional, separado do % das aulas) × valor combinado da sessão; falta gera R$ 0. O valor é **congelado na finalização**. O mínimo por aula vale só para aulas de pilates. O relatório de professores soma aulas + serviços. | Implementa RF-38 e RF-39. |
+| D-28 | Tela **Planos e serviços** com abas **Planos**, **Descontos** e **Serviços avulsos**: cadastro, edição, desativação/reativação e uso atual (alunos com o plano em uso, na fila, pagamentos pendentes; contratações e sessões futuras de cada serviço). Descontos podem ter nome, tipo, valor e plano alterados. Toda alteração vale só para novas contratações (valores congelados). | Implementa RF-40. |
 | D-17 | A tela de finalização lista as aulas que **já começaram** nos últimos 30 dias, têm alunos e não foram concluídas/canceladas. Professor vê apenas as próprias. | Implementa RF-21. |
 
 ## 6. Fora do escopo (por enquanto)
@@ -156,6 +182,13 @@ O contrato entre elas é a API REST do back (`packages/api-client`, gerado do Op
 | RF-15 | `/discounts`, `GET /plans/{id}/price` |
 | RF-16 a RF-18 | `GET /calendar`, `GET /lessons/{class_group_id}/{date}`, `.../cancel` |
 | RF-19, RF-20 | `GET /reports/teacher-payments` |
+| RF-40 | `/plans`, `/discounts`, `/services`, `GET /catalog/overview` |
+| RF-33 a RF-36 | `/services`, `GET/POST /students/{id}/services`, `PATCH .../services/{cid}`, `.../cancel`, `.../sessions/{sid}` |
+| RF-37 a RF-39 | `GET /calendar` (`kind = service`), `GET /lessons/pending`, `GET /service-sessions/{id}`, `.../complete`, `.../reopen`, `GET /reports/teacher-payments` (`services`) |
+| RF-30 | `POST /students`, `PATCH /students/{id}`, `PUT /students/{id}/schedule`, `PATCH /students/{id}/subscriptions/{sid}/payment` |
+| RF-31 | `GET /students/{id}/schedule/history`, `GET /students/{id}/attendances` |
+| RF-32 | `GET /students/{id}/history` |
+| RF-29 | `GET /students/{id}/reschedules`, `reschedule_count` / `original_lesson` em `GET /lessons/{class_group_id}/{date}` |
 | RF-27, RF-28 | `GET/POST /students/{id}/subscriptions`, `GET /students/{id}` (`subscription`, `queued_subscriptions`) |
 | RF-25, RF-26 | `PATCH /teachers/{id}` (`min_pay_per_lesson`, `student_share_percent`), `GET /reports/teacher-payments` |
 

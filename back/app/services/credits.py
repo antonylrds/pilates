@@ -54,6 +54,8 @@ def create_subscription(db: Session, student: Student, data: SubscriptionCreate)
         base_price=plan.price,
         discount_amount=disc,
         final_price=plan.price - disc,
+        is_paid=data.is_paid,
+        paid_at=(data.paid_at or date.today()) if data.is_paid else None,
         notes=data.notes,
     )
     db.add(subscription)

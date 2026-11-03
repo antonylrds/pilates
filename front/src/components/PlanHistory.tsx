@@ -73,6 +73,13 @@ export function PlanHistory({ studentId, version }: { studentId: number; version
                   </td>
                   <td>
                     <Badge tone={usageTone[h.usage]}>{subscriptionUsage[h.usage]}</Badge>
+                    <div className="small">
+                      {h.is_paid ? (
+                        <span className="text-success">Pago{h.paid_at && ` ${fmtDate(h.paid_at)}`}</span>
+                      ) : (
+                        h.usage !== "cancelled" && <span className="text-warning">Pendente</span>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}

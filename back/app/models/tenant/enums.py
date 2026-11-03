@@ -26,6 +26,25 @@ class SubscriptionUsage(StrEnum):
     CANCELLED = "cancelled"
 
 
+class ServiceRecurrence(StrEnum):
+    NONE = "none"  # sessão única (padrão)
+    WEEKLY = "weekly"
+    BIWEEKLY = "biweekly"
+    MONTHLY = "monthly"
+
+
+class ServiceContractStatus(StrEnum):
+    ACTIVE = "active"
+    CANCELLED = "cancelled"
+
+
+class ServiceSessionStatus(StrEnum):
+    SCHEDULED = "scheduled"
+    DONE = "done"  # finalizada: cliente presente
+    MISSED = "missed"  # finalizada: cliente faltou
+    CANCELLED = "cancelled"
+
+
 class AttendanceStatus(StrEnum):
     PENDING = "pending"  # aguardando chamada
     PRESENT = "present"

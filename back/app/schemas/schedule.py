@@ -50,8 +50,11 @@ class ClassGroupDetail(ClassGroupRead):
 
 # ---------- Calendário / aulas ----------
 class CalendarEntry(BaseModel):
-    class_group_id: int
-    class_group_name: str
+    kind: Literal["lesson", "service"] = Field("lesson", description="Aula de turma ou sessão de serviço avulso")
+    class_group_id: int | None = Field(description="Nulo em sessões de serviço")
+    class_group_name: str = Field(description="Turma ou 'Serviço · Aluno'")
+    service_session_id: int | None = None
+    student: StudentSummary | None = Field(None, description="Cliente (sessões de serviço)")
     lesson_id: int | None = Field(description="Nulo enquanto nada foi registrado na aula")
     date: date
     starts_at: datetime
@@ -79,6 +82,8 @@ class RosterEntry(BaseModel):
     is_makeup: bool = Field(description="Aluno veio por reposição de outra aula")
     makeup_from: LessonRef | None = None
     rescheduled_to: LessonRef | None = None
+    reschedule_count: int = Field(0, description="Quantas vezes a aula original deste aluno já foi reagendada")
+    original_lesson: LessonRef | None = Field(None, description="Aula original (horário padrão), se for reposição")
     credits_remaining: int
 
 
@@ -129,10 +134,29 @@ class RescheduleRequest(BaseModel):
     justification: str | None = Field(None, max_length=500)
 
 
+class RescheduleStep(BaseModel):
+    from_lesson: LessonRef
+    to_lesson: LessonRef
+    justification: str | None
+    rescheduled_at: datetime | None
+
+
+class RescheduleChain(BaseModel):
+    """Acompanhamento dos reagendamentos de uma aula específica do aluno."""
+
+    original_lesson: LessonRef = Field(description="Aula do horário padrão que foi reagendada")
+    reschedule_count: int
+    steps: list[RescheduleStep]
+    current_lesson: LessonRef = Field(description="Onde a aula está agora")
+    current_status: AttendanceStatus
+    current_completed: bool
+
+
 class StudentAttendanceRead(BaseModel):
     lesson: LessonRef
     status: AttendanceStatus
     justification: str | None = None
+    reschedule_count: int = 0
     is_makeup: bool
     lesson_completed: bool
     debited: bool = Field(description="A aula foi debitada de um plano")
@@ -173,17 +197,37 @@ class TeacherLessonReport(BaseModel):
     min_pay_per_lesson: Decimal
 
 
+class TeacherServiceReport(BaseModel):
+    """Sessão de serviço avulso finalizada pelo profissional."""
+
+    session_id: int
+    date: date
+    start_hour: int
+    service_name: str
+    student: StudentSummary
+    room: str
+    present: bool
+    price: Decimal = Field(description="Valor da sessão para o cliente")
+    share_percent: Decimal = Field(description="% do profissional na finalização")
+    amount: Decimal = Field(description="Valor ao profissional (congelado)")
+
+
 class TeacherPaymentReport(BaseModel):
     teacher: TeacherSummary
-    # Valores atuais do professor (aplicados às próximas aulas concluídas)
+    # Valores atuais do professor (aplicados às próximas aulas/sessões finalizadas)
     pay_per_class: Decimal
     student_share_percent: Decimal
     min_pay_per_lesson: Decimal
+    service_share_percent: Decimal
     lessons_given: int = Field(description="Aulas concluídas que geraram pagamento")
     lessons_without_presence: int = Field(description="Dessas, quantas tiveram todos os alunos ausentes")
     total_presences: int
-    amount: Decimal
+    lessons_amount: Decimal
+    services_given: int = Field(description="Sessões de serviço finalizadas com cliente presente")
+    services_amount: Decimal
+    amount: Decimal = Field(description="Total: aulas + serviços")
     lessons: list[TeacherLessonReport]
+    services: list[TeacherServiceReport]
 
 
 class TeacherPaymentsResponse(BaseModel):

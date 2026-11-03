@@ -84,8 +84,31 @@ class DiscountCreate(BaseModel):
 
 
 class DiscountUpdate(BaseModel):
+    """Alterar o desconto vale só para novas contratações (o valor já aplicado fica congelado)."""
+
     name: str | None = Field(None, min_length=2, max_length=120)
+    kind: DiscountKind | None = None
+    value: Decimal | None = Field(None, gt=0, max_digits=10, decimal_places=2)
+    plan_id: int | None = Field(None, description="Restringe a um plano; envie null para valer para todos")
     is_active: bool | None = None
+
+
+class PlanUsage(BaseModel):
+    plan_id: int
+    in_use: int = Field(description="Alunos com este plano em uso")
+    queued: int = Field(description="Renovações antecipadas aguardando")
+    unpaid: int = Field(description="Contratações ativas com pagamento pendente")
+
+
+class ServiceUsage(BaseModel):
+    service_id: int
+    active_contracts: int
+    upcoming_sessions: int = Field(description="Sessões agendadas de hoje em diante")
+
+
+class CatalogOverview(BaseModel):
+    plans: list[PlanUsage]
+    services: list[ServiceUsage]
 
 
 class DiscountRead(ORMModel):
@@ -117,7 +140,14 @@ class SubscriptionCreate(BaseModel):
     plan_id: int
     discount_id: int | None = None
     start_date: date | None = Field(None, description="Padrão: hoje")
+    is_paid: bool = Field(False, description="O plano já foi pago")
+    paid_at: date | None = Field(None, description="Data do pagamento (padrão: hoje, se pago)")
     notes: str | None = None
+
+
+class SubscriptionPayment(BaseModel):
+    is_paid: bool
+    paid_at: date | None = Field(None, description="Padrão: hoje, se pago")
 
 
 class SubscriptionRead(ORMModel):
@@ -137,6 +167,8 @@ class SubscriptionRead(ORMModel):
     final_price: Decimal
     price_per_lesson: Decimal = Field(description="Valor pago ÷ aulas do plano")
     status: SubscriptionStatus
+    is_paid: bool
+    paid_at: date | None
     usage: SubscriptionUsage = Field(description="in_use | queued (renovação antecipada) | finished | cancelled")
     credits_used: int
     credits_remaining: int

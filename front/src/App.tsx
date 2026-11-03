@@ -7,6 +7,7 @@ import { FinalizePage } from "./pages/FinalizePage";
 import { LoginPage } from "./pages/LoginPage";
 import { NotificationsPage } from "./pages/NotificationsPage";
 import { RoomsPage } from "./pages/RoomsPage";
+import { CatalogPage } from "./pages/CatalogPage";
 import { StudentsPage } from "./pages/StudentsPage";
 import { TeachersPage } from "./pages/TeachersPage";
 
@@ -28,8 +29,11 @@ export function App() {
         <Route path="alunos" element={<StudentsPage />} />
         <Route path="alunos/:studentId" element={<StudentsPage />} />
         <Route path="finalizar" element={<FinalizePage />} />
+        <Route path="finalizar/servico/:sessionId" element={<FinalizePage />} />
         <Route path="finalizar/:groupId/:date" element={<FinalizePage />} />
         <Route path="salas" element={<RoomsPage />} />
+        <Route path="catalogo" element={<CatalogPage />} />
+        <Route path="servicos" element={<Navigate to="/catalogo?aba=servicos" replace />} />
         <Route path="professores" element={<TeachersPage />} />
         <Route path="avisos" element={<NotificationsPage />} />
       </Route>

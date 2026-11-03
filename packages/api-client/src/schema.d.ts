@@ -317,8 +317,180 @@ export interface paths {
         delete: operations["deactivate_discount_api_v1_discounts__discount_id__delete"];
         options?: never;
         head?: never;
-        /** Update Discount */
+        /** Altera o desconto (não afeta planos já contratados) */
         patch: operations["update_discount_api_v1_discounts__discount_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/catalog/overview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Uso de cada plano e serviço avulso (alunos em uso, na fila, pagamentos pendentes) */
+        get: operations["catalog_overview_api_v1_catalog_overview_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/services": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Catálogo de serviços avulsos */
+        get: operations["list_services_api_v1_services_get"];
+        put?: never;
+        /** Create Service */
+        post: operations["create_service_api_v1_services_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/services/{service_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Altera o serviço (não afeta contratações já feitas) */
+        patch: operations["update_service_api_v1_services__service_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/students/{student_id}/services": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Histórico de serviços avulsos do aluno */
+        get: operations["student_services_api_v1_students__student_id__services_get"];
+        put?: never;
+        /** Contrata um serviço avulso (valor do catálogo ou alterado; recorrência opcional) */
+        post: operations["contract_api_v1_students__student_id__services_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/students/{student_id}/services/{contract_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Altera observações e pagamento de um serviço contratado */
+        patch: operations["update_contract_api_v1_students__student_id__services__contract_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/students/{student_id}/services/{contract_id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Cancela o serviço contratado e as sessões futuras */
+        post: operations["cancel_api_v1_students__student_id__services__contract_id__cancel_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/students/{student_id}/services/{contract_id}/sessions/{session_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Cancela ou reativa uma sessão ainda não finalizada */
+        patch: operations["update_session_api_v1_students__student_id__services__contract_id__sessions__session_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/service-sessions/{session_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Detalhe da sessão de serviço */
+        get: operations["get_session_api_v1_service_sessions__session_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/service-sessions/{session_id}/complete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Finaliza a sessão (presente/falta); presente gera % do valor ao profissional */
+        post: operations["complete_api_v1_service_sessions__session_id__complete_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/service-sessions/{session_id}/reopen": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reabre uma sessão finalizada (admin) */
+        post: operations["reopen_api_v1_service_sessions__session_id__reopen_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/api/v1/teachers": {
@@ -368,7 +540,7 @@ export interface paths {
         /** List Students */
         get: operations["list_students_api_v1_students_get"];
         put?: never;
-        /** Cadastra aluno (opcionalmente já com plano e turmas padrão) */
+        /** Cadastra aluno (opcionalmente já com plano, pagamento e turmas padrão) */
         post: operations["create_student_api_v1_students_post"];
         delete?: never;
         options?: never;
@@ -391,7 +563,7 @@ export interface paths {
         delete: operations["deactivate_student_api_v1_students__student_id__delete"];
         options?: never;
         head?: never;
-        /** Update Student */
+        /** Altera os dados do aluno (registra a alteração) */
         patch: operations["update_student_api_v1_students__student_id__patch"];
         trace?: never;
     };
@@ -423,7 +595,7 @@ export interface paths {
         get: operations["list_subscriptions_api_v1_students__student_id__subscriptions_get"];
         put?: never;
         /**
-         * Vincula/renova o plano do aluno (com desconto opcional)
+         * Vincula/renova o plano do aluno (com desconto e pagamento opcionais)
          * @description Renovação antecipada: o plano em uso continua sendo debitado até acabar as aulas; o novo começa a contar em seguida (usage = queued até lá).
          */
         post: operations["add_subscription_api_v1_students__student_id__subscriptions_post"];
@@ -450,6 +622,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/students/{student_id}/subscriptions/{subscription_id}/payment": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Marca o plano como pago ou pendente */
+        patch: operations["update_payment_api_v1_students__student_id__subscriptions__subscription_id__payment_patch"];
+        trace?: never;
+    };
     "/api/v1/students/{student_id}/schedule": {
         parameters: {
             query?: never;
@@ -459,8 +648,59 @@ export interface paths {
         };
         /** Get Schedule */
         get: operations["get_schedule_api_v1_students__student_id__schedule_get"];
-        /** Altera as turmas padrão do aluno a partir de uma data */
+        /** Altera as turmas padrão do aluno a partir de uma data (registra a alteração) */
         put: operations["update_schedule_api_v1_students__student_id__schedule_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/students/{student_id}/schedule/history": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Histórico de horários padrão (atuais, futuros e encerrados) */
+        get: operations["schedule_history_api_v1_students__student_id__schedule_history_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/students/{student_id}/history": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Registro de alterações do aluno: o que mudou, quem fez e quando */
+        get: operations["change_history_api_v1_students__student_id__history_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/students/{student_id}/reschedules": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Acompanhamento dos reagendamentos: cada aula original e quantas vezes foi reagendada */
+        get: operations["student_reschedules_api_v1_students__student_id__reschedules_get"];
+        put?: never;
         post?: never;
         delete?: never;
         options?: never;
@@ -756,6 +996,30 @@ export interface components {
          * @enum {string}
          */
         AttendanceStatus: "pending" | "present" | "absent" | "rescheduled";
+        /** AuditLogRead */
+        AuditLogRead: {
+            /** Id */
+            id: number;
+            /** Action */
+            action: string;
+            /** Description */
+            description: string;
+            /** Changes */
+            changes: {
+                [key: string]: unknown;
+            } | null;
+            /**
+             * User Name
+             * @description Quem fez a alteração
+             */
+            user_name: string;
+            /**
+             * Created At
+             * Format: date-time
+             * @description Quando
+             */
+            created_at: string;
+        };
         /** Body_login_form_api_v1_auth_token_post */
         Body_login_form_api_v1_auth_token_post: {
             /** Grant Type */
@@ -782,10 +1046,27 @@ export interface components {
         };
         /** CalendarEntry */
         CalendarEntry: {
-            /** Class Group Id */
-            class_group_id: number;
-            /** Class Group Name */
+            /**
+             * Kind
+             * @description Aula de turma ou sessão de serviço avulso
+             * @default lesson
+             * @enum {string}
+             */
+            kind: "lesson" | "service";
+            /**
+             * Class Group Id
+             * @description Nulo em sessões de serviço
+             */
+            class_group_id: number | null;
+            /**
+             * Class Group Name
+             * @description Turma ou 'Serviço · Aluno'
+             */
             class_group_name: string;
+            /** Service Session Id */
+            service_session_id?: number | null;
+            /** @description Cliente (sessões de serviço) */
+            student?: components["schemas"]["StudentSummary"] | null;
             /**
              * Lesson Id
              * @description Nulo enquanto nada foi registrado na aula
@@ -817,6 +1098,13 @@ export interface components {
             status: components["schemas"]["LessonStatus"];
             /** Completed At */
             completed_at?: string | null;
+        };
+        /** CatalogOverview */
+        CatalogOverview: {
+            /** Plans */
+            plans: components["schemas"]["PlanUsage"][];
+            /** Services */
+            services: components["schemas"]["ServiceUsage"][];
         };
         /** ClassGroupCreate */
         ClassGroupCreate: {
@@ -999,10 +1287,21 @@ export interface components {
             /** Value */
             value: string;
         };
-        /** DiscountUpdate */
+        /**
+         * DiscountUpdate
+         * @description Alterar o desconto vale só para novas contratações (o valor já aplicado fica congelado).
+         */
         DiscountUpdate: {
             /** Name */
             name?: string | null;
+            kind?: components["schemas"]["DiscountKind"] | null;
+            /** Value */
+            value?: number | string | null;
+            /**
+             * Plan Id
+             * @description Restringe a um plano; envie null para valer para todos
+             */
+            plan_id?: number | null;
             /** Is Active */
             is_active?: boolean | null;
         };
@@ -1026,10 +1325,27 @@ export interface components {
         };
         /** LessonDetail */
         LessonDetail: {
-            /** Class Group Id */
-            class_group_id: number;
-            /** Class Group Name */
+            /**
+             * Kind
+             * @description Aula de turma ou sessão de serviço avulso
+             * @default lesson
+             * @enum {string}
+             */
+            kind: "lesson" | "service";
+            /**
+             * Class Group Id
+             * @description Nulo em sessões de serviço
+             */
+            class_group_id: number | null;
+            /**
+             * Class Group Name
+             * @description Turma ou 'Serviço · Aluno'
+             */
             class_group_name: string;
+            /** Service Session Id */
+            service_session_id?: number | null;
+            /** @description Cliente (sessões de serviço) */
+            student?: components["schemas"]["StudentSummary"] | null;
             /**
              * Lesson Id
              * @description Nulo enquanto nada foi registrado na aula
@@ -1226,6 +1542,26 @@ export interface components {
             /** Is Active */
             is_active?: boolean | null;
         };
+        /** PlanUsage */
+        PlanUsage: {
+            /** Plan Id */
+            plan_id: number;
+            /**
+             * In Use
+             * @description Alunos com este plano em uso
+             */
+            in_use: number;
+            /**
+             * Queued
+             * @description Renovações antecipadas aguardando
+             */
+            queued: number;
+            /**
+             * Unpaid
+             * @description Contratações ativas com pagamento pendente
+             */
+            unpaid: number;
+        };
         /** PlatformLogin */
         PlatformLogin: {
             /**
@@ -1276,6 +1612,23 @@ export interface components {
             /** Final Price */
             final_price: string;
         };
+        /**
+         * RescheduleChain
+         * @description Acompanhamento dos reagendamentos de uma aula específica do aluno.
+         */
+        RescheduleChain: {
+            /** @description Aula do horário padrão que foi reagendada */
+            original_lesson: components["schemas"]["LessonRef"];
+            /** Reschedule Count */
+            reschedule_count: number;
+            /** Steps */
+            steps: components["schemas"]["RescheduleStep"][];
+            /** @description Onde a aula está agora */
+            current_lesson: components["schemas"]["LessonRef"];
+            current_status: components["schemas"]["AttendanceStatus"];
+            /** Current Completed */
+            current_completed: boolean;
+        };
         /** RescheduleRequest */
         RescheduleRequest: {
             /** Student Id */
@@ -1289,6 +1642,15 @@ export interface components {
             target_date: string;
             /** Justification */
             justification?: string | null;
+        };
+        /** RescheduleStep */
+        RescheduleStep: {
+            from_lesson: components["schemas"]["LessonRef"];
+            to_lesson: components["schemas"]["LessonRef"];
+            /** Justification */
+            justification: string | null;
+            /** Rescheduled At */
+            rescheduled_at: string | null;
         };
         /** RoomCreate */
         RoomCreate: {
@@ -1337,8 +1699,48 @@ export interface components {
             is_makeup: boolean;
             makeup_from?: components["schemas"]["LessonRef"] | null;
             rescheduled_to?: components["schemas"]["LessonRef"] | null;
+            /**
+             * Reschedule Count
+             * @description Quantas vezes a aula original deste aluno já foi reagendada
+             * @default 0
+             */
+            reschedule_count: number;
+            /** @description Aula original (horário padrão), se for reposição */
+            original_lesson?: components["schemas"]["LessonRef"] | null;
             /** Credits Remaining */
             credits_remaining: number;
+        };
+        /**
+         * ScheduleHistoryItem
+         * @description Um horário padrão do aluno e o período em que valeu.
+         */
+        ScheduleHistoryItem: {
+            /** Enrollment Id */
+            enrollment_id: number;
+            /** Class Group Id */
+            class_group_id: number;
+            /** Class Group Name */
+            class_group_name: string;
+            /** Weekday Name */
+            weekday_name: string;
+            /** Start Hour */
+            start_hour: number;
+            /** Room */
+            room: string;
+            /** Teacher */
+            teacher: string;
+            /**
+             * Start Date
+             * Format: date
+             */
+            start_date: string;
+            /** End Date */
+            end_date: string | null;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "current" | "future" | "ended";
         };
         /**
          * ScheduleItem
@@ -1382,12 +1784,305 @@ export interface components {
              */
             effective_from?: string | null;
         };
+        /** ServiceContractCreate */
+        ServiceContractCreate: {
+            /** Service Id */
+            service_id: number;
+            /**
+             * Room Id
+             * @description Sala ocupada pelas sessões
+             */
+            room_id: number;
+            /**
+             * Teacher Id
+             * @description Profissional que atende
+             */
+            teacher_id: number;
+            /**
+             * Start Hour
+             * @description Hora de início (sessões de 1h)
+             */
+            start_hour: number;
+            /**
+             * Price
+             * @description Valor por sessão (padrão: valor do catálogo)
+             */
+            price?: number | string | null;
+            /**
+             * @description Padrão: sem recorrência
+             * @default none
+             */
+            recurrence: components["schemas"]["ServiceRecurrence"];
+            /**
+             * Occurrences
+             * @description Nº de sessões (recorrente; padrão 4)
+             */
+            occurrences?: number | null;
+            /**
+             * Start Date
+             * @description Data da (primeira) sessão; padrão: hoje
+             */
+            start_date?: string | null;
+            /**
+             * Is Paid
+             * @default false
+             */
+            is_paid: boolean;
+            /** Paid At */
+            paid_at?: string | null;
+            /** Notes */
+            notes?: string | null;
+        };
+        /** ServiceContractRead */
+        ServiceContractRead: {
+            /** Id */
+            id: number;
+            /** Student Id */
+            student_id: number;
+            /** Service Id */
+            service_id: number;
+            /**
+             * Service Name
+             * @description Nome do serviço na contratação
+             */
+            service_name: string;
+            /**
+             * List Price
+             * @description Valor do catálogo na contratação
+             */
+            list_price: string;
+            /**
+             * Price
+             * @description Valor combinado por sessão
+             */
+            price: string;
+            /** Price Changed */
+            price_changed: boolean;
+            /** Total Price */
+            total_price: string;
+            recurrence: components["schemas"]["ServiceRecurrence"];
+            /** Occurrences */
+            occurrences: number;
+            /**
+             * Start Date
+             * Format: date
+             */
+            start_date: string;
+            /** Start Hour */
+            start_hour: number | null;
+            room: components["schemas"]["RoomSummary"] | null;
+            teacher: components["schemas"]["TeacherSummary"] | null;
+            status: components["schemas"]["ServiceContractStatus"];
+            /**
+             * Situation
+             * @enum {string}
+             */
+            situation: "active" | "completed" | "cancelled";
+            /** Done Count */
+            done_count: number;
+            /** Next Date */
+            next_date: string | null;
+            /** Is Paid */
+            is_paid: boolean;
+            /** Paid At */
+            paid_at: string | null;
+            /** Notes */
+            notes: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Sessions */
+            sessions: components["schemas"]["ServiceSessionRead"][];
+        };
+        /**
+         * ServiceContractStatus
+         * @enum {string}
+         */
+        ServiceContractStatus: "active" | "cancelled";
+        /**
+         * ServiceContractUpdate
+         * @description Após a contratação o valor fica congelado; dá para alterar observações e pagamento.
+         */
+        ServiceContractUpdate: {
+            /** Notes */
+            notes?: string | null;
+            /** Is Paid */
+            is_paid?: boolean | null;
+            /** Paid At */
+            paid_at?: string | null;
+        };
+        /** ServiceCreate */
+        ServiceCreate: {
+            /** Name */
+            name: string;
+            /** Description */
+            description?: string | null;
+            /**
+             * Price
+             * @description Valor padrão por sessão
+             */
+            price: number | string;
+        };
+        /** ServiceRead */
+        ServiceRead: {
+            /** Id */
+            id: number;
+            /** Name */
+            name: string;
+            /** Description */
+            description: string | null;
+            /** Price */
+            price: string;
+            /** Is Active */
+            is_active: boolean;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+        };
+        /**
+         * ServiceRecurrence
+         * @enum {string}
+         */
+        ServiceRecurrence: "none" | "weekly" | "biweekly" | "monthly";
+        /** ServiceSessionComplete */
+        ServiceSessionComplete: {
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "present" | "absent";
+            /**
+             * Justification
+             * @description Justificativa opcional da falta
+             */
+            justification?: string | null;
+        };
+        /**
+         * ServiceSessionDetail
+         * @description Sessão com os dados da contratação (agenda e finalização).
+         */
+        ServiceSessionDetail: {
+            /** Id */
+            id: number;
+            /**
+             * Date
+             * Format: date
+             */
+            date: string;
+            /** Start Hour */
+            start_hour: number | null;
+            room: components["schemas"]["RoomSummary"] | null;
+            teacher: components["schemas"]["TeacherSummary"] | null;
+            status: components["schemas"]["ServiceSessionStatus"];
+            /** Justification */
+            justification: string | null;
+            /** Completed At */
+            completed_at: string | null;
+            /**
+             * Share Percent
+             * @description % do profissional congelado na finalização
+             */
+            share_percent: string | null;
+            /**
+             * Teacher Pay
+             * @description Valor gerado ao profissional (congelado na finalização)
+             */
+            teacher_pay: string | null;
+            /** Contract Id */
+            contract_id: number;
+            /** Service Name */
+            service_name: string;
+            student: components["schemas"]["StudentSummary"];
+            /** Price */
+            price: string;
+            /** Notes */
+            notes: string | null;
+            /** Can Complete */
+            can_complete: boolean;
+        };
+        /** ServiceSessionRead */
+        ServiceSessionRead: {
+            /** Id */
+            id: number;
+            /**
+             * Date
+             * Format: date
+             */
+            date: string;
+            /** Start Hour */
+            start_hour: number | null;
+            room: components["schemas"]["RoomSummary"] | null;
+            teacher: components["schemas"]["TeacherSummary"] | null;
+            status: components["schemas"]["ServiceSessionStatus"];
+            /** Justification */
+            justification: string | null;
+            /** Completed At */
+            completed_at: string | null;
+            /**
+             * Share Percent
+             * @description % do profissional congelado na finalização
+             */
+            share_percent: string | null;
+            /**
+             * Teacher Pay
+             * @description Valor gerado ao profissional (congelado na finalização)
+             */
+            teacher_pay: string | null;
+        };
+        /**
+         * ServiceSessionStatus
+         * @enum {string}
+         */
+        ServiceSessionStatus: "scheduled" | "done" | "missed" | "cancelled";
+        /**
+         * ServiceSessionUpdate
+         * @description Cancela ou reativa uma sessão ainda não finalizada (finalização é por /complete).
+         */
+        ServiceSessionUpdate: {
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "scheduled" | "cancelled";
+        };
+        /** ServiceUpdate */
+        ServiceUpdate: {
+            /** Name */
+            name?: string | null;
+            /** Description */
+            description?: string | null;
+            /** Price */
+            price?: number | string | null;
+            /** Is Active */
+            is_active?: boolean | null;
+        };
+        /** ServiceUsage */
+        ServiceUsage: {
+            /** Service Id */
+            service_id: number;
+            /** Active Contracts */
+            active_contracts: number;
+            /**
+             * Upcoming Sessions
+             * @description Sessões agendadas de hoje em diante
+             */
+            upcoming_sessions: number;
+        };
         /** StudentAttendanceRead */
         StudentAttendanceRead: {
             lesson: components["schemas"]["LessonRef"];
             status: components["schemas"]["AttendanceStatus"];
             /** Justification */
             justification?: string | null;
+            /**
+             * Reschedule Count
+             * @default 0
+             */
+            reschedule_count: number;
             /** Is Makeup */
             is_makeup: boolean;
             /** Lesson Completed */
@@ -1630,8 +2325,29 @@ export interface components {
              * @description Padrão: hoje
              */
             start_date?: string | null;
+            /**
+             * Is Paid
+             * @description O plano já foi pago
+             * @default false
+             */
+            is_paid: boolean;
+            /**
+             * Paid At
+             * @description Data do pagamento (padrão: hoje, se pago)
+             */
+            paid_at?: string | null;
             /** Notes */
             notes?: string | null;
+        };
+        /** SubscriptionPayment */
+        SubscriptionPayment: {
+            /** Is Paid */
+            is_paid: boolean;
+            /**
+             * Paid At
+             * @description Padrão: hoje, se pago
+             */
+            paid_at?: string | null;
         };
         /**
          * SubscriptionRead
@@ -1677,6 +2393,10 @@ export interface components {
              */
             price_per_lesson: string;
             status: components["schemas"]["SubscriptionStatus"];
+            /** Is Paid */
+            is_paid: boolean;
+            /** Paid At */
+            paid_at: string | null;
             /** @description in_use | queued (renovação antecipada) | finished | cancelled */
             usage: components["schemas"]["SubscriptionUsage"];
             /** Credits Used */
@@ -1745,6 +2465,12 @@ export interface components {
              * @default 0
              */
             min_pay_per_lesson: number | string;
+            /**
+             * Service Share Percent
+             * @description % do valor da sessão de serviço avulso pago ao profissional
+             * @default 40
+             */
+            service_share_percent: number | string;
         };
         /** TeacherLessonReport */
         TeacherLessonReport: {
@@ -1794,6 +2520,8 @@ export interface components {
             student_share_percent: string;
             /** Min Pay Per Lesson */
             min_pay_per_lesson: string;
+            /** Service Share Percent */
+            service_share_percent: string;
             /**
              * Lessons Given
              * @description Aulas concluídas que geraram pagamento
@@ -1806,10 +2534,24 @@ export interface components {
             lessons_without_presence: number;
             /** Total Presences */
             total_presences: number;
-            /** Amount */
+            /** Lessons Amount */
+            lessons_amount: string;
+            /**
+             * Services Given
+             * @description Sessões de serviço finalizadas com cliente presente
+             */
+            services_given: number;
+            /** Services Amount */
+            services_amount: string;
+            /**
+             * Amount
+             * @description Total: aulas + serviços
+             */
             amount: string;
             /** Lessons */
             lessons: components["schemas"]["TeacherLessonReport"][];
+            /** Services */
+            services: components["schemas"]["TeacherServiceReport"][];
         };
         /** TeacherPaymentsResponse */
         TeacherPaymentsResponse: {
@@ -1846,6 +2588,8 @@ export interface components {
             student_share_percent: string;
             /** Min Pay Per Lesson */
             min_pay_per_lesson: string;
+            /** Service Share Percent */
+            service_share_percent: string;
             /** Is Active */
             is_active: boolean;
             /**
@@ -1853,6 +2597,43 @@ export interface components {
              * Format: date-time
              */
             created_at: string;
+        };
+        /**
+         * TeacherServiceReport
+         * @description Sessão de serviço avulso finalizada pelo profissional.
+         */
+        TeacherServiceReport: {
+            /** Session Id */
+            session_id: number;
+            /**
+             * Date
+             * Format: date
+             */
+            date: string;
+            /** Start Hour */
+            start_hour: number;
+            /** Service Name */
+            service_name: string;
+            student: components["schemas"]["StudentSummary"];
+            /** Room */
+            room: string;
+            /** Present */
+            present: boolean;
+            /**
+             * Price
+             * @description Valor da sessão para o cliente
+             */
+            price: string;
+            /**
+             * Share Percent
+             * @description % do profissional na finalização
+             */
+            share_percent: string;
+            /**
+             * Amount
+             * @description Valor ao profissional (congelado)
+             */
+            amount: string;
         };
         /** TeacherSummary */
         TeacherSummary: {
@@ -1877,6 +2658,8 @@ export interface components {
             student_share_percent?: number | string | null;
             /** Min Pay Per Lesson */
             min_pay_per_lesson?: number | string | null;
+            /** Service Share Percent */
+            service_share_percent?: number | string | null;
             /** Is Active */
             is_active?: boolean | null;
         };
@@ -1907,6 +2690,17 @@ export interface components {
             start_hour: number;
             /** Room */
             room: string;
+            /**
+             * Reschedule Count
+             * @description Quantas vezes esta aula já foi reagendada
+             */
+            reschedule_count: number;
+            /**
+             * Original Date
+             * Format: date
+             * @description Data da aula original (horário padrão)
+             */
+            original_date: string;
         };
         /** UserCreate */
         UserCreate: {
@@ -2868,6 +3662,393 @@ export interface operations {
             };
         };
     };
+    catalog_overview_api_v1_catalog_overview_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CatalogOverview"];
+                };
+            };
+        };
+    };
+    list_services_api_v1_services_get: {
+        parameters: {
+            query?: {
+                is_active?: boolean | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ServiceRead"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_service_api_v1_services_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ServiceCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ServiceRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_service_api_v1_services__service_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                service_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ServiceUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ServiceRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    student_services_api_v1_students__student_id__services_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                student_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ServiceContractRead"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    contract_api_v1_students__student_id__services_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                student_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ServiceContractCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ServiceContractRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_contract_api_v1_students__student_id__services__contract_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                student_id: number;
+                contract_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ServiceContractUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ServiceContractRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    cancel_api_v1_students__student_id__services__contract_id__cancel_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                student_id: number;
+                contract_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ServiceContractRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_session_api_v1_students__student_id__services__contract_id__sessions__session_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                student_id: number;
+                contract_id: number;
+                session_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ServiceSessionUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ServiceContractRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_session_api_v1_service_sessions__session_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                session_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ServiceSessionDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    complete_api_v1_service_sessions__session_id__complete_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                session_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ServiceSessionComplete"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ServiceSessionDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    reopen_api_v1_service_sessions__session_id__reopen_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                session_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ServiceSessionDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     list_teachers_api_v1_teachers_get: {
         parameters: {
             query?: {
@@ -3318,6 +4499,42 @@ export interface operations {
             };
         };
     };
+    update_payment_api_v1_students__student_id__subscriptions__subscription_id__payment_patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                student_id: number;
+                subscription_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SubscriptionPayment"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SubscriptionRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     get_schedule_api_v1_students__student_id__schedule_get: {
         parameters: {
             query?: never;
@@ -3371,6 +4588,101 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["StudentDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    schedule_history_api_v1_students__student_id__schedule_history_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                student_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ScheduleHistoryItem"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    change_history_api_v1_students__student_id__history_get: {
+        parameters: {
+            query?: {
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                student_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuditLogRead"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    student_reschedules_api_v1_students__student_id__reschedules_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                student_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RescheduleChain"][];
                 };
             };
             /** @description Validation Error */
