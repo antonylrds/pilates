@@ -2,6 +2,8 @@
 
 Sistema de gestão de estúdios de pilates (multitenant: um banco por estúdio).
 
+📋 **Requisitos e regras de negócio:** [docs/requisitos.md](docs/requisitos.md) — referência para back, front e mobile.
+
 | Pasta | Conteúdo | Stack |
 |-------|----------|-------|
 | [back/](back/) | API REST | Python 3.12+, FastAPI, SQLAlchemy, Alembic (uv) |
