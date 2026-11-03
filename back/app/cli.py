@@ -4,6 +4,7 @@
   uv run python -m app.cli migrate   # migra o banco central e os bancos de todos os estúdios
   uv run python -m app.cli create-studio --name "Studio X" --slug studio-x \\
         --admin-email admin@x.com --admin-password secret123
+  uv run python -m app.cli seed-demo --slug demo --reset   # dados de demonstração
 """
 
 import argparse
@@ -58,7 +59,16 @@ def main() -> None:
     cs.add_argument("--admin-name", default="Administrador")
     cs.add_argument("--admin-email", required=True)
     cs.add_argument("--admin-password", required=True)
+    sd = sub.add_parser("seed-demo", help="Popula um estúdio com dados de demonstração")
+    sd.add_argument("--slug", required=True)
+    sd.add_argument("--reset", action="store_true", help="Apaga os dados do estúdio (exceto usuários) antes")
     args = parser.parse_args()
+
+    if args.command == "seed-demo":
+        from app.demo_seed import seed
+
+        seed(args.slug, reset=args.reset)
+        return
 
     if args.command == "init":
         init()

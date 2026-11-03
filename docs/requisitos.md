@@ -129,4 +129,4 @@ O contrato entre elas é a API REST do back (`packages/api-client`, gerado do Op
 | RF-16 a RF-18 | `GET /calendar`, `GET /lessons/{class_group_id}/{date}`, `.../cancel` |
 | RF-19, RF-20 | `GET /reports/teacher-payments` |
 
-Detalhes técnicos: [back/README.md](../back/README.md). Documentação interativa: `http://localhost:8000/docs`.
+Detalhes técnicos: [back/README.md](../back/README.md). Documentação interativa: `http://localhost:8010/docs`.

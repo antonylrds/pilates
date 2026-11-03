@@ -24,11 +24,17 @@ cd back
 uv sync
 cp .env.example .env
 uv run python -m app.cli init
-uv run fastapi dev app/main.py          # http://localhost:8000/docs
+uv run python -m app.cli create-studio --name "Studio Demo" --slug demo \
+    --admin-email admin@demo.com --admin-password admin123
+uv run python -m app.cli seed-demo --slug demo   # dados de demonstração
+uv run fastapi dev app/main.py --port 8010       # http://localhost:8010/docs
 
-# Parte JS (na raiz)
+# Front (na raiz)
 pnpm install
+pnpm --filter @pilates/front dev                 # http://localhost:5173
 ```
+
+Em desenvolvimento o front repassa `/api` para `http://localhost:8010`.
 
 Detalhes do back: [back/README.md](back/README.md).
 
@@ -46,7 +52,7 @@ Isso exporta `packages/api-client/openapi.json` a partir do FastAPI e regenera
 ```ts
 import { createApiClient, type Schemas } from "@pilates/api-client";
 
-const api = createApiClient({ baseUrl: "http://localhost:8000", getToken: () => token });
+const api = createApiClient({ baseUrl: "http://localhost:8010", getToken: () => token });
 const { data } = await api.GET("/api/v1/calendar", { params: { query: { date_from: "2026-11-09" } } });
 ```
 

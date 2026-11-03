@@ -7,7 +7,7 @@ export type { components, paths };
 export type Schemas = components["schemas"];
 
 export interface ApiClientOptions {
-  /** URL base do back, ex.: http://localhost:8000 */
+  /** URL base do back, ex.: http://localhost:8010 */
   baseUrl: string;
   /** Devolve o token JWT atual (localStorage no web, SecureStore no mobile). */
   getToken?: () => string | null | undefined | Promise<string | null | undefined>;

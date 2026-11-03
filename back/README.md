@@ -13,8 +13,12 @@ cp .env.example .env                       # ajuste SECRET_KEY etc.
 uv run python -m app.cli init              # banco central + usuário da plataforma
 uv run python -m app.cli create-studio --name "Studio Demo" --slug demo \
     --admin-email admin@demo.com --admin-password admin123
-uv run fastapi dev app/main.py             # http://localhost:8000/docs
+uv run python -m app.cli seed-demo --slug demo --reset   # dados de demonstração (opcional)
+uv run fastapi dev app/main.py --port 8010  # http://localhost:8010/docs
 ```
+
+> A porta padrão do projeto é **8010** (a 8000 costuma estar ocupada, ex.: Docker Desktop).
+> O front repassa `/api` para ela em desenvolvimento.
 
 - Testes: `uv run pytest`
 - Migrar todos os bancos após atualizar o código: `uv run python -m app.cli migrate`
