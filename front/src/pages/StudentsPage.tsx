@@ -2,11 +2,14 @@ import { useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 
 import { LessonPanel } from "../components/LessonPanel";
+import { PlanHistory } from "../components/PlanHistory";
+import { RenewPlanModal } from "../components/RenewPlanModal";
 import { Badge, Empty, ErrorBox, Loading } from "../components/ui";
 import { api, call } from "../lib/api";
 import { addDays, fmtDate, fmtHour, fmtShortDay, money, parseISO, toISO, todayISO } from "../lib/format";
 import { useAsync } from "../lib/hooks";
-import { subscriptionStatus } from "../lib/labels";
+import { subscriptionUsage, usageTone } from "../lib/labels";
+import { useSession } from "../lib/session";
 
 export function StudentsPage() {
   const { studentId } = useParams();
@@ -88,6 +91,9 @@ function StudentDetail({ id }: { id: number }) {
     [id],
   );
   const [lesson, setLesson] = useState<{ groupId: number; date: string } | null>(null);
+  const [renewing, setRenewing] = useState(false);
+  const [historyVersion, setHistoryVersion] = useState(0);
+  const { isAdmin } = useSession();
   if (student.loading && !student.data) return <Loading />;
   if (student.error) return <ErrorBox message={student.error} />;
   const s = student.data!;
@@ -130,12 +136,19 @@ function StudentDetail({ id }: { id: number }) {
         </div>
 
         <div className="card">
-          <h3 className="card-title">Plano</h3>
+          <div className="card-title-row">
+            <h3 className="card-title">Plano em uso</h3>
+            {isAdmin && s.is_active && (
+              <button className="btn btn-sm" onClick={() => setRenewing(true)}>
+                Renovar plano
+              </button>
+            )}
+          </div>
           {sub ? (
             <>
               <div className="plan-head">
-                <strong>{sub.plan.name}</strong>
-                <Badge tone={sub.status === "active" ? "success" : "danger"}>{subscriptionStatus[sub.status]}</Badge>
+                <strong>{sub.plan_name ?? sub.plan.name}</strong>
+                <Badge tone={usageTone[sub.usage]}>{subscriptionUsage[sub.usage]}</Badge>
               </div>
               <div className="progress" aria-label="Aulas utilizadas">
                 <div className={`progress-bar ${usedPct >= 100 ? "is-full" : ""}`} style={{ width: `${usedPct}%` }} />
@@ -149,11 +162,20 @@ function StudentDetail({ id }: { id: number }) {
                 {Number(sub.discount_amount) > 0 && (
                   <>
                     {" "}
-                    (de {money(sub.base_price)}, desconto {sub.discount?.name})
+                    (de {money(sub.base_price)}, desconto {sub.discount_name})
                   </>
                 )}{" "}
-                · início {fmtDate(sub.start_date)}
+                · {money(sub.price_per_lesson)}/aula · contratado em {fmtDate(sub.start_date)}
               </p>
+              {s.queued_subscriptions.length > 0 && (
+                <div className="queued">
+                  <strong>Renovado antecipadamente:</strong>{" "}
+                  {s.queued_subscriptions
+                    .map((q) => `${q.plan_name ?? q.plan.name} (${q.total_classes} aulas)`)
+                    .join(", ")}
+                  . Começa a contar quando as aulas do plano em uso acabarem.
+                </div>
+              )}
             </>
           ) : (
             <p className="muted">Sem plano vinculado.</p>
@@ -219,12 +241,28 @@ function StudentDetail({ id }: { id: number }) {
         )}
       </div>
 
+      <PlanHistory studentId={s.id} version={historyVersion} />
+
       {lesson && (
         <LessonPanel
           groupId={lesson.groupId}
           date={lesson.date}
-          onClose={() => setLesson(null)}
+          onClose={() => {
+            setLesson(null);
+            setHistoryVersion((v) => v + 1);
+          }}
           onChanged={student.reload}
+        />
+      )}
+      {renewing && (
+        <RenewPlanModal
+          student={s}
+          onClose={() => setRenewing(false)}
+          onSaved={() => {
+            setRenewing(false);
+            student.reload();
+            setHistoryVersion((v) => v + 1);
+          }}
         />
       )}
       <p className="muted small">

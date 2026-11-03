@@ -25,6 +25,9 @@ uv run fastapi dev app/main.py --port 8010  # http://localhost:8010/docs
 - Nova migração (após alterar models):
   - central: `uv run alembic -n central -x url=sqlite:///./tmp.db revision --autogenerate -m "..."`
   - estúdio: `uv run alembic -n tenant -x url=sqlite:///./tmp.db revision --autogenerate -m "..."`
+  - Migrações que transformam dados devem ter um teste com dados reais (veja `tests/test_migrations.py`);
+    os demais testes rodam em bancos vazios e não exercitam esse código.
+  - SQL manual em migrações: use `bindparam(..., type_=...)` para valores `Decimal`, booleanos etc.
 - Postgres: `uv sync --extra postgres` e ajuste `CENTRAL_DATABASE_URL` / `TENANT_DATABASE_URL_TEMPLATE`.
   O banco de cada estúdio (`pilates_<slug>`) é criado automaticamente — o usuário precisa de permissão `CREATEDB`.
 
@@ -55,11 +58,11 @@ cancelamento e substituição apenas nas próprias aulas; vê apenas o próprio 
 | Turma | Dia da semana + hora + sala + professor + capacidade (≤ capacidade da sala). Uma sala ou professor não pode ter duas turmas no mesmo horário. |
 | Plano | 1, 2 ou 3 aulas/semana, quantidade total de aulas e preço. Descontos percentuais ou fixos, gerais ou por plano. Preço e aulas são congelados ao vincular ao aluno. |
 | Horário padrão | O aluno escolhe até N turmas (N = aulas/semana do plano), sem dois horários iguais e respeitando a lotação. `PUT /students/{id}/schedule` altera a partir de uma data, sem mexer no histórico. |
-| Aula | Ocorrência da turma em uma data. Status: `confirmed` (há alunos previstos), `inactive` (nenhum aluno) ou `cancelled`. |
-| Chamada | `present` ou `absent`. Presença consome 1 aula do plano; falta também consome (configurável: `absence_consumes_credit`). Corrigir a chamada devolve o crédito quando aplicável. |
-| Reagendamento | Move o aluno para outra aula (reposição) sem alterar o horário padrão e sem consumir aula; a reposição consome quando houver chamada. Pode ser desfeito. |
-| Renovação | Quando as aulas do plano acabam é criada a notificação `plan_exhausted`; aula registrada sem saldo gera `no_credits`. |
-| Professor | Recebe `pay_per_class` por aula dada (não cancelada, com ≥ 1 presente) + `pay_per_student` por aluno presente. Substituições contam para quem deu a aula. |
+| Aula | Ocorrência da turma em uma data. Status: `confirmed` (há alunos previstos), `inactive` (nenhum aluno), `cancelled` ou `completed` (finalizada). |
+| Finalização | Depois que a aula começa, o professor informa `present`, `absent` ou `rescheduled` para **todos** os alunos (justificativa opcional em falta/reagendamento) e a aula fica `completed`. Só então presenças são registradas e aulas do plano debitadas (falta também debita, configurável: `absence_consumes_credit`). Admin pode reabrir, devolvendo os débitos. |
+| Reagendamento | Move o aluno para outra aula (reposição) sem alterar o horário padrão e sem consumir aula; a reposição consome quando a aula de destino for finalizada. Pode ser feito antes da aula ou na finalização. |
+| Renovação | Renovar antes do fim: o plano em uso continua sendo debitado até acabar; o novo fica `queued` e assume em seguida. Quando o último plano com aulas acaba, é criada a notificação `plan_exhausted`; aula registrada sem saldo gera `no_credits`. Nome, preço, desconto e aulas ficam congelados na contratação (histórico em `GET /students/{id}/subscriptions`). |
+| Professor | Por aula **concluída**: `pay_per_class` + para cada presente `student_share_percent` (padrão 40%) × preço pago no plano ÷ aulas do plano, nunca abaixo de `min_pay_per_lesson`; se todos faltarem, recebe o mínimo. O valor é **congelado na conclusão** (mudar a remuneração não altera o histórico). Aulas não concluídas não contam. Substituições contam para quem deu a aula. |
 
 ## Rotas principais (`/api/v1`)
 
@@ -77,7 +80,9 @@ cancelamento e substituição apenas nas próprias aulas; vê apenas o próprio 
 | `/class-groups` | Turmas (com alunos no detalhe) |
 | `/calendar?date_from&date_to&room_id&teacher_id` | Aulas por data/hora (padrão: semana atual) |
 | `/lessons/{class_group_id}/{date}` | Detalhe da aula: alunos, professor, dia, hora, status |
-| `.../attendance`, `.../reschedule`, `.../cancel`, `.../restore` | Chamada, reposição, cancelamento |
+| `/lessons/pending` | Aulas que já começaram e aguardam finalização |
+| `.../complete`, `.../reopen` | Finaliza a aula (presença/falta/reagendamento + justificativa) / reabre (admin) |
+| `.../reschedule`, `.../cancel`, `.../restore` | Reposição antecipada, cancelamento |
 | `/notifications` | Avisos de renovação |
 | `/reports/teacher-payments?date_from&date_to` | Aulas dadas, alunos presentes e valor por professor |
 

@@ -38,9 +38,16 @@ class Teacher(TenantBase, TimestampMixin):
     phones: Mapped[list[str]] = mapped_column(JSON, default=list)
     emails: Mapped[list[str]] = mapped_column(JSON, default=list)
     notes: Mapped[str | None] = mapped_column(Text)
-    # Remuneração: valor fixo por aula dada + valor por aluno presente.
+    # Remuneração por aula concluída: valor fixo + valor de cada aluno presente, nunca abaixo do mínimo.
+    # Valor do aluno = student_share_percent% x (preço pago no plano / aulas do plano).
+    # O mínimo também é pago quando todos os alunos faltam.
     pay_per_class: Mapped[Decimal] = mapped_column(Numeric(10, 2), default=Decimal("0"))
-    pay_per_student: Mapped[Decimal] = mapped_column(Numeric(10, 2), default=Decimal("0"))
+    student_share_percent: Mapped[Decimal] = mapped_column(
+        Numeric(5, 2), default=Decimal("40"), server_default="40"
+    )
+    min_pay_per_lesson: Mapped[Decimal] = mapped_column(
+        Numeric(10, 2), default=Decimal("0"), server_default="0"
+    )
     is_active: Mapped[bool] = mapped_column(default=True)
 
     class_groups: Mapped[list[ClassGroup]] = relationship(back_populates="teacher")

@@ -14,7 +14,14 @@ class TeacherCreate(BaseModel):
     emails: EmailList = []
     notes: str | None = None
     pay_per_class: Decimal = Field(Decimal("0"), ge=0, max_digits=10, decimal_places=2)
-    pay_per_student: Decimal = Field(Decimal("0"), ge=0, max_digits=10, decimal_places=2)
+    student_share_percent: Decimal = Field(
+        Decimal("40"), ge=0, le=100, max_digits=5, decimal_places=2,
+        description="% do valor de cada aula do plano do aluno pago por aluno presente",
+    )
+    min_pay_per_lesson: Decimal = Field(
+        Decimal("0"), ge=0, max_digits=10, decimal_places=2,
+        description="Valor mínimo por aula concluída (pago mesmo se todos faltarem)",
+    )
 
 
 class TeacherUpdate(BaseModel):
@@ -23,7 +30,8 @@ class TeacherUpdate(BaseModel):
     emails: EmailList | None = None
     notes: str | None = None
     pay_per_class: Decimal | None = Field(None, ge=0, max_digits=10, decimal_places=2)
-    pay_per_student: Decimal | None = Field(None, ge=0, max_digits=10, decimal_places=2)
+    student_share_percent: Decimal | None = Field(None, ge=0, le=100, max_digits=5, decimal_places=2)
+    min_pay_per_lesson: Decimal | None = Field(None, ge=0, max_digits=10, decimal_places=2)
     is_active: bool | None = None
 
 
@@ -34,7 +42,8 @@ class TeacherRead(ORMModel):
     emails: list[str]
     notes: str | None
     pay_per_class: Decimal
-    pay_per_student: Decimal
+    student_share_percent: Decimal
+    min_pay_per_lesson: Decimal
     is_active: bool
     created_at: datetime
 
@@ -103,7 +112,10 @@ class UpcomingMakeup(BaseModel):
 
 
 class StudentDetail(StudentRead):
-    subscription: SubscriptionRead | None = Field(description="Plano atual")
+    subscription: SubscriptionRead | None = Field(description="Plano em uso (debitado agora)")
+    queued_subscriptions: list[SubscriptionRead] = Field(
+        description="Renovações antecipadas: começam a contar quando o plano em uso acabar"
+    )
     credits_remaining: int = Field(description="Soma das aulas restantes nos planos ativos")
     needs_renewal: bool
     schedule: list[ScheduleItem]

@@ -58,7 +58,7 @@ export function AgendaPage() {
       </header>
 
       <div className="legend">
-        {(["confirmed", "inactive", "cancelled"] as const).map((s) => (
+        {(["confirmed", "completed", "inactive", "cancelled"] as const).map((s) => (
           <span key={s} className="legend-item">
             <span className={`dot dot-${s}`} /> {lessonStatus[s]} <b>{totals[s] ?? 0}</b>
           </span>

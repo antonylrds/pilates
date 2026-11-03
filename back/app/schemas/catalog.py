@@ -3,7 +3,7 @@ from decimal import Decimal
 
 from pydantic import BaseModel, Field, model_validator
 
-from app.models.tenant.enums import DiscountKind, SubscriptionStatus
+from app.models.tenant.enums import DiscountKind, SubscriptionStatus, SubscriptionUsage
 from app.schemas.common import ORMModel
 
 Money = Field(ge=0, max_digits=10, decimal_places=2)
@@ -121,18 +121,26 @@ class SubscriptionCreate(BaseModel):
 
 
 class SubscriptionRead(ORMModel):
+    """Plano do aluno. Nome, valores e quantidade de aulas são os da contratação (congelados)."""
+
     id: int
     student_id: int
-    plan: PlanSummary
+    plan: PlanSummary = Field(description="Cadastro atual do plano (use plan_name para o nome da contratação)")
+    plan_name: str | None = Field(description="Nome do plano na contratação")
     discount: DiscountSummary | None
-    start_date: date
+    discount_name: str | None = Field(description="Nome do desconto na contratação")
+    start_date: date = Field(description="Data da contratação")
     total_classes: int
     sessions_per_week: int
     base_price: Decimal
     discount_amount: Decimal
     final_price: Decimal
+    price_per_lesson: Decimal = Field(description="Valor pago ÷ aulas do plano")
     status: SubscriptionStatus
+    usage: SubscriptionUsage = Field(description="in_use | queued (renovação antecipada) | finished | cancelled")
     credits_used: int
     credits_remaining: int
+    first_lesson_date: date | None = Field(description="Primeira aula debitada deste plano")
+    last_lesson_date: date | None = Field(description="Última aula debitada deste plano")
     notes: str | None
     created_at: datetime

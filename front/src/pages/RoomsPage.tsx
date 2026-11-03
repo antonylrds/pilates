@@ -23,7 +23,13 @@ export function RoomsPage() {
   const { session, isAdmin } = useSession();
   const [showInactive, setShowInactive] = useState(false);
   const rooms = useAsync(
-    () => call(api.GET("/api/v1/rooms", { params: { query: { is_active: showInactive ? null : true } } })),
+    // O cliente omite parâmetros nulos, e a API lista só ativas por padrão: buscamos as inativas à parte.
+    async () => {
+      const active = await call(api.GET("/api/v1/rooms", { params: { query: { is_active: true } } }));
+      if (!showInactive) return active;
+      const inactive = await call(api.GET("/api/v1/rooms", { params: { query: { is_active: false } } }));
+      return [...active, ...inactive];
+    },
     [showInactive],
   );
   const groups = useAsync(() => call(api.GET("/api/v1/class-groups")), []);

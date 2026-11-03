@@ -36,6 +36,7 @@ def create_room(data: RoomCreate, ctx: Admin):
     room = Room(**data.model_dump())
     ctx.db.add(room)
     ctx.db.commit()
+    ctx.db.refresh(room)
     return room
 
 
@@ -54,6 +55,7 @@ def update_room(room_id: int, data: RoomUpdate, ctx: Admin):
         _ensure_room_unused(ctx, room.id)
     apply_update(room, data)
     ctx.db.commit()
+    ctx.db.refresh(room)
     return room
 
 
@@ -85,6 +87,7 @@ def create_plan(data: PlanCreate, ctx: Admin):
     plan = Plan(**data.model_dump())
     ctx.db.add(plan)
     ctx.db.commit()
+    ctx.db.refresh(plan)
     return plan
 
 
@@ -112,6 +115,7 @@ def update_plan(plan_id: int, data: PlanUpdate, ctx: Admin):
     plan = get_or_404(ctx.db, Plan, plan_id, "Plano")
     apply_update(plan, data)
     ctx.db.commit()
+    ctx.db.refresh(plan)
     return plan
 
 
@@ -140,6 +144,7 @@ def create_discount(data: DiscountCreate, ctx: Admin):
     discount = Discount(**data.model_dump())
     ctx.db.add(discount)
     ctx.db.commit()
+    ctx.db.refresh(discount)
     return discount
 
 
@@ -148,6 +153,7 @@ def update_discount(discount_id: int, data: DiscountUpdate, ctx: Admin):
     discount = get_or_404(ctx.db, Discount, discount_id, "Desconto")
     apply_update(discount, data)
     ctx.db.commit()
+    ctx.db.refresh(discount)
     return discount
 
 

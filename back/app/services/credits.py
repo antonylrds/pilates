@@ -46,6 +46,8 @@ def create_subscription(db: Session, student: Student, data: SubscriptionCreate)
         student_id=student.id,
         plan_id=plan.id,
         discount_id=discount.id if discount else None,
+        plan_name=plan.name,
+        discount_name=discount.name if discount else None,
         start_date=data.start_date or date.today(),
         total_classes=plan.total_classes,
         sessions_per_week=plan.sessions_per_week,
@@ -69,8 +71,12 @@ def active_subscriptions(db: Session, student_id: int) -> list[Subscription]:
     )
 
 
-def current_subscription(db: Session, student_id: int) -> Subscription | None:
-    """Plano mais recente não cancelado (ativo ou esgotado)."""
+def subscription_in_use(db: Session, student_id: int) -> Subscription | None:
+    """Plano sendo debitado agora: o ativo mais antigo que ainda tem aulas."""
+    return next((s for s in active_subscriptions(db, student_id) if s.credits_remaining > 0), None)
+
+
+def latest_subscription(db: Session, student_id: int) -> Subscription | None:
     return db.scalar(
         select(Subscription)
         .where(Subscription.student_id == student_id, Subscription.status != SubscriptionStatus.CANCELLED)
@@ -79,13 +85,32 @@ def current_subscription(db: Session, student_id: int) -> Subscription | None:
     )
 
 
+def current_subscription(db: Session, student_id: int) -> Subscription | None:
+    """Plano vigente: o que está em uso; se nenhum tiver aulas, o mais recente (esgotado)."""
+    return subscription_in_use(db, student_id) or latest_subscription(db, student_id)
+
+
+def queued_subscriptions(db: Session, student_id: int) -> list[Subscription]:
+    """Renovações antecipadas aguardando o plano em uso acabar."""
+    in_use = subscription_in_use(db, student_id)
+    return [
+        s for s in active_subscriptions(db, student_id)
+        if s.credits_remaining > 0 and (in_use is None or s.id != in_use.id)
+    ]
+
+
 def credits_remaining(db: Session, student_id: int) -> int:
     return sum(s.credits_remaining for s in active_subscriptions(db, student_id))
 
 
 def weekly_allowance(db: Session, student_id: int) -> int:
-    current = current_subscription(db, student_id)
-    return current.sessions_per_week if current else 0
+    """Turmas por semana permitidas: maior frequência entre os planos ativos (permite já ajustar
+    o horário ao renovar para um plano maior); sem plano ativo, a do último plano."""
+    active = active_subscriptions(db, student_id)
+    if active:
+        return max(s.sessions_per_week for s in active)
+    latest = latest_subscription(db, student_id)
+    return latest.sessions_per_week if latest else 0
 
 
 def consuming_statuses(studio: Studio) -> set[AttendanceStatus]:
@@ -111,14 +136,17 @@ def consume_credit(db: Session, attendance: Attendance, student: Student, lesson
         db.flush()
         if remaining == 1:
             subscription.status = SubscriptionStatus.EXHAUSTED
-            _notify(
-                db,
-                NotificationKind.PLAN_EXHAUSTED,
-                student,
-                f"{student.name} utilizou todas as {subscription.total_classes} aulas do plano "
-                f"{subscription.plan.name}. É necessário renovar o plano.",
-                subscription.id,
-            )
+            db.flush()
+            # Renovação antecipada: o próximo plano assume; não há o que avisar.
+            if subscription_in_use(db, student.id) is None:
+                _notify(
+                    db,
+                    NotificationKind.PLAN_EXHAUSTED,
+                    student,
+                    f"{student.name} utilizou todas as {subscription.total_classes} aulas do plano "
+                    f"{subscription.plan_name or subscription.plan.name}. É necessário renovar o plano.",
+                    subscription.id,
+                )
         return
 
     already_warned = db.scalar(

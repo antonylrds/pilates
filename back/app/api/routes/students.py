@@ -63,6 +63,9 @@ def _detail(ctx, student: Student) -> StudentDetail:
     return StudentDetail(
         **StudentRead.model_validate(student).model_dump(),
         subscription=SubscriptionRead.model_validate(subscription) if subscription else None,
+        queued_subscriptions=[
+            SubscriptionRead.model_validate(s) for s in credits.queued_subscriptions(db, student.id)
+        ],
         credits_remaining=remaining,
         needs_renewal=remaining == 0,
         schedule=schedule,
@@ -143,7 +146,11 @@ def reactivate_student(student_id: int, ctx: Admin):
 
 
 # ---------- Plano ----------
-@router.get("/{student_id}/subscriptions", response_model=list[SubscriptionRead])
+@router.get(
+    "/{student_id}/subscriptions",
+    response_model=list[SubscriptionRead],
+    summary="Histórico de planos do aluno (valores congelados da contratação)",
+)
 def list_subscriptions(student_id: int, ctx: Staff):
     _student(ctx, student_id)
     return ctx.db.scalars(
@@ -158,6 +165,8 @@ def list_subscriptions(student_id: int, ctx: Staff):
     response_model=SubscriptionRead,
     status_code=status.HTTP_201_CREATED,
     summary="Vincula/renova o plano do aluno (com desconto opcional)",
+    description="Renovação antecipada: o plano em uso continua sendo debitado até acabar as aulas; "
+    "o novo começa a contar em seguida (usage = queued até lá).",
 )
 def add_subscription(student_id: int, data: SubscriptionCreate, ctx: Admin):
     student = _student(ctx, student_id)
@@ -222,7 +231,9 @@ def attendance_history(student_id: int, ctx: Staff, skip: int = 0, limit: int = 
                 start_hour=a.lesson.class_group.start_hour,
             ),
             status=a.status,
+            justification=a.justification,
             is_makeup=a.is_makeup,
+            lesson_completed=a.lesson.is_completed,
             debited=a.subscription_id is not None,
         )
         for a in rows

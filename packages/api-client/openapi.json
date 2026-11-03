@@ -1889,7 +1889,7 @@
         "tags": [
           "students"
         ],
-        "summary": "List Subscriptions",
+        "summary": "Histórico de planos do aluno (valores congelados da contratação)",
         "operationId": "list_subscriptions_api_v1_students__student_id__subscriptions_get",
         "security": [
           {
@@ -1939,6 +1939,7 @@
           "students"
         ],
         "summary": "Vincula/renova o plano do aluno (com desconto opcional)",
+        "description": "Renovação antecipada: o plano em uso continua sendo debitado até acabar as aulas; o novo começa a contar em seguida (usage = queued até lá).",
         "operationId": "add_subscription_api_v1_students__student_id__subscriptions_post",
         "security": [
           {
@@ -2632,6 +2633,82 @@
         }
       }
     },
+    "/api/v1/lessons/pending": {
+      "get": {
+        "tags": [
+          "calendar & lessons"
+        ],
+        "summary": "Aulas que já começaram e aguardam finalização (professor vê só as suas)",
+        "operationId": "pending_lessons_api_v1_lessons_pending_get",
+        "security": [
+          {
+            "Studio": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "date_from",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Date From"
+            }
+          },
+          {
+            "name": "date_to",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Date To"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CalendarEntry"
+                  },
+                  "title": "Response Pending Lessons Api V1 Lessons Pending Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/lessons/{class_group_id}/{lesson_date}": {
       "get": {
         "tags": [
@@ -2754,13 +2831,14 @@
         }
       }
     },
-    "/api/v1/lessons/{class_group_id}/{lesson_date}/attendance": {
+    "/api/v1/lessons/{class_group_id}/{lesson_date}/complete": {
       "post": {
         "tags": [
           "calendar & lessons"
         ],
-        "summary": "Chamada: marca presença ou falta (debita aulas do plano)",
-        "operationId": "take_attendance_api_v1_lessons__class_group_id___lesson_date__attendance_post",
+        "summary": "Finaliza a aula: presença, falta ou reagendamento de cada aluno (com justificativa opcional)",
+        "description": "Todos os alunos previstos devem ser informados. A aula fica 'completed' e passa a contar em presenças, aulas do plano e pagamento do professor.",
+        "operationId": "complete_lesson_api_v1_lessons__class_group_id___lesson_date__complete_post",
         "security": [
           {
             "Studio": []
@@ -2792,11 +2870,68 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/AttendanceSubmit"
+                "$ref": "#/components/schemas/LessonComplete"
               }
             }
           }
         },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LessonDetail"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/lessons/{class_group_id}/{lesson_date}/reopen": {
+      "post": {
+        "tags": [
+          "calendar & lessons"
+        ],
+        "summary": "Reabre uma aula concluída (admin) e devolve as aulas debitadas",
+        "operationId": "reopen_lesson_api_v1_lessons__class_group_id___lesson_date__reopen_post",
+        "security": [
+          {
+            "Studio": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "class_group_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Class Group Id"
+            }
+          },
+          {
+            "name": "lesson_date",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date",
+              "title": "Lesson Date"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -2826,7 +2961,7 @@
         "tags": [
           "calendar & lessons"
         ],
-        "summary": "Reagenda o aluno para outra aula (reposição); não altera o horário padrão",
+        "summary": "Reagenda o aluno antes da aula (reposição); não altera o horário padrão",
         "operationId": "reschedule_api_v1_lessons__class_group_id___lesson_date__reschedule_post",
         "security": [
           {
@@ -3290,28 +3425,6 @@
   },
   "components": {
     "schemas": {
-      "AttendanceItem": {
-        "properties": {
-          "student_id": {
-            "type": "integer",
-            "title": "Student Id"
-          },
-          "status": {
-            "type": "string",
-            "enum": [
-              "present",
-              "absent"
-            ],
-            "title": "Status"
-          }
-        },
-        "type": "object",
-        "required": [
-          "student_id",
-          "status"
-        ],
-        "title": "AttendanceItem"
-      },
       "AttendanceStatus": {
         "type": "string",
         "enum": [
@@ -3321,23 +3434,6 @@
           "rescheduled"
         ],
         "title": "AttendanceStatus"
-      },
-      "AttendanceSubmit": {
-        "properties": {
-          "items": {
-            "items": {
-              "$ref": "#/components/schemas/AttendanceItem"
-            },
-            "type": "array",
-            "minItems": 1,
-            "title": "Items"
-          }
-        },
-        "type": "object",
-        "required": [
-          "items"
-        ],
-        "title": "AttendanceSubmit"
       },
       "Body_login_form_api_v1_auth_token_post": {
         "properties": {
@@ -3455,6 +3551,18 @@
           },
           "status": {
             "$ref": "#/components/schemas/LessonStatus"
+          },
+          "completed_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Completed At"
           }
         },
         "type": "object",
@@ -3783,6 +3891,68 @@
         "type": "object",
         "title": "ClassGroupUpdate"
       },
+      "CompletionItem": {
+        "properties": {
+          "student_id": {
+            "type": "integer",
+            "title": "Student Id"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "present",
+              "absent",
+              "rescheduled"
+            ],
+            "title": "Status"
+          },
+          "justification": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 500
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Justification",
+            "description": "Justificativa opcional"
+          },
+          "target_class_group_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target Class Group Id",
+            "description": "Obrigatório ao reagendar"
+          },
+          "target_date": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target Date",
+            "description": "Obrigatório ao reagendar"
+          }
+        },
+        "type": "object",
+        "required": [
+          "student_id",
+          "status"
+        ],
+        "title": "CompletionItem",
+        "description": "Resultado de um aluno na finalização da aula."
+      },
       "DiscountCreate": {
         "properties": {
           "name": {
@@ -3967,6 +4137,23 @@
         "type": "object",
         "title": "LessonCancel"
       },
+      "LessonComplete": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/CompletionItem"
+            },
+            "type": "array",
+            "title": "Items",
+            "description": "Um item para cada aluno previsto na aula"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items"
+        ],
+        "title": "LessonComplete"
+      },
       "LessonDetail": {
         "properties": {
           "class_group_id": {
@@ -4025,6 +4212,18 @@
           "status": {
             "$ref": "#/components/schemas/LessonStatus"
           },
+          "completed_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Completed At"
+          },
           "cancel_reason": {
             "anyOf": [
               {
@@ -4046,6 +4245,22 @@
               }
             ],
             "title": "Notes"
+          },
+          "completed_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Completed By"
+          },
+          "can_complete": {
+            "type": "boolean",
+            "title": "Can Complete",
+            "description": "A aula já começou, tem alunos e ainda não foi concluída/cancelada"
           },
           "students": {
             "items": {
@@ -4071,6 +4286,7 @@
           "status",
           "cancel_reason",
           "notes",
+          "can_complete",
           "students"
         ],
         "title": "LessonDetail"
@@ -4109,7 +4325,8 @@
         "enum": [
           "confirmed",
           "inactive",
-          "cancelled"
+          "cancelled",
+          "completed"
         ],
         "title": "LessonStatus"
       },
@@ -4531,6 +4748,49 @@
         ],
         "title": "PlatformToken"
       },
+      "PresentStudent": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "amount": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Amount",
+            "description": "Valor que o aluno gerou ao professor (nulo na regra antiga)"
+          },
+          "plan": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Plan",
+            "description": "Plano debitado na aula"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "amount"
+        ],
+        "title": "PresentStudent"
+      },
       "PricePreview": {
         "properties": {
           "plan_id": {
@@ -4585,6 +4845,18 @@
             "type": "string",
             "format": "date",
             "title": "Target Date"
+          },
+          "justification": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 500
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Justification"
           }
         },
         "type": "object",
@@ -4713,6 +4985,17 @@
           },
           "status": {
             "$ref": "#/components/schemas/AttendanceStatus"
+          },
+          "justification": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Justification"
           },
           "is_makeup": {
             "type": "boolean",
@@ -4851,9 +5134,24 @@
           "status": {
             "$ref": "#/components/schemas/AttendanceStatus"
           },
+          "justification": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Justification"
+          },
           "is_makeup": {
             "type": "boolean",
             "title": "Is Makeup"
+          },
+          "lesson_completed": {
+            "type": "boolean",
+            "title": "Lesson Completed"
           },
           "debited": {
             "type": "boolean",
@@ -4866,6 +5164,7 @@
           "lesson",
           "status",
           "is_makeup",
+          "lesson_completed",
           "debited"
         ],
         "title": "StudentAttendanceRead"
@@ -5014,7 +5313,15 @@
                 "type": "null"
               }
             ],
-            "description": "Plano atual"
+            "description": "Plano em uso (debitado agora)"
+          },
+          "queued_subscriptions": {
+            "items": {
+              "$ref": "#/components/schemas/SubscriptionRead"
+            },
+            "type": "array",
+            "title": "Queued Subscriptions",
+            "description": "Renovações antecipadas: começam a contar quando o plano em uso acabar"
           },
           "credits_remaining": {
             "type": "integer",
@@ -5056,6 +5363,7 @@
           "is_active",
           "created_at",
           "subscription",
+          "queued_subscriptions",
           "credits_remaining",
           "needs_renewal",
           "schedule",
@@ -5664,7 +5972,20 @@
             "title": "Student Id"
           },
           "plan": {
-            "$ref": "#/components/schemas/PlanSummary"
+            "$ref": "#/components/schemas/PlanSummary",
+            "description": "Cadastro atual do plano (use plan_name para o nome da contratação)"
+          },
+          "plan_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Plan Name",
+            "description": "Nome do plano na contratação"
           },
           "discount": {
             "anyOf": [
@@ -5676,10 +5997,23 @@
               }
             ]
           },
+          "discount_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Discount Name",
+            "description": "Nome do desconto na contratação"
+          },
           "start_date": {
             "type": "string",
             "format": "date",
-            "title": "Start Date"
+            "title": "Start Date",
+            "description": "Data da contratação"
           },
           "total_classes": {
             "type": "integer",
@@ -5701,8 +6035,17 @@
             "type": "string",
             "title": "Final Price"
           },
+          "price_per_lesson": {
+            "type": "string",
+            "title": "Price Per Lesson",
+            "description": "Valor pago ÷ aulas do plano"
+          },
           "status": {
             "$ref": "#/components/schemas/SubscriptionStatus"
+          },
+          "usage": {
+            "$ref": "#/components/schemas/SubscriptionUsage",
+            "description": "in_use | queued (renovação antecipada) | finished | cancelled"
           },
           "credits_used": {
             "type": "integer",
@@ -5711,6 +6054,32 @@
           "credits_remaining": {
             "type": "integer",
             "title": "Credits Remaining"
+          },
+          "first_lesson_date": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "First Lesson Date",
+            "description": "Primeira aula debitada deste plano"
+          },
+          "last_lesson_date": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Lesson Date",
+            "description": "Última aula debitada deste plano"
           },
           "notes": {
             "anyOf": [
@@ -5734,20 +6103,27 @@
           "id",
           "student_id",
           "plan",
+          "plan_name",
           "discount",
+          "discount_name",
           "start_date",
           "total_classes",
           "sessions_per_week",
           "base_price",
           "discount_amount",
           "final_price",
+          "price_per_lesson",
           "status",
+          "usage",
           "credits_used",
           "credits_remaining",
+          "first_lesson_date",
+          "last_lesson_date",
           "notes",
           "created_at"
         ],
-        "title": "SubscriptionRead"
+        "title": "SubscriptionRead",
+        "description": "Plano do aluno. Nome, valores e quantidade de aulas são os da contratação (congelados)."
       },
       "SubscriptionStatus": {
         "type": "string",
@@ -5757,6 +6133,17 @@
           "cancelled"
         ],
         "title": "SubscriptionStatus"
+      },
+      "SubscriptionUsage": {
+        "type": "string",
+        "enum": [
+          "in_use",
+          "queued",
+          "finished",
+          "cancelled"
+        ],
+        "title": "SubscriptionUsage",
+        "description": "Situação do plano no histórico do aluno (calculada)."
       },
       "TeacherCreate": {
         "properties": {
@@ -5811,7 +6198,22 @@
             "title": "Pay Per Class",
             "default": "0"
           },
-          "pay_per_student": {
+          "student_share_percent": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 100.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "title": "Student Share Percent",
+            "description": "% do valor de cada aula do plano do aluno pago por aluno presente",
+            "default": "40"
+          },
+          "min_pay_per_lesson": {
             "anyOf": [
               {
                 "type": "number",
@@ -5821,7 +6223,8 @@
                 "type": "string"
               }
             ],
-            "title": "Pay Per Student",
+            "title": "Min Pay Per Lesson",
+            "description": "Valor mínimo por aula concluída (pago mesmo se todos faltarem)",
             "default": "0"
           }
         },
@@ -5856,7 +6259,7 @@
           },
           "present_students": {
             "items": {
-              "$ref": "#/components/schemas/StudentSummary"
+              "$ref": "#/components/schemas/PresentStudent"
             },
             "type": "array",
             "title": "Present Students"
@@ -5870,7 +6273,33 @@
           },
           "amount": {
             "type": "string",
-            "title": "Amount"
+            "title": "Amount",
+            "description": "Valor congelado na conclusão da aula"
+          },
+          "minimum_applied": {
+            "type": "boolean",
+            "title": "Minimum Applied",
+            "description": "O valor da aula foi elevado ao mínimo do professor"
+          },
+          "pay_per_class": {
+            "type": "string",
+            "title": "Pay Per Class"
+          },
+          "student_share_percent": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Student Share Percent",
+            "description": "Nulo em aulas concluídas na regra anterior"
+          },
+          "min_pay_per_lesson": {
+            "type": "string",
+            "title": "Min Pay Per Lesson"
           }
         },
         "type": "object",
@@ -5882,7 +6311,11 @@
           "room",
           "present_students",
           "absent_students",
-          "amount"
+          "amount",
+          "minimum_applied",
+          "pay_per_class",
+          "student_share_percent",
+          "min_pay_per_lesson"
         ],
         "title": "TeacherLessonReport"
       },
@@ -5895,13 +6328,23 @@
             "type": "string",
             "title": "Pay Per Class"
           },
-          "pay_per_student": {
+          "student_share_percent": {
             "type": "string",
-            "title": "Pay Per Student"
+            "title": "Student Share Percent"
+          },
+          "min_pay_per_lesson": {
+            "type": "string",
+            "title": "Min Pay Per Lesson"
           },
           "lessons_given": {
             "type": "integer",
-            "title": "Lessons Given"
+            "title": "Lessons Given",
+            "description": "Aulas concluídas que geraram pagamento"
+          },
+          "lessons_without_presence": {
+            "type": "integer",
+            "title": "Lessons Without Presence",
+            "description": "Dessas, quantas tiveram todos os alunos ausentes"
           },
           "total_presences": {
             "type": "integer",
@@ -5923,8 +6366,10 @@
         "required": [
           "teacher",
           "pay_per_class",
-          "pay_per_student",
+          "student_share_percent",
+          "min_pay_per_lesson",
           "lessons_given",
+          "lessons_without_presence",
           "total_presences",
           "amount",
           "lessons"
@@ -6003,9 +6448,13 @@
             "type": "string",
             "title": "Pay Per Class"
           },
-          "pay_per_student": {
+          "student_share_percent": {
             "type": "string",
-            "title": "Pay Per Student"
+            "title": "Student Share Percent"
+          },
+          "min_pay_per_lesson": {
+            "type": "string",
+            "title": "Min Pay Per Lesson"
           },
           "is_active": {
             "type": "boolean",
@@ -6025,7 +6474,8 @@
           "emails",
           "notes",
           "pay_per_class",
-          "pay_per_student",
+          "student_share_percent",
+          "min_pay_per_lesson",
           "is_active",
           "created_at"
         ],
@@ -6123,7 +6573,23 @@
             ],
             "title": "Pay Per Class"
           },
-          "pay_per_student": {
+          "student_share_percent": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 100.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Student Share Percent"
+          },
+          "min_pay_per_lesson": {
             "anyOf": [
               {
                 "type": "number",
@@ -6136,7 +6602,7 @@
                 "type": "null"
               }
             ],
-            "title": "Pay Per Student"
+            "title": "Min Pay Per Lesson"
           },
           "is_active": {
             "anyOf": [

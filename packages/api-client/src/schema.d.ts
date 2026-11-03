@@ -419,10 +419,13 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** List Subscriptions */
+        /** Histórico de planos do aluno (valores congelados da contratação) */
         get: operations["list_subscriptions_api_v1_students__student_id__subscriptions_get"];
         put?: never;
-        /** Vincula/renova o plano do aluno (com desconto opcional) */
+        /**
+         * Vincula/renova o plano do aluno (com desconto opcional)
+         * @description Renovação antecipada: o plano em uso continua sendo debitado até acabar as aulas; o novo começa a contar em seguida (usage = queued até lá).
+         */
         post: operations["add_subscription_api_v1_students__student_id__subscriptions_post"];
         delete?: never;
         options?: never;
@@ -536,6 +539,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/lessons/pending": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Aulas que já começaram e aguardam finalização (professor vê só as suas) */
+        get: operations["pending_lessons_api_v1_lessons_pending_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/lessons/{class_group_id}/{lesson_date}": {
         parameters: {
             query?: never;
@@ -554,7 +574,7 @@ export interface paths {
         patch: operations["update_lesson_api_v1_lessons__class_group_id___lesson_date__patch"];
         trace?: never;
     };
-    "/api/v1/lessons/{class_group_id}/{lesson_date}/attendance": {
+    "/api/v1/lessons/{class_group_id}/{lesson_date}/complete": {
         parameters: {
             query?: never;
             header?: never;
@@ -563,8 +583,28 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Chamada: marca presença ou falta (debita aulas do plano) */
-        post: operations["take_attendance_api_v1_lessons__class_group_id___lesson_date__attendance_post"];
+        /**
+         * Finaliza a aula: presença, falta ou reagendamento de cada aluno (com justificativa opcional)
+         * @description Todos os alunos previstos devem ser informados. A aula fica 'completed' e passa a contar em presenças, aulas do plano e pagamento do professor.
+         */
+        post: operations["complete_lesson_api_v1_lessons__class_group_id___lesson_date__complete_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/lessons/{class_group_id}/{lesson_date}/reopen": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reabre uma aula concluída (admin) e devolve as aulas debitadas */
+        post: operations["reopen_lesson_api_v1_lessons__class_group_id___lesson_date__reopen_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -580,7 +620,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Reagenda o aluno para outra aula (reposição); não altera o horário padrão */
+        /** Reagenda o aluno antes da aula (reposição); não altera o horário padrão */
         post: operations["reschedule_api_v1_lessons__class_group_id___lesson_date__reschedule_post"];
         delete?: never;
         options?: never;
@@ -711,26 +751,11 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
-        /** AttendanceItem */
-        AttendanceItem: {
-            /** Student Id */
-            student_id: number;
-            /**
-             * Status
-             * @enum {string}
-             */
-            status: "present" | "absent";
-        };
         /**
          * AttendanceStatus
          * @enum {string}
          */
         AttendanceStatus: "pending" | "present" | "absent" | "rescheduled";
-        /** AttendanceSubmit */
-        AttendanceSubmit: {
-            /** Items */
-            items: components["schemas"]["AttendanceItem"][];
-        };
         /** Body_login_form_api_v1_auth_token_post */
         Body_login_form_api_v1_auth_token_post: {
             /** Grant Type */
@@ -790,6 +815,8 @@ export interface components {
             /** Available Spots */
             available_spots: number;
             status: components["schemas"]["LessonStatus"];
+            /** Completed At */
+            completed_at?: string | null;
         };
         /** ClassGroupCreate */
         ClassGroupCreate: {
@@ -902,6 +929,34 @@ export interface components {
             /** Capacity */
             capacity?: number | null;
         };
+        /**
+         * CompletionItem
+         * @description Resultado de um aluno na finalização da aula.
+         */
+        CompletionItem: {
+            /** Student Id */
+            student_id: number;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "present" | "absent" | "rescheduled";
+            /**
+             * Justification
+             * @description Justificativa opcional
+             */
+            justification?: string | null;
+            /**
+             * Target Class Group Id
+             * @description Obrigatório ao reagendar
+             */
+            target_class_group_id?: number | null;
+            /**
+             * Target Date
+             * @description Obrigatório ao reagendar
+             */
+            target_date?: string | null;
+        };
         /** DiscountCreate */
         DiscountCreate: {
             /** Name */
@@ -961,6 +1016,14 @@ export interface components {
             /** Reason */
             reason?: string | null;
         };
+        /** LessonComplete */
+        LessonComplete: {
+            /**
+             * Items
+             * @description Um item para cada aluno previsto na aula
+             */
+            items: components["schemas"]["CompletionItem"][];
+        };
         /** LessonDetail */
         LessonDetail: {
             /** Class Group Id */
@@ -996,10 +1059,19 @@ export interface components {
             /** Available Spots */
             available_spots: number;
             status: components["schemas"]["LessonStatus"];
+            /** Completed At */
+            completed_at?: string | null;
             /** Cancel Reason */
             cancel_reason: string | null;
             /** Notes */
             notes: string | null;
+            /** Completed By */
+            completed_by?: string | null;
+            /**
+             * Can Complete
+             * @description A aula já começou, tem alunos e ainda não foi concluída/cancelada
+             */
+            can_complete: boolean;
             /** Students */
             students: components["schemas"]["RosterEntry"][];
         };
@@ -1021,7 +1093,7 @@ export interface components {
          * LessonStatus
          * @enum {string}
          */
-        LessonStatus: "confirmed" | "inactive" | "cancelled";
+        LessonStatus: "confirmed" | "inactive" | "cancelled" | "completed";
         /** LessonUpdate */
         LessonUpdate: {
             /**
@@ -1174,6 +1246,23 @@ export interface components {
              */
             token_type: string;
         };
+        /** PresentStudent */
+        PresentStudent: {
+            /** Id */
+            id: number;
+            /** Name */
+            name: string;
+            /**
+             * Amount
+             * @description Valor que o aluno gerou ao professor (nulo na regra antiga)
+             */
+            amount: string | null;
+            /**
+             * Plan
+             * @description Plano debitado na aula
+             */
+            plan?: string | null;
+        };
         /** PricePreview */
         PricePreview: {
             /** Plan Id */
@@ -1198,6 +1287,8 @@ export interface components {
              * Format: date
              */
             target_date: string;
+            /** Justification */
+            justification?: string | null;
         };
         /** RoomCreate */
         RoomCreate: {
@@ -1237,6 +1328,8 @@ export interface components {
         RosterEntry: {
             student: components["schemas"]["StudentSummary"];
             status: components["schemas"]["AttendanceStatus"];
+            /** Justification */
+            justification?: string | null;
             /**
              * Is Makeup
              * @description Aluno veio por reposição de outra aula
@@ -1293,8 +1386,12 @@ export interface components {
         StudentAttendanceRead: {
             lesson: components["schemas"]["LessonRef"];
             status: components["schemas"]["AttendanceStatus"];
+            /** Justification */
+            justification?: string | null;
             /** Is Makeup */
             is_makeup: boolean;
+            /** Lesson Completed */
+            lesson_completed: boolean;
             /**
              * Debited
              * @description A aula foi debitada de um plano
@@ -1349,8 +1446,13 @@ export interface components {
              * Format: date-time
              */
             created_at: string;
-            /** @description Plano atual */
+            /** @description Plano em uso (debitado agora) */
             subscription: components["schemas"]["SubscriptionRead"] | null;
+            /**
+             * Queued Subscriptions
+             * @description Renovações antecipadas: começam a contar quando o plano em uso acabar
+             */
+            queued_subscriptions: components["schemas"]["SubscriptionRead"][];
             /**
              * Credits Remaining
              * @description Soma das aulas restantes nos planos ativos
@@ -1531,17 +1633,32 @@ export interface components {
             /** Notes */
             notes?: string | null;
         };
-        /** SubscriptionRead */
+        /**
+         * SubscriptionRead
+         * @description Plano do aluno. Nome, valores e quantidade de aulas são os da contratação (congelados).
+         */
         SubscriptionRead: {
             /** Id */
             id: number;
             /** Student Id */
             student_id: number;
+            /** @description Cadastro atual do plano (use plan_name para o nome da contratação) */
             plan: components["schemas"]["PlanSummary"];
+            /**
+             * Plan Name
+             * @description Nome do plano na contratação
+             */
+            plan_name: string | null;
             discount: components["schemas"]["DiscountSummary"] | null;
+            /**
+             * Discount Name
+             * @description Nome do desconto na contratação
+             */
+            discount_name: string | null;
             /**
              * Start Date
              * Format: date
+             * @description Data da contratação
              */
             start_date: string;
             /** Total Classes */
@@ -1554,11 +1671,28 @@ export interface components {
             discount_amount: string;
             /** Final Price */
             final_price: string;
+            /**
+             * Price Per Lesson
+             * @description Valor pago ÷ aulas do plano
+             */
+            price_per_lesson: string;
             status: components["schemas"]["SubscriptionStatus"];
+            /** @description in_use | queued (renovação antecipada) | finished | cancelled */
+            usage: components["schemas"]["SubscriptionUsage"];
             /** Credits Used */
             credits_used: number;
             /** Credits Remaining */
             credits_remaining: number;
+            /**
+             * First Lesson Date
+             * @description Primeira aula debitada deste plano
+             */
+            first_lesson_date: string | null;
+            /**
+             * Last Lesson Date
+             * @description Última aula debitada deste plano
+             */
+            last_lesson_date: string | null;
             /** Notes */
             notes: string | null;
             /**
@@ -1572,6 +1706,12 @@ export interface components {
          * @enum {string}
          */
         SubscriptionStatus: "active" | "exhausted" | "cancelled";
+        /**
+         * SubscriptionUsage
+         * @description Situação do plano no histórico do aluno (calculada).
+         * @enum {string}
+         */
+        SubscriptionUsage: "in_use" | "queued" | "finished" | "cancelled";
         /** TeacherCreate */
         TeacherCreate: {
             /** Name */
@@ -1594,10 +1734,17 @@ export interface components {
              */
             pay_per_class: number | string;
             /**
-             * Pay Per Student
+             * Student Share Percent
+             * @description % do valor de cada aula do plano do aluno pago por aluno presente
+             * @default 40
+             */
+            student_share_percent: number | string;
+            /**
+             * Min Pay Per Lesson
+             * @description Valor mínimo por aula concluída (pago mesmo se todos faltarem)
              * @default 0
              */
-            pay_per_student: number | string;
+            min_pay_per_lesson: number | string;
         };
         /** TeacherLessonReport */
         TeacherLessonReport: {
@@ -1615,21 +1762,48 @@ export interface components {
             /** Room */
             room: string;
             /** Present Students */
-            present_students: components["schemas"]["StudentSummary"][];
+            present_students: components["schemas"]["PresentStudent"][];
             /** Absent Students */
             absent_students: components["schemas"]["StudentSummary"][];
-            /** Amount */
+            /**
+             * Amount
+             * @description Valor congelado na conclusão da aula
+             */
             amount: string;
+            /**
+             * Minimum Applied
+             * @description O valor da aula foi elevado ao mínimo do professor
+             */
+            minimum_applied: boolean;
+            /** Pay Per Class */
+            pay_per_class: string;
+            /**
+             * Student Share Percent
+             * @description Nulo em aulas concluídas na regra anterior
+             */
+            student_share_percent: string | null;
+            /** Min Pay Per Lesson */
+            min_pay_per_lesson: string;
         };
         /** TeacherPaymentReport */
         TeacherPaymentReport: {
             teacher: components["schemas"]["TeacherSummary"];
             /** Pay Per Class */
             pay_per_class: string;
-            /** Pay Per Student */
-            pay_per_student: string;
-            /** Lessons Given */
+            /** Student Share Percent */
+            student_share_percent: string;
+            /** Min Pay Per Lesson */
+            min_pay_per_lesson: string;
+            /**
+             * Lessons Given
+             * @description Aulas concluídas que geraram pagamento
+             */
             lessons_given: number;
+            /**
+             * Lessons Without Presence
+             * @description Dessas, quantas tiveram todos os alunos ausentes
+             */
+            lessons_without_presence: number;
             /** Total Presences */
             total_presences: number;
             /** Amount */
@@ -1668,8 +1842,10 @@ export interface components {
             notes: string | null;
             /** Pay Per Class */
             pay_per_class: string;
-            /** Pay Per Student */
-            pay_per_student: string;
+            /** Student Share Percent */
+            student_share_percent: string;
+            /** Min Pay Per Lesson */
+            min_pay_per_lesson: string;
             /** Is Active */
             is_active: boolean;
             /**
@@ -1697,8 +1873,10 @@ export interface components {
             notes?: string | null;
             /** Pay Per Class */
             pay_per_class?: number | string | null;
-            /** Pay Per Student */
-            pay_per_student?: number | string | null;
+            /** Student Share Percent */
+            student_share_percent?: number | string | null;
+            /** Min Pay Per Lesson */
+            min_pay_per_lesson?: number | string | null;
             /** Is Active */
             is_active?: boolean | null;
         };
@@ -3438,6 +3616,38 @@ export interface operations {
             };
         };
     };
+    pending_lessons_api_v1_lessons_pending_get: {
+        parameters: {
+            query?: {
+                date_from?: string | null;
+                date_to?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CalendarEntry"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     get_lesson_api_v1_lessons__class_group_id___lesson_date__get: {
         parameters: {
             query?: never;
@@ -3506,7 +3716,7 @@ export interface operations {
             };
         };
     };
-    take_attendance_api_v1_lessons__class_group_id___lesson_date__attendance_post: {
+    complete_lesson_api_v1_lessons__class_group_id___lesson_date__complete_post: {
         parameters: {
             query?: never;
             header?: never;
@@ -3518,9 +3728,41 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["AttendanceSubmit"];
+                "application/json": components["schemas"]["LessonComplete"];
             };
         };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LessonDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    reopen_lesson_api_v1_lessons__class_group_id___lesson_date__reopen_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                class_group_id: number;
+                lesson_date: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
         responses: {
             /** @description Successful Response */
             200: {

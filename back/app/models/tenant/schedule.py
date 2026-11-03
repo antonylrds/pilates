@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 import datetime as dt
+from decimal import Decimal
 from typing import TYPE_CHECKING
 
-from sqlalchemy import ForeignKey, String, Text, UniqueConstraint
+from sqlalchemy import ForeignKey, Numeric, String, Text, UniqueConstraint, false
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import TenantBase, TimestampMixin, str_enum
@@ -11,7 +12,7 @@ from app.models.tenant.enums import WEEKDAY_NAMES, AttendanceStatus
 
 if TYPE_CHECKING:
     from app.models.tenant.catalog import Room
-    from app.models.tenant.people import Student, Teacher
+    from app.models.tenant.people import Student, Teacher, User
     from app.models.tenant.subscription import Subscription
 
 
@@ -95,10 +96,25 @@ class Lesson(TenantBase, TimestampMixin):
     is_cancelled: Mapped[bool] = mapped_column(default=False)
     cancel_reason: Mapped[str | None] = mapped_column(String(255))
     notes: Mapped[str | None] = mapped_column(Text)
+    # Preenchido quando o professor finaliza a aula. Só aulas concluídas contam em presenças e pagamentos.
+    completed_at: Mapped[dt.datetime | None] = mapped_column(index=True)
+    completed_by_id: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+    # Remuneração congelada na conclusão (valores do professor naquele momento + valor calculado).
+    # student_share_percent é nulo em aulas concluídas antes da regra de percentual do plano.
+    pay_per_class: Mapped[Decimal | None] = mapped_column(Numeric(10, 2))
+    student_share_percent: Mapped[Decimal | None] = mapped_column(Numeric(5, 2))
+    min_pay_per_lesson: Mapped[Decimal | None] = mapped_column(Numeric(10, 2))
+    pay_amount: Mapped[Decimal | None] = mapped_column(Numeric(10, 2))
+    pay_minimum_applied: Mapped[bool] = mapped_column(default=False, server_default=false())
 
     class_group: Mapped[ClassGroup] = relationship()
     teacher: Mapped[Teacher] = relationship()
+    completed_by: Mapped[User | None] = relationship()
     attendances: Mapped[list[Attendance]] = relationship(back_populates="lesson", cascade="all, delete-orphan")
+
+    @property
+    def is_completed(self) -> bool:
+        return self.completed_at is not None
 
 
 class Attendance(TenantBase, TimestampMixin):
@@ -116,11 +132,15 @@ class Attendance(TenantBase, TimestampMixin):
     lesson_id: Mapped[int] = mapped_column(ForeignKey("lessons.id", ondelete="CASCADE"), index=True)
     student_id: Mapped[int] = mapped_column(ForeignKey("students.id", ondelete="CASCADE"), index=True)
     status: Mapped[AttendanceStatus] = mapped_column(str_enum(AttendanceStatus), default=AttendanceStatus.PENDING)
+    # Justificativa opcional para falta ou reagendamento.
+    justification: Mapped[str | None] = mapped_column(Text)
     is_makeup: Mapped[bool] = mapped_column(default=False)
     makeup_from_id: Mapped[int | None] = mapped_column(ForeignKey("attendances.id", ondelete="SET NULL"))
     subscription_id: Mapped[int | None] = mapped_column(
         ForeignKey("subscriptions.id", ondelete="SET NULL"), index=True
     )
+    # Valor que esta presença gera para o professor (congelado na conclusão da aula).
+    teacher_pay: Mapped[Decimal | None] = mapped_column(Numeric(10, 2))
     marked_at: Mapped[dt.datetime | None]
     marked_by_id: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
 

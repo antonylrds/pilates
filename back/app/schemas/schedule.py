@@ -2,7 +2,7 @@ from datetime import date, datetime
 from decimal import Decimal
 from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 from app.models.tenant.enums import AttendanceStatus, LessonStatus, NotificationKind
 from app.schemas.catalog import RoomSummary
@@ -62,6 +62,7 @@ class CalendarEntry(BaseModel):
     attendees_count: int
     available_spots: int
     status: LessonStatus
+    completed_at: datetime | None = None
 
 
 class LessonRef(BaseModel):
@@ -74,6 +75,7 @@ class LessonRef(BaseModel):
 class RosterEntry(BaseModel):
     student: StudentSummary
     status: AttendanceStatus
+    justification: str | None = None
     is_makeup: bool = Field(description="Aluno veio por reposição de outra aula")
     makeup_from: LessonRef | None = None
     rescheduled_to: LessonRef | None = None
@@ -83,6 +85,8 @@ class RosterEntry(BaseModel):
 class LessonDetail(CalendarEntry):
     cancel_reason: str | None
     notes: str | None
+    completed_by: str | None = None
+    can_complete: bool = Field(description="A aula já começou, tem alunos e ainda não foi concluída/cancelada")
     students: list[RosterEntry]
 
 
@@ -95,25 +99,42 @@ class LessonCancel(BaseModel):
     reason: str | None = Field(None, max_length=255)
 
 
-class AttendanceItem(BaseModel):
+Justification = Field(None, max_length=500, description="Justificativa opcional")
+
+
+class CompletionItem(BaseModel):
+    """Resultado de um aluno na finalização da aula."""
+
     student_id: int
-    status: Literal[AttendanceStatus.PRESENT, AttendanceStatus.ABSENT]
+    status: Literal[AttendanceStatus.PRESENT, AttendanceStatus.ABSENT, AttendanceStatus.RESCHEDULED]
+    justification: str | None = Justification
+    target_class_group_id: int | None = Field(None, description="Obrigatório ao reagendar")
+    target_date: date | None = Field(None, description="Obrigatório ao reagendar")
+
+    @model_validator(mode="after")
+    def _check(self):
+        if self.status == AttendanceStatus.RESCHEDULED and (self.target_class_group_id is None or self.target_date is None):
+            raise ValueError("Informe a aula de reposição (target_class_group_id e target_date)")
+        return self
 
 
-class AttendanceSubmit(BaseModel):
-    items: list[AttendanceItem] = Field(min_length=1)
+class LessonComplete(BaseModel):
+    items: list[CompletionItem] = Field(description="Um item para cada aluno previsto na aula")
 
 
 class RescheduleRequest(BaseModel):
     student_id: int
     target_class_group_id: int
     target_date: date
+    justification: str | None = Field(None, max_length=500)
 
 
 class StudentAttendanceRead(BaseModel):
     lesson: LessonRef
     status: AttendanceStatus
+    justification: str | None = None
     is_makeup: bool
+    lesson_completed: bool
     debited: bool = Field(description="A aula foi debitada de um plano")
 
 
@@ -129,22 +150,37 @@ class NotificationRead(ORMModel):
 
 
 # ---------- Relatório de professores ----------
+class PresentStudent(BaseModel):
+    id: int
+    name: str
+    amount: Decimal | None = Field(description="Valor que o aluno gerou ao professor (nulo na regra antiga)")
+    plan: str | None = Field(None, description="Plano debitado na aula")
+
+
 class TeacherLessonReport(BaseModel):
     date: date
     start_hour: int
     class_group_id: int
     class_group_name: str
     room: str
-    present_students: list[StudentSummary]
+    present_students: list[PresentStudent]
     absent_students: list[StudentSummary]
-    amount: Decimal
+    amount: Decimal = Field(description="Valor congelado na conclusão da aula")
+    minimum_applied: bool = Field(description="O valor da aula foi elevado ao mínimo do professor")
+    # Valores do professor vigentes quando a aula foi concluída
+    pay_per_class: Decimal
+    student_share_percent: Decimal | None = Field(description="Nulo em aulas concluídas na regra anterior")
+    min_pay_per_lesson: Decimal
 
 
 class TeacherPaymentReport(BaseModel):
     teacher: TeacherSummary
+    # Valores atuais do professor (aplicados às próximas aulas concluídas)
     pay_per_class: Decimal
-    pay_per_student: Decimal
-    lessons_given: int
+    student_share_percent: Decimal
+    min_pay_per_lesson: Decimal
+    lessons_given: int = Field(description="Aulas concluídas que geraram pagamento")
+    lessons_without_presence: int = Field(description="Dessas, quantas tiveram todos os alunos ausentes")
     total_presences: int
     amount: Decimal
     lessons: list[TeacherLessonReport]

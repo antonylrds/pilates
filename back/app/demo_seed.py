@@ -1,5 +1,5 @@
 """Popula um estúdio com dados de demonstração (salas, professores, planos, alunos, turmas,
-chamadas das últimas semanas, uma reposição e uma aula cancelada).
+aulas concluídas nas últimas semanas, aulas pendentes de finalização, uma reposição e uma aula cancelada).
 
 Uso: uv run python -m app.cli seed-demo --slug demo [--reset]
 """
@@ -18,7 +18,7 @@ from app.models.central import Studio
 from app.models.tenant import ClassGroup, Discount, Plan, Room, Student, Teacher, User
 from app.models.tenant.enums import AttendanceStatus, DiscountKind, UserRole
 from app.schemas.catalog import SubscriptionCreate
-from app.schemas.schedule import AttendanceItem
+from app.schemas.schedule import CompletionItem
 from app.services import attendance, credits, schedule
 
 STUDENTS = [
@@ -78,15 +78,17 @@ def seed(slug: str, reset: bool = False) -> None:
 
         # Professores e salas
         teachers: dict[str, Teacher] = {}
-        pay = {"Ana Paula": ("60", "8"), "Bruno Tavares": ("70", "0"), "Carla Menezes": ("40", "10")}
-        for name, (per_class, per_student) in pay.items():
+        # (valor fixo por aula, % do valor da aula do plano por aluno presente, mínimo por aula)
+        pay = {"Ana Paula": ("50", "40", "60"), "Bruno Tavares": ("40", "40", "60"), "Carla Menezes": ("30", "40", "50")}
+        for name, (per_class, percent, minimum) in pay.items():
             first = name.split()[0].lower()
             teachers[name] = Teacher(
                 name=name,
                 phones=["11 90000-0000"],
                 emails=[f"{first}@studio.com"],
                 pay_per_class=Decimal(per_class),
-                pay_per_student=Decimal(per_student),
+                student_share_percent=Decimal(percent),
+                min_pay_per_lesson=Decimal(minimum),
             )
             db.add(teachers[name])
         rooms = {name: Room(name=name, capacity=cap) for name, (cap, _, _) in ROOMS.items()}
@@ -167,22 +169,34 @@ def seed(slug: str, reset: bool = False) -> None:
         # Chamadas das aulas passadas (expire_all: recarrega as turmas com os alunos recém-matriculados)
         db.expire_all()
         day = start
-        while day < today:
+        # Aulas de ontem e de hoje ficam pendentes de finalização (aparecem na tela "Finalizar aulas").
+        reasons = ["Consulta médica", "Viagem a trabalho", "Avisou que estava doente", None]
+        while day < today - timedelta(days=1):
             for group in groups:
                 if not group.runs_on(day):
                     continue
                 group = schedule.load_group(db, group.id)
                 roster = schedule.build_roster(group, day, schedule.find_lesson(db, group.id, day))
-                items = [
-                    AttendanceItem(
-                        student_id=r.student.id,
-                        status=AttendanceStatus.PRESENT if rng.random() < 0.85 else AttendanceStatus.ABSENT,
+                items = []
+                for r in roster:
+                    present = rng.random() < 0.85
+                    items.append(
+                        CompletionItem(
+                            student_id=r.student.id,
+                            status=AttendanceStatus.PRESENT if present else AttendanceStatus.ABSENT,
+                            justification=None if present else rng.choice(reasons),
+                        )
                     )
-                    for r in roster
-                ]
                 if items:
-                    attendance.take_attendance(ctx, group, day, items)
+                    attendance.complete_lesson(ctx, group, day, items)
             day += timedelta(days=1)
+
+        # Renovação antecipada: a primeira aluna renova antes de acabar o plano atual
+        first_student = db.scalar(select(Student).where(Student.name == STUDENTS[0][0]))
+        credits.create_subscription(
+            db, first_student, SubscriptionCreate(plan_id=plans[1].id, notes="Renovou antes do fim do plano")
+        )
+        db.commit()
 
         # Uma reposição e uma aula cancelada na próxima semana
         next_monday = today + timedelta(days=7 - today.weekday())
@@ -198,7 +212,9 @@ def seed(slug: str, reset: bool = False) -> None:
                 if target.weekday <= 1 or target.id == group.id:
                     continue
                 try:
-                    attendance.reschedule(ctx, group, next_monday, student_id, target.id, target_day)
+                    attendance.reschedule(
+                        ctx, group, next_monday, student_id, target.id, target_day, "Compromisso no trabalho"
+                    )
                     break
                 except Exception:
                     db.rollback()

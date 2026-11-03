@@ -34,6 +34,12 @@ def run(metadata: MetaData, default_url: str | None) -> None:
     engine = create_engine(url, poolclass=NullPool)
     try:
         with engine.connect() as connection:
+            if batch:
+                # No SQLite, alterar tabela = recriar (copiar, DROP, renomear). Com chaves estrangeiras
+                # ligadas, o DROP dispararia ON DELETE CASCADE e apagaria as linhas filhas.
+                # Precisa ser executado fora de transação.
+                connection.exec_driver_sql("PRAGMA foreign_keys=OFF")
+                connection.commit()
             context.configure(connection=connection, target_metadata=metadata, render_as_batch=batch)
             with context.begin_transaction():
                 context.run_migrations()

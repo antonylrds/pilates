@@ -143,14 +143,22 @@ class Studio:
         assert r.status_code == 200, r.text
         return r.json()
 
-    def attendance(self, group, day, items, expected=200):
+    def complete(self, group, day, items, expected=200, headers=None):
+        """Finaliza a aula. items: [(aluno, status)] ou [(aluno, status, extras)]."""
+        body = []
+        for item in items:
+            student, st, *extra = item
+            body.append({"student_id": student["id"], "status": st, **(extra[0] if extra else {})})
         r = self.c.post(
-            f"{API}/lessons/{group['id']}/{day.isoformat()}/attendance",
-            json={"items": [{"student_id": s["id"], "status": st} for s, st in items]},
-            headers=self.h,
+            f"{API}/lessons/{group['id']}/{day.isoformat()}/complete",
+            json={"items": body},
+            headers=headers or self.h,
         )
         assert r.status_code == expected, r.text
         return r.json()
+
+    def credits(self, student):
+        return self.c.get(f"{API}/students/{student['id']}", headers=self.h).json()["credits_remaining"]
 
 
 @pytest.fixture

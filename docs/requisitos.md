@@ -64,6 +64,10 @@ O contrato entre elas é a API REST do back (`packages/api-client`, gerado do Op
 - **RF-13** Cada plano dá acesso a um **número X de aulas**.
 - **RF-14** Quando as aulas do plano se esgotarem, deve haver uma **notificação informando que o aluno deve renovar**.
 - **RF-15** Os planos têm **preços**, com possibilidade de **cadastrar descontos**.
+- **RF-27** Deve ser possível visualizar o **histórico de planos** de cada aluno, com os **valores congelados**
+  da contratação.
+- **RF-28** Se o aluno **renovar antes do fim do plano**, o plano em uso **continua sendo contado até que todas
+  as suas aulas sejam dadas**; só então o novo plano passa a ser contado.
 
 ### Calendário e aulas
 - **RF-16** Deve haver um **calendário** para visualizar as turmas **por data e hora**.
@@ -71,11 +75,23 @@ O contrato entre elas é a API REST do back (`packages/api-client`, gerado do Op
 - **RF-18** Cada aula tem um **estado**:
   - **Confirmada** — há alunos ativos;
   - **Inativa** — sem alunos;
-  - **Cancelada** — cancelamento por parte do professor.
+  - **Cancelada** — cancelamento por parte do professor;
+  - **Concluída** — aula finalizada pelo professor (RF-21).
+
+### Finalização de aulas
+- **RF-21** Deve haver uma **tela para finalizar as aulas** conforme forem sendo concluídas. Nela o professor
+  marca, para cada aluno, **presença, falta ou reagendamento**.
+- **RF-22** Em caso de **falta** ou **reagendamento**, deve ser possível informar uma **justificativa**.
+- **RF-23** Ao final, a aula fica com o estado **Concluída** e passa a ser **contabilizada**.
+- **RF-24** Aulas **não concluídas não são contabilizadas** em cálculos de **pagamento** ou de **presenças**.
 
 ### Professores
 - **RF-19** Deve haver um **controle das aulas dadas pelo professor** e de **quais alunos estiveram presentes**.
 - **RF-20** Com base nesse controle, o sistema deve **calcular quanto o professor deve receber**.
+- **RF-25** Cada professor pode ter um **valor mínimo por aula**, configurado individualmente, que garante
+  recebimento **mesmo quando todos os alunos faltam**.
+- **RF-26** O valor de cada **aluno presente** é **40% do valor do plano dividido pelo número de aulas** que o
+  plano dá direito.
 
 ## 4. Regras de negócio derivadas
 
@@ -84,8 +100,13 @@ O contrato entre elas é a API REST do back (`packages/api-client`, gerado do Op
 - **RN-03** O número de turmas padrão de um aluno não pode exceder as aulas por semana do plano (RF-07).
 - **RN-04** Um aluno não pode estar em duas turmas no mesmo dia e horário.
 - **RN-05** A lotação de uma turma não pode exceder a capacidade da sala.
-- **RN-06** O estado da aula é calculado: cancelada se cancelada; senão confirmada se houver ao menos
-  um aluno previsto (fixos não reagendados + reposições); senão inativa (RF-18).
+- **RN-06** O estado da aula é calculado: cancelada se cancelada; senão concluída se finalizada; senão
+  confirmada se houver ao menos um aluno previsto (fixos não reagendados + reposições); senão inativa (RF-18).
+- **RN-07** Uma aula só pode ser finalizada **depois de começar**, se não estiver cancelada, e informando o
+  resultado de **todos** os alunos previstos (finalização atômica: tudo ou nada).
+- **RN-08** Presenças, faltas e o débito de aulas do plano só são registrados **na finalização** (RF-24).
+- **RN-09** Aula concluída não pode ser cancelada nem ter reagendamentos desfeitos; o **admin** pode **reabrir**
+  uma aula concluída, o que devolve as aulas debitadas e remove a aula dos cálculos.
 
 ## 5. Decisões de implementação
 
@@ -95,16 +116,22 @@ O contrato entre elas é a API REST do back (`packages/api-client`, gerado do Op
 | D-02 | Um **usuário da plataforma** cria os estúdios; cada estúdio tem usuários **admin** e **professor**. | Necessário para cadastrar tenants. |
 | D-03 | "Das 6h às 19h" = o estúdio **fecha às 19h**; última turma começa às **18h**. Horários configuráveis por estúdio (`open_hour`, `close_hour`). | Alternativa: última turma às 19h (`close_hour = 20`). |
 | D-04 | A **aula** só é gravada no banco quando há chamada, reposição, cancelamento ou substituição; antes disso é calculada a partir da turma. | Evita gerar aulas em lote. |
-| D-05 | **Presença consome** 1 aula do plano. **Falta também consome** (configurável por estúdio: `absence_consumes_credit`). **Reagendar não consome**; a reposição consome quando houver chamada. | Prática comum em estúdios. |
+| D-05 | Na finalização, **presença consome** 1 aula do plano e **falta também consome** (configurável por estúdio: `absence_consumes_credit`). **Reagendar não consome**; a reposição consome quando a aula de destino for finalizada. | Prática comum em estúdios. |
 | D-06 | Notificações: `plan_exhausted` quando a última aula do plano é usada; `no_credits` quando uma aula é registrada sem saldo. Renovar = vincular um novo plano ao aluno. | Implementa RF-14. |
 | D-07 | O plano não tem validade por data: termina quando as aulas acabam. | Não especificado. |
-| D-08 | **Pagamento do professor** = `pay_per_class` × aulas dadas + `pay_per_student` × alunos presentes, configurável por professor. "Aula dada" = não cancelada e com ao menos um aluno presente. Usa os valores atuais do professor. | Cobre os dois modelos comuns (fixo por aula / por aluno). |
+| D-08 | **Pagamento do professor**, por aula **concluída**: `pay_per_class` + soma do valor de cada aluno presente (D-18), **nunca abaixo de `min_pay_per_lesson`**. Se todos faltarem, paga apenas o mínimo (sem mínimo, a aula não gera pagamento nem conta como aula dada). Valores configuráveis por professor e **congelados na conclusão** de cada aula: alterar a remuneração só afeta aulas concluídas depois. Reabrir a aula descarta o valor congelado; trocar o professor de uma aula concluída exige reabri-la. | Cobre os modelos comuns (fixo por aula / por aluno / garantia mínima). Implementa RF-20 e RF-25. |
 | D-09 | É possível definir um **professor substituto** em uma aula específica; a aula conta para quem a deu. | Complementa RF-19/RF-20. |
 | D-10 | Professor (usuário) consulta tudo, mas só faz chamada, reagendamento e cancelamento **nas próprias aulas** e vê apenas o próprio relatório de pagamento. | Controle de acesso. |
 | D-11 | Descontos são **percentuais ou de valor fixo**, gerais ou restritos a um plano. Preço e quantidade de aulas são **congelados** quando o plano é vinculado ao aluno. | Implementa RF-15. |
 | D-12 | Alterar horários padrão vale **a partir de uma data**, preservando o histórico. | Implementa RF-08. |
 | D-13 | Exclusões de cadastros são lógicas (inativação). | Preserva histórico. |
 | D-14 | Datas e horas são do **horário local do estúdio**, sem fuso. Valores monetários trafegam como string (`"320.00"`). | Simplicidade / precisão. |
+| D-15 | **Reagendar** pode ser feito **antes da aula** (aluno avisa; pelo painel da agenda) ou **na finalização**. Em ambos os casos é obrigatório escolher a aula de reposição, que ainda não pode ter começado. | Implementa RF-11/RF-21. |
+| D-16 | A justificativa é **opcional** (até 500 caracteres) e fica no histórico do aluno. | RF-22 diz "deve ser possível". |
+| D-18 | Valor do aluno presente = `student_share_percent` (padrão **40%**, configurável por professor) × **preço pago** no plano do aluno (já com desconto) ÷ **aulas do plano**. Usa o plano debitado naquela aula (congelado na conclusão). Presença **sem aula disponível** no plano gera R$ 0. Faltas não geram valor por aluno. Aulas concluídas antes desta regra mantêm o valor calculado na regra anterior. | Implementa RF-26. Alternativa: usar o preço cheio do plano, sem desconto. |
+| D-19 | Na contratação ficam congelados **nome do plano, nome do desconto, preço, desconto, valor pago, aulas e frequência**. O histórico mostra também valor por aula (pago ÷ aulas), aulas usadas e período de uso (1ª e última aula debitada). Situações: **em uso**, **aguardando** (renovação antecipada), **encerrado**, **cancelado**. | Implementa RF-27. |
+| D-20 | Com vários planos ativos, as aulas são debitadas do **mais antigo** (data de contratação) até acabar. O aviso de renovação só é gerado quando acaba o último plano com aulas. A ficha mostra o plano **em uso** e os planos aguardando. O limite de turmas padrão usa a **maior frequência** entre os planos ativos, para permitir ajustar o horário ao renovar para um plano maior. | Implementa RF-28. |
+| D-17 | A tela de finalização lista as aulas que **já começaram** nos últimos 30 dias, têm alunos e não foram concluídas/canceladas. Professor vê apenas as próprias. | Implementa RF-21. |
 
 ## 6. Fora do escopo (por enquanto)
 
@@ -123,10 +150,13 @@ O contrato entre elas é a API REST do back (`packages/api-client`, gerado do Op
 | RF-03 a RF-06 | `POST /class-groups`, `PATCH /studio` |
 | RF-07, RF-08 | `PUT /students/{id}/schedule` |
 | RF-09, RF-10 | `GET /students/{id}`, `/students/{id}/subscriptions` |
-| RF-11, RF-12 | `POST /lessons/{class_group_id}/{date}/attendance`, `.../reschedule` |
+| RF-11, RF-12 | `POST /lessons/{class_group_id}/{date}/complete`, `.../reschedule` |
+| RF-21 a RF-24 | `GET /lessons/pending`, `POST /lessons/{class_group_id}/{date}/complete`, `.../reopen` |
 | RF-13, RF-14 | `/plans`, `GET /notifications` |
 | RF-15 | `/discounts`, `GET /plans/{id}/price` |
 | RF-16 a RF-18 | `GET /calendar`, `GET /lessons/{class_group_id}/{date}`, `.../cancel` |
 | RF-19, RF-20 | `GET /reports/teacher-payments` |
+| RF-27, RF-28 | `GET/POST /students/{id}/subscriptions`, `GET /students/{id}` (`subscription`, `queued_subscriptions`) |
+| RF-25, RF-26 | `PATCH /teachers/{id}` (`min_pay_per_lesson`, `student_share_percent`), `GET /reports/teacher-payments` |
 
 Detalhes técnicos: [back/README.md](../back/README.md). Documentação interativa: `http://localhost:8010/docs`.

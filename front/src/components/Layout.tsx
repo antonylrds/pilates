@@ -6,11 +6,12 @@ import { useSession } from "../lib/session";
 
 const NAV = [
   { to: "/", label: "Agenda", icon: "▦", end: true },
+  { to: "/finalizar", label: "Finalizar aulas", icon: "✓", badge: "pending" },
   { to: "/salas", label: "Salas e turmas", icon: "▤" },
   { to: "/alunos", label: "Alunos", icon: "◉" },
   { to: "/professores", label: "Professores", icon: "✦" },
-  { to: "/avisos", label: "Avisos", icon: "◔" },
-];
+  { to: "/avisos", label: "Avisos", icon: "◔", badge: "unread" },
+] as const;
 
 export function Layout() {
   const { session, logout } = useSession();
@@ -19,7 +20,11 @@ export function Layout() {
     () => call(api.GET("/api/v1/notifications", { params: { query: { unread_only: true } } })),
     [location.pathname],
   );
-  const unreadCount = unread.data?.length ?? 0;
+  const pending = useAsync(() => call(api.GET("/api/v1/lessons/pending")), [location.pathname]);
+  const badges: Record<string, number> = {
+    unread: unread.data?.length ?? 0,
+    pending: pending.data?.length ?? 0,
+  };
 
   return (
     <div className="shell">
@@ -32,15 +37,18 @@ export function Layout() {
           </div>
         </div>
         <nav className="nav">
-          {NAV.map((item) => (
-            <NavLink key={item.to} to={item.to} end={item.end} className="nav-link">
-              <span className="nav-icon" aria-hidden>
-                {item.icon}
-              </span>
-              <span>{item.label}</span>
-              {item.to === "/avisos" && unreadCount > 0 && <span className="nav-badge">{unreadCount}</span>}
-            </NavLink>
-          ))}
+          {NAV.map((item) => {
+            const count = "badge" in item ? badges[item.badge] : 0;
+            return (
+              <NavLink key={item.to} to={item.to} end={"end" in item ? item.end : false} className="nav-link">
+                <span className="nav-icon" aria-hidden>
+                  {item.icon}
+                </span>
+                <span>{item.label}</span>
+                {count > 0 && <span className="nav-badge">{count}</span>}
+              </NavLink>
+            );
+          })}
         </nav>
         <div className="sidebar-footer">
           <div>

@@ -3,22 +3,18 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 
 import { api, call } from "../lib/api";
-import { addDays, fmtDate, fmtHour, fmtShortDay, fmtWeekday, parseISO, toISO, todayISO } from "../lib/format";
+import { fmtDate, fmtDateTime, fmtHour, fmtWeekday } from "../lib/format";
 import { useAsync } from "../lib/hooks";
-import { attendanceStatus, lessonStatus } from "../lib/labels";
+import { attendanceStatus, attendanceTone, lessonStatus } from "../lib/labels";
+import { useSession } from "../lib/session";
+import { ReschedulePicker } from "./ReschedulePicker";
 import { Badge, ErrorBox, Loading } from "./ui";
 
 type Props = { groupId: number; date: string; onClose: () => void; onChanged: () => void };
 type Roster = Schemas["RosterEntry"];
 
-const statusTone: Record<string, string> = {
-  pending: "neutral",
-  present: "success",
-  absent: "danger",
-  rescheduled: "warning",
-};
-
 export function LessonPanel({ groupId, date, onClose, onChanged }: Props) {
+  const { isAdmin } = useSession();
   const path = { class_group_id: groupId, lesson_date: date };
   const lesson = useAsync(
     () => call(api.GET("/api/v1/lessons/{class_group_id}/{lesson_date}", { params: { path } })),
@@ -27,9 +23,7 @@ export function LessonPanel({ groupId, date, onClose, onChanged }: Props) {
   const [error, setError] = useState<string>();
   const [busy, setBusy] = useState(false);
   const [moving, setMoving] = useState<Roster | null>(null);
-
-  const isPastOrToday = date <= todayISO();
-  const cancelled = lesson.data?.status === "cancelled";
+  const [justification, setJustification] = useState("");
 
   async function run(action: () => Promise<unknown>) {
     setBusy(true);
@@ -38,22 +32,14 @@ export function LessonPanel({ groupId, date, onClose, onChanged }: Props) {
       await action();
       lesson.reload();
       onChanged();
+      return true;
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
+      return false;
     } finally {
       setBusy(false);
     }
   }
-
-  const mark = (studentId: number, status: "present" | "absent") =>
-    run(() =>
-      call(
-        api.POST("/api/v1/lessons/{class_group_id}/{lesson_date}/attendance", {
-          params: { path },
-          body: { items: [{ student_id: studentId, status }] },
-        }),
-      ),
-    );
 
   const undo = (studentId: number) =>
     run(() =>
@@ -80,7 +66,16 @@ export function LessonPanel({ groupId, date, onClose, onChanged }: Props) {
   const restore = () =>
     run(() => call(api.POST("/api/v1/lessons/{class_group_id}/{lesson_date}/restore", { params: { path } })));
 
+  const reopen = () =>
+    window.confirm("Reabrir a aula? As aulas debitadas dos planos serão devolvidas.") &&
+    run(() => call(api.POST("/api/v1/lessons/{class_group_id}/{lesson_date}/reopen", { params: { path } })));
+
   const data = lesson.data;
+  const completed = data?.status === "completed";
+  const cancelled = data?.status === "cancelled";
+  const open = !completed && !cancelled;
+  // Reagendamento antecipado: só antes da aula começar (depois disso, é feito na finalização).
+  const canReschedule = open && data && !data.can_complete;
 
   return (
     <div className="drawer-backdrop" onClick={onClose}>
@@ -130,10 +125,21 @@ export function LessonPanel({ groupId, date, onClose, onChanged }: Props) {
             </dl>
 
             {data.cancel_reason && <div className="alert alert-warning">Motivo: {data.cancel_reason}</div>}
+            {completed && data.completed_at && (
+              <div className="alert alert-info">
+                Concluída em {fmtDateTime(data.completed_at)}
+                {data.completed_by && <> por {data.completed_by}</>}.
+              </div>
+            )}
+            {data.can_complete && (
+              <Link to={`/finalizar/${groupId}/${date}`} className="btn btn-primary btn-block">
+                Finalizar aula
+              </Link>
+            )}
             {error && <ErrorBox message={error} />}
 
             <h3 className="section-title">
-              Chamada <span className="muted small">({data.students.length} aluno(s))</span>
+              Alunos <span className="muted small">({data.students.length})</span>
             </h3>
             {data.students.length === 0 && <p className="muted">Nenhum aluno previsto nesta aula.</p>}
             <ul className="roster">
@@ -144,7 +150,7 @@ export function LessonPanel({ groupId, date, onClose, onChanged }: Props) {
                       {s.student.name}
                     </Link>
                     <div className="roster-meta">
-                      <Badge tone={statusTone[s.status]}>{attendanceStatus[s.status]}</Badge>
+                      <Badge tone={attendanceTone[s.status]}>{attendanceStatus[s.status]}</Badge>
                       {s.is_makeup && s.makeup_from && (
                         <span className="muted small">Reposição de {fmtDate(s.makeup_from.date)}</span>
                       )}
@@ -157,35 +163,28 @@ export function LessonPanel({ groupId, date, onClose, onChanged }: Props) {
                         {s.credits_remaining} aula(s) restante(s)
                       </span>
                     </div>
+                    {s.justification && <p className="justification">“{s.justification}”</p>}
                   </div>
-                  {!cancelled && (
+                  {open && (
                     <div className="roster-actions">
                       {s.status === "rescheduled" ? (
                         <button className="btn btn-sm" disabled={busy} onClick={() => undo(s.student.id)}>
                           Desfazer
                         </button>
-                      ) : isPastOrToday ? (
-                        <>
+                      ) : (
+                        canReschedule &&
+                        s.status === "pending" && (
                           <button
-                            className={`btn btn-sm ${s.status === "present" ? "btn-success" : ""}`}
+                            className="btn btn-sm"
                             disabled={busy}
-                            onClick={() => mark(s.student.id, "present")}
+                            onClick={() => {
+                              setMoving(s);
+                              setJustification("");
+                            }}
                           >
-                            Presente
+                            Reagendar
                           </button>
-                          <button
-                            className={`btn btn-sm ${s.status === "absent" ? "btn-danger" : ""}`}
-                            disabled={busy}
-                            onClick={() => mark(s.student.id, "absent")}
-                          >
-                            Falta
-                          </button>
-                        </>
-                      ) : null}
-                      {s.status === "pending" && (
-                        <button className="btn btn-sm" disabled={busy} onClick={() => setMoving(s)}>
-                          Reagendar
-                        </button>
+                        )
                       )}
                     </div>
                   )}
@@ -194,35 +193,58 @@ export function LessonPanel({ groupId, date, onClose, onChanged }: Props) {
             </ul>
 
             {moving && (
-              <ReschedulePicker
-                student={moving}
-                fromGroupId={groupId}
-                fromDate={date}
-                onCancel={() => setMoving(null)}
-                onPick={(target) =>
-                  run(async () => {
-                    await call(
-                      api.POST("/api/v1/lessons/{class_group_id}/{lesson_date}/reschedule", {
-                        params: { path },
-                        body: {
-                          student_id: moving.student.id,
-                          target_class_group_id: target.class_group_id,
-                          target_date: target.date,
-                        },
-                      }),
+              <div className="picker">
+                <div className="picker-header">
+                  <strong>Reagendar {moving.student.name}</strong>
+                  <button className="btn btn-ghost btn-sm" onClick={() => setMoving(null)}>
+                    Fechar
+                  </button>
+                </div>
+                <label className="field">
+                  <span>Justificativa (opcional)</span>
+                  <input
+                    value={justification}
+                    onChange={(e) => setJustification(e.target.value)}
+                    placeholder="Ex.: viagem, consulta médica…"
+                    maxLength={500}
+                  />
+                </label>
+                <p className="muted small">Escolha a aula de reposição. O horário padrão do aluno não muda.</p>
+                <ReschedulePicker
+                  fromGroupId={groupId}
+                  fromDate={date}
+                  onPick={async (target) => {
+                    const ok = await run(() =>
+                      call(
+                        api.POST("/api/v1/lessons/{class_group_id}/{lesson_date}/reschedule", {
+                          params: { path },
+                          body: {
+                            student_id: moving.student.id,
+                            target_class_group_id: target.class_group_id,
+                            target_date: target.date,
+                            justification: justification || null,
+                          },
+                        }),
+                      ),
                     );
-                    setMoving(null);
-                  })
-                }
-              />
+                    if (ok) setMoving(null);
+                  }}
+                />
+              </div>
             )}
 
             <footer className="drawer-footer">
-              {cancelled ? (
+              {completed && isAdmin && (
+                <button className="btn" disabled={busy} onClick={reopen}>
+                  Reabrir aula
+                </button>
+              )}
+              {cancelled && (
                 <button className="btn" disabled={busy} onClick={restore}>
                   Desfazer cancelamento
                 </button>
-              ) : (
+              )}
+              {open && (
                 <button className="btn btn-danger-outline" disabled={busy} onClick={cancel}>
                   Cancelar aula
                 </button>
@@ -231,64 +253,6 @@ export function LessonPanel({ groupId, date, onClose, onChanged }: Props) {
           </div>
         )}
       </aside>
-    </div>
-  );
-}
-
-function ReschedulePicker({
-  student,
-  fromGroupId,
-  fromDate,
-  onPick,
-  onCancel,
-}: {
-  student: Roster;
-  fromGroupId: number;
-  fromDate: string;
-  onPick: (entry: Schemas["CalendarEntry"]) => void;
-  onCancel: () => void;
-}) {
-  const today = todayISO();
-  const start = fromDate > today ? fromDate : today;
-  const end = toISO(addDays(parseISO(start), 13));
-  const nowHour = new Date().getHours();
-  const isUpcoming = (e: Schemas["CalendarEntry"]) =>
-    e.date > today || (e.date === today && Number(e.starts_at.slice(11, 13)) > nowHour);
-  const options = useAsync(
-    () => call(api.GET("/api/v1/calendar", { params: { query: { date_from: start, date_to: end } } })),
-    [start],
-  );
-  const available = (options.data ?? []).filter(
-    (e) =>
-      e.status !== "cancelled" &&
-      e.available_spots > 0 &&
-      !(e.class_group_id === fromGroupId && e.date === fromDate) &&
-      isUpcoming(e),
-  );
-
-  return (
-    <div className="picker">
-      <div className="picker-header">
-        <strong>Reagendar {student.student.name}</strong>
-        <button className="btn btn-ghost btn-sm" onClick={onCancel}>
-          Fechar
-        </button>
-      </div>
-      <p className="muted small">Aulas com vaga nos próximos 14 dias. O horário padrão do aluno não muda.</p>
-      {options.loading && <Loading />}
-      <div className="picker-list">
-        {available.map((e) => (
-          <button key={`${e.class_group_id}-${e.date}`} className="picker-option" onClick={() => onPick(e)}>
-            <span>
-              {fmtShortDay(e.date)} · {fmtHour(Number(e.starts_at.slice(11, 13)))}
-            </span>
-            <span className="muted small">
-              {e.room.name} · {e.teacher.name.split(" ")[0]} · {e.available_spots} vaga(s)
-            </span>
-          </button>
-        ))}
-        {!options.loading && available.length === 0 && <p className="muted">Nenhuma aula com vaga.</p>}
-      </div>
     </div>
   );
 }

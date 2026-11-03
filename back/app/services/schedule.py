@@ -281,7 +281,17 @@ def attending(roster: list[Roster]) -> list[Roster]:
 def lesson_status(lesson: Lesson | None, roster: list[Roster]) -> LessonStatus:
     if lesson is not None and lesson.is_cancelled:
         return LessonStatus.CANCELLED
+    if lesson is not None and lesson.is_completed:
+        return LessonStatus.COMPLETED
     return LessonStatus.CONFIRMED if attending(roster) else LessonStatus.INACTIVE
+
+
+def lesson_start(group: ClassGroup, day: date) -> datetime:
+    return datetime.combine(day, time(group.start_hour))
+
+
+def has_started(group: ClassGroup, day: date) -> bool:
+    return lesson_start(group, day) <= datetime.now()
 
 
 def _entry(group: ClassGroup, day: date, lesson: Lesson | None, roster: list[Roster]) -> dict:
@@ -301,6 +311,7 @@ def _entry(group: ClassGroup, day: date, lesson: Lesson | None, roster: list[Ros
         attendees_count=count,
         available_spots=max(group.capacity - count, 0),
         status=lesson_status(lesson, roster),
+        completed_at=lesson.completed_at if lesson else None,
     )
 
 
@@ -362,6 +373,7 @@ def lesson_detail(db: Session, group: ClassGroup, day: date) -> LessonDetail:
         RosterEntryOut(
             student=StudentSummary.model_validate(r.student),
             status=r.status,
+            justification=r.attendance.justification if r.attendance else None,
             is_makeup=r.is_makeup,
             makeup_from=lesson_ref(r.attendance.makeup_from) if r.attendance else None,
             rescheduled_to=lesson_ref(r.attendance.makeup_to) if r.attendance else None,
@@ -369,9 +381,12 @@ def lesson_detail(db: Session, group: ClassGroup, day: date) -> LessonDetail:
         )
         for r in roster
     ]
+    entry = _entry(group, day, lesson, roster)
     return LessonDetail(
-        **_entry(group, day, lesson, roster),
+        **entry,
         cancel_reason=lesson.cancel_reason if lesson else None,
         notes=lesson.notes if lesson else None,
+        completed_by=lesson.completed_by.name if lesson and lesson.completed_by else None,
+        can_complete=entry["status"] == LessonStatus.CONFIRMED and has_started(group, day),
         students=students,
     )

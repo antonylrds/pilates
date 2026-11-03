@@ -21,6 +21,7 @@ def create_teacher(data: TeacherCreate, ctx: Admin):
     teacher = Teacher(**data.model_dump())
     ctx.db.add(teacher)
     ctx.db.commit()
+    ctx.db.refresh(teacher)
     return teacher
 
 
@@ -36,6 +37,7 @@ def update_teacher(teacher_id: int, data: TeacherUpdate, ctx: Admin):
         _ensure_without_groups(ctx, teacher.id)
     apply_update(teacher, data)
     ctx.db.commit()
+    ctx.db.refresh(teacher)
     return teacher
 
 
