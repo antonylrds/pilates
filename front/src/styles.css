@@ -2234,3 +2234,29 @@ textarea:focus {
 .confirm-list li {
   margin: 2px 0;
 }
+
+/* ---------- Caixa ---------- */
+.month-stepper {
+  align-items: center;
+}
+.month-name {
+  min-width: 150px;
+  text-align: center;
+}
+.stat .muted.small {
+  display: block;
+  margin-top: 2px;
+}
+.table tfoot td {
+  border-top: 2px solid var(--border);
+  font-weight: 500;
+}
+.cash-summary {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px 16px;
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px dashed var(--border);
+}
