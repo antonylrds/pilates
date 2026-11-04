@@ -13,6 +13,7 @@ from app.schemas.schedule import (
     LessonComplete,
     LessonDetail,
     LessonUpdate,
+    DropInRequest,
     RescheduleRequest,
 )
 from app.services import attendance as service
@@ -84,6 +85,9 @@ def update_lesson(class_group_id: int, lesson_date: date, data: LessonUpdate, ct
         teacher = get_or_404(ctx.db, Teacher, data.teacher_id, "Professor")
         if not teacher.is_active:
             raise HTTPException(status.HTTP_400_BAD_REQUEST, "Professor está inativo")
+        if lesson.is_cancelled:
+            raise HTTPException(status.HTTP_400_BAD_REQUEST, "Aula cancelada: desfaça o cancelamento para trocar o professor")
+        service.ensure_teacher_free(ctx.db, group, lesson_date, teacher)
         lesson.teacher_id = teacher.id
     if "notes" in data.model_fields_set:
         lesson.notes = data.notes
@@ -136,6 +140,28 @@ def reschedule(class_group_id: int, lesson_date: date, data: RescheduleRequest, 
 def undo_reschedule(class_group_id: int, lesson_date: date, student_id: int, ctx: Staff):
     group = schedule.load_group(ctx.db, class_group_id)
     service.undo_reschedule(ctx, group, lesson_date, student_id)
+    return _detail(ctx, class_group_id, lesson_date)
+
+
+@router.post(
+    f"{LESSON_PATH}/drop-in",
+    response_model=LessonDetail,
+    summary="Inclui o aluno nesta aula como avulso (sem aula de origem); usa uma aula do plano",
+)
+def add_drop_in(class_group_id: int, lesson_date: date, data: DropInRequest, ctx: Staff):
+    group = schedule.load_group(ctx.db, class_group_id)
+    service.add_drop_in(ctx, group, lesson_date, data.student_id, data.justification)
+    return _detail(ctx, class_group_id, lesson_date)
+
+
+@router.delete(
+    f"{LESSON_PATH}/drop-in/{{student_id}}",
+    response_model=LessonDetail,
+    summary="Remove o aluno avulso desta aula (antes da conclusão)",
+)
+def remove_drop_in(class_group_id: int, lesson_date: date, student_id: int, ctx: Staff):
+    group = schedule.load_group(ctx.db, class_group_id)
+    service.remove_drop_in(ctx, group, lesson_date, student_id)
     return _detail(ctx, class_group_id, lesson_date)
 
 

@@ -8,7 +8,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.models.central import Studio
-from app.models.tenant import Attendance, Discount, Notification, Plan, Student, Subscription
+from app.models.tenant import Attendance, Discount, Lesson, Notification, Plan, Student, Subscription
 from app.models.tenant.enums import AttendanceStatus, DiscountKind, NotificationKind, SubscriptionStatus
 from app.schemas.catalog import SubscriptionCreate
 
@@ -177,3 +177,27 @@ def release_credit(db: Session, attendance: Attendance) -> None:
     db.flush()
     if subscription is not None and subscription.status == SubscriptionStatus.EXHAUSTED:
         subscription.status = SubscriptionStatus.ACTIVE
+
+
+def pending_drop_ins(db: Session, student_id: int) -> int:
+    """Aulas avulsas já marcadas e ainda não concluídas (vão usar aulas do plano).
+
+    Inclui avulsas que foram reagendadas: a reposição pendente continua vindo de uma avulsa.
+    """
+    rows = db.scalars(
+        select(Attendance)
+        .join(Attendance.lesson)
+        .where(
+            Attendance.student_id == student_id,
+            Attendance.is_makeup.is_(True),
+            Attendance.status == AttendanceStatus.PENDING,
+            Lesson.completed_at.is_(None),
+            Lesson.is_cancelled.is_(False),
+        )
+    )
+    return sum(1 for a in rows if a.original.is_drop_in)
+
+
+def drop_in_available(db: Session, student_id: int) -> int:
+    """Aulas que o aluno ainda pode usar como avulsas: restantes nos planos menos avulsas já marcadas."""
+    return max(credits_remaining(db, student_id) - pending_drop_ins(db, student_id), 0)

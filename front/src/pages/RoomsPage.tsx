@@ -2,6 +2,8 @@ import type { Schemas } from "@pilates/api-client";
 import { type FormEvent, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 
+import { DateInput } from "../components/DateInput";
+import { GroupStudents } from "../components/GroupStudents";
 import { Modal } from "../components/Modal";
 import { Badge, Empty, ErrorBox, Loading } from "../components/ui";
 import { api, call } from "../lib/api";
@@ -108,6 +110,7 @@ export function RoomsPage() {
             setEditing(null);
             groups.reload();
           }}
+          onStudentsChanged={groups.reload}
         />
       )}
     </div>
@@ -416,8 +419,10 @@ function GroupModal(props: {
   canEdit: boolean;
   onClose: () => void;
   onSaved: () => void;
+  onStudentsChanged: () => void;
 }) {
-  const { editing, rooms, teachers, groups, canEdit, onClose, onSaved } = props;
+  const { editing, rooms, teachers, groups, canEdit, onClose, onSaved, onStudentsChanged } = props;
+  const [tab, setTab] = useState<"turma" | "alunos">("turma");
   const isCreate = editing.mode === "create";
   const base = isCreate ? null : editing.group;
   const weekday = isCreate ? editing.weekday : base!.weekday;
@@ -510,12 +515,14 @@ function GroupModal(props: {
       title={title}
       subtitle={subtitle}
       onClose={onClose}
+      wide={!isCreate}
       footer={
-        canEdit && (
+        canEdit &&
+        tab === "turma" && (
           <>
             {!isCreate && (
               <div className="end-group">
-                <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} aria-label="Encerrar em" />
+                <DateInput value={endDate} onChange={setEndDate} aria-label="Encerrar em" />
                 <button type="button" className="btn btn-danger-outline" disabled={busy} onClick={endGroup}>
                   Encerrar turma
                 </button>
@@ -528,6 +535,32 @@ function GroupModal(props: {
         )
       }
     >
+      {!isCreate && (
+        <div className="tabs" role="tablist">
+          <button role="tab" aria-selected={tab === "turma"} className={`tab ${tab === "turma" ? "is-active" : ""}`} onClick={() => setTab("turma")}>
+            Turma
+          </button>
+          <button role="tab" aria-selected={tab === "alunos"} className={`tab ${tab === "alunos" ? "is-active" : ""}`} onClick={() => setTab("alunos")}>
+            Alunos {detail.data && <span className="muted small">({detail.data.enrolled_count}/{detail.data.capacity})</span>}
+          </button>
+        </div>
+      )}
+
+      {tab === "alunos" && !isCreate ? (
+        detail.data ? (
+          <GroupStudents
+            group={detail.data}
+            canEdit={canEdit}
+            onChanged={() => {
+              detail.reload();
+              onStudentsChanged();
+            }}
+          />
+        ) : (
+          <Loading />
+        )
+      ) : (
+      <>
       <form id="group-form" onSubmit={submit}>
         <div className="form-row">
           <label className="field">
@@ -583,7 +616,7 @@ function GroupModal(props: {
           {isCreate ? (
             <label className="field">
               <span>Começa em</span>
-              <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+              <DateInput value={startDate} onChange={setStartDate} />
             </label>
           ) : (
             <div className="field">
@@ -605,28 +638,15 @@ function GroupModal(props: {
 
       {error && <ErrorBox message={error} />}
 
-      {!isCreate && (
-        <div className="group-students">
-          <h3 className="section-title">
-            Alunos fixos{" "}
-            {detail.data && (
-              <span className="muted small">
-                ({detail.data.enrolled_count}/{detail.data.capacity})
-              </span>
-            )}
-          </h3>
-          {detail.loading && !detail.data && <Loading />}
-          {detail.data?.students.length === 0 && <p className="muted small">Nenhum aluno nesta turma.</p>}
-          <ul className="chips">
-            {detail.data?.students.map((s) => (
-              <li key={s.id}>
-                <Link to={`/alunos/${s.id}`} className="chip">
-                  {s.name}
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </div>
+      {!isCreate && detail.data && (
+        <p className="muted small group-students-hint">
+          {detail.data.enrolled_count} aluno(s) fixo(s) ·{" "}
+          <button type="button" className="link-button" onClick={() => setTab("alunos")}>
+            gerenciar alunos
+          </button>
+        </p>
+      )}
+      </>
       )}
     </Modal>
   );

@@ -4,6 +4,7 @@ import { useSearchParams } from "react-router-dom";
 
 import { Badge, Empty, ErrorBox, Loading } from "../components/ui";
 import { api, call } from "../lib/api";
+import { perWeekLabel } from "../lib/labels";
 import { money } from "../lib/format";
 import { useAsync } from "../lib/hooks";
 import { useSession } from "../lib/session";
@@ -118,8 +119,8 @@ function PlansTab({ overview, onChanged }: { overview?: Overview; onChanged: () 
                 </div>
                 {p.description && <p className="muted small">{p.description}</p>}
                 <p className="small">
-                  {p.sessions_per_week}x por semana · {p.total_classes} aulas ·{" "}
-                  <span className="muted">{money(Number(p.price) / p.total_classes)} por aula</span>
+                  {perWeekLabel(p.sessions_per_week)} · {p.total_classes} aulas ·{" "}
+                  <span className="muted">{Number(p.price) === 0 ? "gratuito" : `${money(Number(p.price) / p.total_classes)} por aula`}</span>
                 </p>
                 {u && (
                   <div className="usage">
@@ -201,9 +202,9 @@ function PlanForm({ plan, onCancel, onSaved }: { plan?: Plan; onCancel: () => vo
         <label className="field">
           <span>Aulas por semana</span>
           <select value={perWeek} onChange={(e) => setPerWeek(Number(e.target.value))}>
-            {[1, 2, 3].map((n) => (
+            {[1, 2, 3, 0].map((n) => (
               <option key={n} value={n}>
-                {n}x por semana
+                {n === 0 ? "Sem recorrência (só aulas avulsas)" : `${n}x por semana`}
               </option>
             ))}
           </select>

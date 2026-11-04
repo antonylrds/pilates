@@ -2,6 +2,7 @@ import type { Schemas } from "@pilates/api-client";
 import { type FormEvent, useState } from "react";
 
 import { api, call } from "../lib/api";
+import { DateInput } from "./DateInput";
 import { money, todayISO } from "../lib/format";
 import { useAsync } from "../lib/hooks";
 import { Modal } from "./Modal";
@@ -127,7 +128,7 @@ export function RenewPlanModal({ student, onClose, onSaved }: Props) {
         <div className="form-row">
           <label className="field">
             <span>Data da contratação</span>
-            <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+            <DateInput value={startDate} onChange={setStartDate} />
           </label>
           <div className="field">
             <span>Pagamento</span>
@@ -137,7 +138,7 @@ export function RenewPlanModal({ student, onClose, onSaved }: Props) {
                 <span>Já foi pago</span>
               </label>
               {isPaid && (
-                <input type="date" value={paidAt} onChange={(e) => setPaidAt(e.target.value)} aria-label="Data do pagamento" />
+                <DateInput value={paidAt} onChange={setPaidAt} aria-label="Data do pagamento" />
               )}
             </div>
           </div>

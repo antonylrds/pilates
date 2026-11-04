@@ -691,6 +691,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/students/{student_id}/upcoming-lessons": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Próximas aulas do aluno que ainda podem ser reagendadas */
+        get: operations["student_upcoming_lessons_api_v1_students__student_id__upcoming_lessons_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/students/{student_id}/reschedules": {
         parameters: {
             query?: never;
@@ -880,6 +897,40 @@ export interface paths {
         post?: never;
         /** Desfaz um reagendamento feito a partir desta aula */
         delete: operations["undo_reschedule_api_v1_lessons__class_group_id___lesson_date__reschedule__student_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/lessons/{class_group_id}/{lesson_date}/drop-in": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Inclui o aluno nesta aula como avulso (sem aula de origem); usa uma aula do plano */
+        post: operations["add_drop_in_api_v1_lessons__class_group_id___lesson_date__drop_in_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/lessons/{class_group_id}/{lesson_date}/drop-in/{student_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Remove o aluno avulso desta aula (antes da conclusão) */
+        delete: operations["remove_drop_in_api_v1_lessons__class_group_id___lesson_date__drop_in__student_id__delete"];
         options?: never;
         head?: never;
         patch?: never;
@@ -1305,6 +1356,16 @@ export interface components {
             /** Is Active */
             is_active?: boolean | null;
         };
+        /** DropInRequest */
+        DropInRequest: {
+            /** Student Id */
+            student_id: number;
+            /**
+             * Justification
+             * @description Observação (ex.: aula experimental)
+             */
+            justification?: string | null;
+        };
         /** HTTPValidationError */
         HTTPValidationError: {
             /** Detail */
@@ -1388,6 +1449,8 @@ export interface components {
              * @description A aula já começou, tem alunos e ainda não foi concluída/cancelada
              */
             can_complete: boolean;
+            /** @description Professor titular da turma (difere de `teacher` se houver substituto) */
+            default_teacher: components["schemas"]["TeacherSummary"];
             /** Students */
             students: components["schemas"]["RosterEntry"][];
         };
@@ -1483,7 +1546,7 @@ export interface components {
             description?: string | null;
             /**
              * Sessions Per Week
-             * @description Aulas por semana: 1, 2 ou 3
+             * @description Aulas fixas por semana: 1, 2 ou 3; 0 = sem recorrência (só aulas avulsas)
              */
             sessions_per_week: number;
             /**
@@ -1694,9 +1757,15 @@ export interface components {
             justification?: string | null;
             /**
              * Is Makeup
-             * @description Aluno veio por reposição de outra aula
+             * @description Aluno está fora do horário padrão (reposição ou aula avulsa)
              */
             is_makeup: boolean;
+            /**
+             * Is Drop In
+             * @description Aula avulsa: incluído sem aula de origem
+             * @default false
+             */
+            is_drop_in: boolean;
             makeup_from?: components["schemas"]["LessonRef"] | null;
             rescheduled_to?: components["schemas"]["LessonRef"] | null;
             /**
@@ -2153,6 +2222,12 @@ export interface components {
              * @description Soma das aulas restantes nos planos ativos
              */
             credits_remaining: number;
+            /**
+             * Drop In Available
+             * @description Aulas que ainda podem ser usadas como avulsas (restantes menos avulsas já marcadas)
+             * @default 0
+             */
+            drop_in_available: number;
             /** Needs Renewal */
             needs_renewal: boolean;
             /** Schedule */
@@ -2524,7 +2599,7 @@ export interface components {
             service_share_percent: string;
             /**
              * Lessons Given
-             * @description Aulas concluídas que geraram pagamento
+             * @description Aulas concluídas no período (inclusive as de R$ 0)
              */
             lessons_given: number;
             /**
@@ -2674,6 +2749,27 @@ export interface components {
             token_type: string;
             user: components["schemas"]["UserRead"];
             studio: components["schemas"]["StudioRead"];
+        };
+        /**
+         * UpcomingLesson
+         * @description Aula futura do aluno (ainda não começou), que pode ser reagendada.
+         */
+        UpcomingLesson: {
+            /** Class Group Id */
+            class_group_id: number;
+            /** Class Group Name */
+            class_group_name: string;
+            /**
+             * Date
+             * Format: date
+             */
+            date: string;
+            /** Start Hour */
+            start_hour: number;
+            /** Room */
+            room: string;
+            /** Is Makeup */
+            is_makeup: boolean;
         };
         /** UpcomingMakeup */
         UpcomingMakeup: {
@@ -4665,6 +4761,39 @@ export interface operations {
             };
         };
     };
+    student_upcoming_lessons_api_v1_students__student_id__upcoming_lessons_get: {
+        parameters: {
+            query?: {
+                days?: number;
+            };
+            header?: never;
+            path: {
+                student_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UpcomingLesson"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     student_reschedules_api_v1_students__student_id__reschedules_get: {
         parameters: {
             query?: never;
@@ -5133,6 +5262,75 @@ export interface operations {
         };
     };
     undo_reschedule_api_v1_lessons__class_group_id___lesson_date__reschedule__student_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                class_group_id: number;
+                lesson_date: string;
+                student_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LessonDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    add_drop_in_api_v1_lessons__class_group_id___lesson_date__drop_in_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                class_group_id: number;
+                lesson_date: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DropInRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LessonDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    remove_drop_in_api_v1_lessons__class_group_id___lesson_date__drop_in__student_id__delete: {
         parameters: {
             query?: never;
             header?: never;

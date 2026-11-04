@@ -7,6 +7,7 @@ import { fmtDate, fmtDateTime, fmtHour, fmtWeekday } from "../lib/format";
 import { useAsync } from "../lib/hooks";
 import { attendanceStatus, attendanceTone, lessonStatus } from "../lib/labels";
 import { useSession } from "../lib/session";
+import { LessonAddStudent } from "./LessonAddStudent";
 import { ReschedulePicker } from "./ReschedulePicker";
 import { Badge, ErrorBox, Loading } from "./ui";
 
@@ -24,6 +25,11 @@ export function LessonPanel({ groupId, date, onClose, onChanged }: Props) {
   const [busy, setBusy] = useState(false);
   const [moving, setMoving] = useState<Roster | null>(null);
   const [justification, setJustification] = useState("");
+  const [teacherEdit, setTeacherEdit] = useState<number | null>(null);
+  const teachers = useAsync(
+    () => (teacherEdit === null ? Promise.resolve([]) : call(api.GET("/api/v1/teachers"))),
+    [teacherEdit === null],
+  );
 
   async function run(action: () => Promise<unknown>) {
     setBusy(true);
@@ -50,6 +56,15 @@ export function LessonPanel({ groupId, date, onClose, onChanged }: Props) {
       ),
     );
 
+  const removeDropIn = (studentId: number) =>
+    run(() =>
+      call(
+        api.DELETE("/api/v1/lessons/{class_group_id}/{lesson_date}/drop-in/{student_id}", {
+          params: { path: { ...path, student_id: studentId } },
+        }),
+      ),
+    );
+
   const cancel = () => {
     const reason = window.prompt("Motivo do cancelamento (opcional):");
     if (reason === null) return;
@@ -61,6 +76,19 @@ export function LessonPanel({ groupId, date, onClose, onChanged }: Props) {
         }),
       ),
     );
+  };
+
+  const changeTeacher = async () => {
+    if (teacherEdit === null) return;
+    const ok = await run(() =>
+      call(
+        api.PATCH("/api/v1/lessons/{class_group_id}/{lesson_date}", {
+          params: { path },
+          body: { teacher_id: teacherEdit },
+        }),
+      ),
+    );
+    if (ok) setTeacherEdit(null);
   };
 
   const restore = () =>
@@ -76,6 +104,9 @@ export function LessonPanel({ groupId, date, onClose, onChanged }: Props) {
   const open = !completed && !cancelled;
   // Reagendamento antecipado: só antes da aula começar (depois disso, é feito na finalização).
   const canReschedule = open && data && !data.can_complete;
+  // Incluir alunos: só antes da aula começar.
+  const notStarted = !!data && new Date(data.starts_at) > new Date();
+  const substitute = !!data && data.teacher.id !== data.default_teacher.id;
 
   return (
     <div className="drawer-backdrop" onClick={onClose}>
@@ -108,7 +139,45 @@ export function LessonPanel({ groupId, date, onClose, onChanged }: Props) {
               </div>
               <div>
                 <dt>Professor</dt>
-                <dd>{data.teacher.name}</dd>
+                <dd>
+                  {teacherEdit === null ? (
+                    <span className="teacher-fact">
+                      {data.teacher.name}
+                      {substitute && <span className="muted small"> (substituto · titular: {data.default_teacher.name})</span>}
+                      {open && isAdmin && (
+                        <button className="btn btn-sm btn-ghost" onClick={() => setTeacherEdit(data.teacher.id)}>
+                          Alterar
+                        </button>
+                      )}
+                    </span>
+                  ) : (
+                    <span className="teacher-edit">
+                      <select
+                        value={teacherEdit}
+                        onChange={(e) => setTeacherEdit(Number(e.target.value))}
+                        aria-label="Professor desta aula"
+                      >
+                        {(teachers.data ?? [data.teacher]).map((t) => (
+                          <option key={t.id} value={t.id}>
+                            {t.name}
+                            {t.id === data.default_teacher.id ? " (titular)" : ""}
+                          </option>
+                        ))}
+                      </select>
+                      <button
+                        className="btn btn-sm btn-primary"
+                        disabled={busy || teacherEdit === data.teacher.id}
+                        onClick={changeTeacher}
+                      >
+                        Salvar
+                      </button>
+                      <button className="btn btn-sm btn-ghost" onClick={() => setTeacherEdit(null)}>
+                        Cancelar
+                      </button>
+                      <small className="muted">Vale só para esta data; a turma continua com o titular.</small>
+                    </span>
+                  )}
+                </dd>
               </div>
               <div>
                 <dt>Status</dt>
@@ -151,6 +220,7 @@ export function LessonPanel({ groupId, date, onClose, onChanged }: Props) {
                     </Link>
                     <div className="roster-meta">
                       <Badge tone={attendanceTone[s.status]}>{attendanceStatus[s.status]}</Badge>
+                      {s.is_drop_in && <Badge tone="info">Avulsa</Badge>}
                       {s.is_makeup && s.makeup_from && (
                         <span className="muted small">Reposição de {fmtDate(s.makeup_from.date)}</span>
                       )}
@@ -183,6 +253,12 @@ export function LessonPanel({ groupId, date, onClose, onChanged }: Props) {
                       ) : (
                         canReschedule &&
                         s.status === "pending" && (
+                          <>
+                          {s.is_drop_in && (
+                            <button className="btn btn-sm btn-ghost" disabled={busy} onClick={() => removeDropIn(s.student.id)}>
+                              Remover
+                            </button>
+                          )}
                           <button
                             className="btn btn-sm"
                             disabled={busy}
@@ -193,6 +269,7 @@ export function LessonPanel({ groupId, date, onClose, onChanged }: Props) {
                           >
                             Reagendar
                           </button>
+                          </>
                         )
                       )}
                     </div>
@@ -200,6 +277,10 @@ export function LessonPanel({ groupId, date, onClose, onChanged }: Props) {
                 </li>
               ))}
             </ul>
+
+            {open && notStarted && (
+              <LessonAddStudent key={`${groupId}|${date}`} groupId={groupId} date={date} lesson={data} busy={busy} run={run} />
+            )}
 
             {moving && (
               <div className="picker">

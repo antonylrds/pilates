@@ -2971,6 +2971,67 @@
         }
       }
     },
+    "/api/v1/students/{student_id}/upcoming-lessons": {
+      "get": {
+        "tags": [
+          "students"
+        ],
+        "summary": "Próximas aulas do aluno que ainda podem ser reagendadas",
+        "operationId": "student_upcoming_lessons_api_v1_students__student_id__upcoming_lessons_get",
+        "security": [
+          {
+            "Studio": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "student_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Student Id"
+            }
+          },
+          {
+            "name": "days",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 28,
+              "title": "Days"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/UpcomingLesson"
+                  },
+                  "title": "Response Student Upcoming Lessons Api V1 Students  Student Id  Upcoming Lessons Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/students/{student_id}/reschedules": {
       "get": {
         "tags": [
@@ -3899,6 +3960,139 @@
         ],
         "summary": "Desfaz um reagendamento feito a partir desta aula",
         "operationId": "undo_reschedule_api_v1_lessons__class_group_id___lesson_date__reschedule__student_id__delete",
+        "security": [
+          {
+            "Studio": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "class_group_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Class Group Id"
+            }
+          },
+          {
+            "name": "lesson_date",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date",
+              "title": "Lesson Date"
+            }
+          },
+          {
+            "name": "student_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Student Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LessonDetail"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/lessons/{class_group_id}/{lesson_date}/drop-in": {
+      "post": {
+        "tags": [
+          "calendar & lessons"
+        ],
+        "summary": "Inclui o aluno nesta aula como avulso (sem aula de origem); usa uma aula do plano",
+        "operationId": "add_drop_in_api_v1_lessons__class_group_id___lesson_date__drop_in_post",
+        "security": [
+          {
+            "Studio": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "class_group_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Class Group Id"
+            }
+          },
+          {
+            "name": "lesson_date",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date",
+              "title": "Lesson Date"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DropInRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LessonDetail"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/lessons/{class_group_id}/{lesson_date}/drop-in/{student_id}": {
+      "delete": {
+        "tags": [
+          "calendar & lessons"
+        ],
+        "summary": "Remove o aluno avulso desta aula (antes da conclusão)",
+        "operationId": "remove_drop_in_api_v1_lessons__class_group_id___lesson_date__drop_in__student_id__delete",
         "security": [
           {
             "Studio": []
@@ -5127,6 +5321,32 @@
         "title": "DiscountUpdate",
         "description": "Alterar o desconto vale só para novas contratações (o valor já aplicado fica congelado)."
       },
+      "DropInRequest": {
+        "properties": {
+          "student_id": {
+            "type": "integer",
+            "title": "Student Id"
+          },
+          "justification": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 500
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Justification",
+            "description": "Observação (ex.: aula experimental)"
+          }
+        },
+        "type": "object",
+        "required": [
+          "student_id"
+        ],
+        "title": "DropInRequest"
+      },
       "HTTPValidationError": {
         "properties": {
           "detail": {
@@ -5324,6 +5544,10 @@
             "title": "Can Complete",
             "description": "A aula já começou, tem alunos e ainda não foi concluída/cancelada"
           },
+          "default_teacher": {
+            "$ref": "#/components/schemas/TeacherSummary",
+            "description": "Professor titular da turma (difere de `teacher` se houver substituto)"
+          },
           "students": {
             "items": {
               "$ref": "#/components/schemas/RosterEntry"
@@ -5349,6 +5573,7 @@
           "cancel_reason",
           "notes",
           "can_complete",
+          "default_teacher",
           "students"
         ],
         "title": "LessonDetail"
@@ -5574,9 +5799,9 @@
           "sessions_per_week": {
             "type": "integer",
             "maximum": 3.0,
-            "minimum": 1.0,
+            "minimum": 0.0,
             "title": "Sessions Per Week",
-            "description": "Aulas por semana: 1, 2 ou 3"
+            "description": "Aulas fixas por semana: 1, 2 ou 3; 0 = sem recorrência (só aulas avulsas)"
           },
           "total_classes": {
             "type": "integer",
@@ -5722,7 +5947,7 @@
               {
                 "type": "integer",
                 "maximum": 3.0,
-                "minimum": 1.0
+                "minimum": 0.0
               },
               {
                 "type": "null"
@@ -6175,7 +6400,13 @@
           "is_makeup": {
             "type": "boolean",
             "title": "Is Makeup",
-            "description": "Aluno veio por reposição de outra aula"
+            "description": "Aluno está fora do horário padrão (reposição ou aula avulsa)"
+          },
+          "is_drop_in": {
+            "type": "boolean",
+            "title": "Is Drop In",
+            "description": "Aula avulsa: incluído sem aula de origem",
+            "default": false
           },
           "makeup_from": {
             "anyOf": [
@@ -7421,6 +7652,12 @@
             "title": "Credits Remaining",
             "description": "Soma das aulas restantes nos planos ativos"
           },
+          "drop_in_available": {
+            "type": "integer",
+            "title": "Drop In Available",
+            "description": "Aulas que ainda podem ser usadas como avulsas (restantes menos avulsas já marcadas)",
+            "default": 0
+          },
           "needs_renewal": {
             "type": "boolean",
             "title": "Needs Renewal"
@@ -8514,7 +8751,7 @@
           "lessons_given": {
             "type": "integer",
             "title": "Lessons Given",
-            "description": "Aulas concluídas que geraram pagamento"
+            "description": "Aulas concluídas no período (inclusive as de R$ 0)"
           },
           "lessons_without_presence": {
             "type": "integer",
@@ -8928,6 +9165,46 @@
           "studio"
         ],
         "title": "Token"
+      },
+      "UpcomingLesson": {
+        "properties": {
+          "class_group_id": {
+            "type": "integer",
+            "title": "Class Group Id"
+          },
+          "class_group_name": {
+            "type": "string",
+            "title": "Class Group Name"
+          },
+          "date": {
+            "type": "string",
+            "format": "date",
+            "title": "Date"
+          },
+          "start_hour": {
+            "type": "integer",
+            "title": "Start Hour"
+          },
+          "room": {
+            "type": "string",
+            "title": "Room"
+          },
+          "is_makeup": {
+            "type": "boolean",
+            "title": "Is Makeup"
+          }
+        },
+        "type": "object",
+        "required": [
+          "class_group_id",
+          "class_group_name",
+          "date",
+          "start_hour",
+          "room",
+          "is_makeup"
+        ],
+        "title": "UpcomingLesson",
+        "description": "Aula futura do aluno (ainda não começou), que pode ser reagendada."
       },
       "UpcomingMakeup": {
         "properties": {

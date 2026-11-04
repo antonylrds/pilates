@@ -10,8 +10,8 @@ from fastapi import HTTPException, status
 from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
-from app.models.tenant import Attendance, ClassGroup, Lesson, Teacher
-from app.models.tenant.enums import AttendanceStatus
+from app.models.tenant import Attendance, ClassGroup, Lesson, ServiceSession, Student, Teacher
+from app.models.tenant.enums import AttendanceStatus, ServiceSessionStatus
 from app.schemas.schedule import CompletionItem
 from app.services import credits, reports
 from app.services.schedule import (
@@ -55,6 +55,21 @@ def _student_busy_at(db: Session, student_id: int, day: date, hour: int, exclude
         if any(r.student.id == student_id for r in roster):
             return True
     return False
+
+
+def _ensure_can_join(db: Session, group: ClassGroup, day: date, lesson: Lesson, student: Student) -> None:
+    """Validações comuns para colocar um aluno em uma aula fora do horário padrão."""
+    if lesson.is_cancelled:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "A aula está cancelada")
+    if lesson.is_completed:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "A aula já foi concluída")
+    roster = build_roster(group, day, lesson)
+    if any(r.student.id == student.id for r in roster):
+        raise HTTPException(status.HTTP_409_CONFLICT, f"{student.name} já está nesta aula")
+    if len(attending(roster)) >= group.capacity:
+        raise HTTPException(status.HTTP_409_CONFLICT, "A aula está lotada")
+    if _student_busy_at(db, student.id, day, group.start_hour, group.id):
+        raise HTTPException(status.HTTP_409_CONFLICT, f"{student.name} já tem outra aula nesse dia e horário")
 
 
 def _move(
@@ -107,6 +122,38 @@ def _move(
     target.attendances.append(makeup)
     db.flush()
     return makeup
+
+
+def ensure_teacher_free(db: Session, group: ClassGroup, day: date, teacher: Teacher) -> None:
+    """O professor não pode dar outra aula (ou atender um serviço) no mesmo dia e horário."""
+    others = db.scalars(
+        select(ClassGroup).where(
+            ClassGroup.id != group.id,
+            ClassGroup.weekday == day.weekday(),
+            ClassGroup.start_hour == group.start_hour,
+            ClassGroup.start_date <= day,
+            or_(ClassGroup.end_date.is_(None), ClassGroup.end_date >= day),
+        )
+    )
+    when = f"{day:%d/%m/%Y} às {group.start_hour:02d}h"
+    for other in others:
+        lesson = find_lesson(db, other.id, day)
+        if lesson is not None and lesson.is_cancelled:
+            continue
+        if (lesson.teacher_id if lesson else other.teacher_id) == teacher.id:
+            raise HTTPException(status.HTTP_409_CONFLICT, f"{teacher.name} já dá a turma {other.display_name} em {when}")
+    session = db.scalar(
+        select(ServiceSession).where(
+            ServiceSession.date == day,
+            ServiceSession.start_hour == group.start_hour,
+            ServiceSession.teacher_id == teacher.id,
+            ServiceSession.status != ServiceSessionStatus.CANCELLED,
+        )
+    )
+    if session is not None:
+        raise HTTPException(
+            status.HTTP_409_CONFLICT, f"{teacher.name} atende {session.contract.service_name} em {when}"
+        )
 
 
 # ---------- Finalização ----------
@@ -236,6 +283,56 @@ def undo_reschedule(ctx, group: ClassGroup, day: date, student_id: int) -> None:
         source.justification = None
     else:
         lesson.attendances.remove(source)  # aluno fixo volta ao estado implícito "pendente"
+    db.commit()
+
+
+# ---------- Aula avulsa ----------
+def add_drop_in(ctx, group: ClassGroup, day: date, student_id: int, justification: str | None = None) -> Lesson:
+    """Inclui o aluno em uma aula sem aula de origem (ex.: plano sem recorrência, aula experimental).
+
+    Não altera o horário padrão. A aula do plano é debitada na conclusão, como qualquer presença.
+    """
+    db: Session = ctx.db
+    student = db.get(Student, student_id)
+    if student is None or not student.is_active:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Aluno não encontrado ou inativo")
+    if not group.runs_on(day):
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, f"A turma {group.display_name} não tem aula em {day:%d/%m/%Y}")
+    if lesson_start(group, day) <= datetime.now():
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "A aula avulsa deve ser em uma aula que ainda não começou")
+    if credits.drop_in_available(db, student_id) <= 0:
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST, f"{student.name} não tem aulas disponíveis no plano para uma aula avulsa"
+        )
+    lesson = get_or_create_lesson(db, group, day)
+    ensure_can_manage(ctx, lesson.teacher_id)
+    _ensure_can_join(db, group, day, lesson, student)
+    lesson.attendances.append(
+        Attendance(
+            student_id=student_id,
+            student=student,
+            status=AttendanceStatus.PENDING,
+            is_makeup=True,
+            justification=justification,
+        )
+    )
+    db.commit()
+    return lesson
+
+
+def remove_drop_in(ctx, group: ClassGroup, day: date, student_id: int) -> None:
+    db: Session = ctx.db
+    lesson = find_lesson(db, group.id, day)
+    attendance = next((a for a in (lesson.attendances if lesson else []) if a.student_id == student_id), None)
+    if attendance is None or not attendance.is_drop_in:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Aluno não está nesta aula como avulso")
+    ensure_can_manage(ctx, lesson.teacher_id)
+    _ensure_open(lesson)
+    if attendance.status != AttendanceStatus.PENDING:
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST, "A aula avulsa já foi reagendada; desfaça o reagendamento antes"
+        )
+    lesson.attendances.remove(attendance)
     db.commit()
 
 

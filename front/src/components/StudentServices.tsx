@@ -2,6 +2,7 @@ import type { Schemas } from "@pilates/api-client";
 import { type FormEvent, useState } from "react";
 
 import { api, call } from "../lib/api";
+import { DateInput } from "./DateInput";
 import { addDays, fmtDate, fmtHour, money, parseISO, toISO, todayISO } from "../lib/format";
 import { useAsync } from "../lib/hooks";
 import { useSession } from "../lib/session";
@@ -415,7 +416,7 @@ function ContractModal({ studentId, onClose, onSaved }: { studentId: number; onC
         <div className="form-row">
           <label className="field">
             <span>{recurrence === "none" ? "Data da sessão" : "Primeira sessão"}</span>
-            <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} required />
+            <DateInput value={startDate} onChange={setStartDate} required />
           </label>
           <div className="field">
             <span>Pagamento</span>

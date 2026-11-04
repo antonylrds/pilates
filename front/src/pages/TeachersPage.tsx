@@ -229,8 +229,13 @@ function PayModal({ report, onClose, onSaved }: { report: Report; onClose: () =>
   const [busy, setBusy] = useState(false);
 
   const perStudent = (plan: Schemas["PlanRead"]) => (Number(plan.price) / plan.total_classes) * (Number(percent || 0) / 100);
-  const lessonValue = (studentsTotal: number, presences: number) =>
-    Math.max(presences > 0 ? Number(perClass || 0) + studentsTotal : 0, Number(minimum || 0));
+  /** Mesma regra do back (reports.calculate_pay): fixo + soma por aluno, só com presentes; nunca abaixo do mínimo. */
+  const simulate = (studentValue: number, presences: number) => {
+    const fixed = Number(perClass || 0);
+    const calculated = presences > 0 ? fixed + studentValue * presences : 0;
+    const min = Number(minimum || 0);
+    return { fixed, calculated, total: Math.max(calculated, min), minimumApplied: calculated < min };
+  };
 
   async function save(e: FormEvent) {
     e.preventDefault();
@@ -263,7 +268,13 @@ function PayModal({ report, onClose, onSaved }: { report: Report; onClose: () =>
     </div>
   );
 
-  const firstPlan = plans.data?.[0];
+  // Plano da simulação: escolhido pelo usuário; por padrão o primeiro plano pago e recorrente.
+  const [simPlanId, setSimPlanId] = useState<number>();
+  const planList = plans.data ?? [];
+  const simPlan =
+    planList.find((p) => p.id === simPlanId) ??
+    planList.find((p) => p.is_active && Number(p.price) > 0 && p.sessions_per_week > 0) ??
+    planList[0];
 
   return (
     <Modal
@@ -316,16 +327,36 @@ function PayModal({ report, onClose, onSaved }: { report: Report; onClose: () =>
             </li>
           ))}
         </ul>
-        {firstPlan && (
+        {simPlan && (
           <>
-            <span className="field-label pay-examples-sub">Simulação de uma aula ({firstPlan.name})</span>
+            <div className="pay-sim-head">
+              <span className="field-label pay-examples-sub">Simulação de uma aula</span>
+              <select value={simPlan.id} onChange={(e) => setSimPlanId(Number(e.target.value))} aria-label="Plano da simulação">
+                {planList.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name} ({money(perStudent(p))} por aluno)
+                  </option>
+                ))}
+              </select>
+            </div>
             <ul>
-              {[0, 1, 3].map((n) => (
-                <li key={n}>
-                  <span>{n === 0 ? "Todos faltaram" : `${n} aluno(s) presente(s)`}</span>
-                  <strong>{money(lessonValue(perStudent(firstPlan) * n, n))}</strong>
-                </li>
-              ))}
+              {[0, 1, 2, 3].map((n) => {
+                const sim = simulate(perStudent(simPlan), n);
+                return (
+                  <li key={n}>
+                    <span>
+                      {n === 0 ? "Todos faltaram" : `${n} aluno(s) presente(s)`}
+                      <span className="muted small pay-sim-calc">
+                        {n === 0
+                          ? "sem presentes, o fixo não é pago"
+                          : `${money(sim.fixed)} fixo + ${n} × ${money(perStudent(simPlan))} = ${money(sim.calculated)}`}
+                        {sim.minimumApplied && ` → mínimo de ${money(minimum || 0)}`}
+                      </span>
+                    </span>
+                    <strong>{money(sim.total)}</strong>
+                  </li>
+                );
+              })}
             </ul>
           </>
         )}

@@ -37,7 +37,9 @@ class RoomSummary(ORMModel):
 class PlanCreate(BaseModel):
     name: str = Field(min_length=2, max_length=120)
     description: str | None = None
-    sessions_per_week: int = Field(ge=1, le=3, description="Aulas por semana: 1, 2 ou 3")
+    sessions_per_week: int = Field(
+        ge=0, le=3, description="Aulas fixas por semana: 1, 2 ou 3; 0 = sem recorrência (só aulas avulsas)"
+    )
     total_classes: int = Field(ge=1, le=500, description="Quantidade de aulas do pacote")
     price: Decimal = Money
 
@@ -45,7 +47,7 @@ class PlanCreate(BaseModel):
 class PlanUpdate(BaseModel):
     name: str | None = Field(None, min_length=2, max_length=120)
     description: str | None = None
-    sessions_per_week: int | None = Field(None, ge=1, le=3)
+    sessions_per_week: int | None = Field(None, ge=0, le=3)
     total_classes: int | None = Field(None, ge=1, le=500)
     price: Decimal | None = Field(None, ge=0, max_digits=10, decimal_places=2)
     is_active: bool | None = None

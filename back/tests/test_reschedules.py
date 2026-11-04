@@ -72,3 +72,30 @@ def test_tracks_how_many_times_a_lesson_was_rescheduled(client, studio):
     first = next(c for c in chains if c["original_lesson"]["date"] == m.isoformat())
     assert first["reschedule_count"] == 1 and first["current_lesson"]["date"] == w.isoformat()
     assert _row(studio.lesson(wed, w), maria)["reschedule_count"] == 1
+
+
+def test_upcoming_lessons_lists_reschedulable_lessons(client, studio):
+    room, teacher = studio.room(capacity=3), studio.teacher()
+    mon = studio.group(room, teacher, 0, 7)
+    wed = studio.group(room, teacher, 2, 7)
+    plan = studio.plan(sessions_per_week=1)
+    maria = studio.student("Maria", plan, [mon])
+    m1 = future_weekday(0)
+    m2 = m1 + timedelta(weeks=1)
+
+    upcoming = client.get(f"{API}/students/{maria['id']}/upcoming-lessons", params={"days": 21}, headers=studio.h).json()
+    dates = [u["date"] for u in upcoming]
+    assert m1.isoformat() in dates and m2.isoformat() in dates
+    assert all(not u["is_makeup"] for u in upcoming)
+
+    # reagendada: a origem sai da lista e a reposição entra
+    _move(client, studio, mon, m1, maria, wed, m1 + timedelta(days=2))
+    upcoming = client.get(f"{API}/students/{maria['id']}/upcoming-lessons", params={"days": 21}, headers=studio.h).json()
+    by_date = {u["date"]: u for u in upcoming}
+    assert m1.isoformat() not in by_date
+    assert by_date[(m1 + timedelta(days=2)).isoformat()]["is_makeup"] is True
+
+    # aula cancelada não é listada
+    client.post(f"{API}/lessons/{mon['id']}/{m2.isoformat()}/cancel", json={}, headers=studio.h)
+    upcoming = client.get(f"{API}/students/{maria['id']}/upcoming-lessons", params={"days": 21}, headers=studio.h).json()
+    assert m2.isoformat() not in [u["date"] for u in upcoming]

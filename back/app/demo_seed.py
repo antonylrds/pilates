@@ -121,6 +121,8 @@ def seed(slug: str, reset: bool = False) -> None:
             Plan(name="3x por semana", sessions_per_week=3, total_classes=24, price=Decimal("520.00")),
             Plan(name="Experimental", description="Pacote de 4 aulas", sessions_per_week=1, total_classes=4,
                  price=Decimal("100.00")),
+            Plan(name="Avulso gratuito", description="Plano de R$ 0 sem recorrência: o aluno é incluído nas aulas como avulso",
+                 sessions_per_week=0, total_classes=1, price=Decimal("0.00")),
         ]
         db.add_all(plans)
         db.flush()

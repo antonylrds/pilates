@@ -76,6 +76,12 @@ O contrato entre elas é a API REST do back (`packages/api-client`, gerado do Op
 - **RF-11** Deve haver uma **chamada** que identifique **presença, falta ou reagendamento** da aula.
 - **RF-12** **Reagendar uma aula não altera os horários padrão do aluno.**
 - **RF-29** Deve ser possível **acompanhar quantas vezes uma aula específica** de um aluno foi **reagendada**.
+- **RF-41** No modal da turma deve ser possível **adicionar alunos de forma fixa** (recorrente) ou **não recorrente**
+  (reagendamento para uma data da turma).
+- **RF-42** Deve existir plano **sem recorrência** (inclusive de **R$ 0**): o aluno não tem turmas padrão e é
+  **incluído nas aulas como avulso**, uma data por vez, usando as aulas do plano.
+- **RF-43** Nos **detalhes da aula** (agenda) deve ser possível **incluir alunos** e **alterar o professor**.
+  Se o aluno **não tiver aulas disponíveis**, o sistema informa e **impede** a inclusão.
 
 ### Planos e renovação
 - **RF-13** Cada plano dá acesso a um **número X de aulas**.
@@ -137,7 +143,7 @@ O contrato entre elas é a API REST do back (`packages/api-client`, gerado do Op
 | D-05 | Na finalização, **presença consome** 1 aula do plano e **falta também consome** (configurável por estúdio: `absence_consumes_credit`). **Reagendar não consome**; a reposição consome quando a aula de destino for finalizada. | Prática comum em estúdios. |
 | D-06 | Notificações: `plan_exhausted` quando a última aula do plano é usada; `no_credits` quando uma aula é registrada sem saldo. Renovar = vincular um novo plano ao aluno. | Implementa RF-14. |
 | D-07 | O plano não tem validade por data: termina quando as aulas acabam. | Não especificado. |
-| D-08 | **Pagamento do professor**, por aula **concluída**: `pay_per_class` + soma do valor de cada aluno presente (D-18), **nunca abaixo de `min_pay_per_lesson`**. Se todos faltarem, paga apenas o mínimo (sem mínimo, a aula não gera pagamento nem conta como aula dada). Valores configuráveis por professor e **congelados na conclusão** de cada aula: alterar a remuneração só afeta aulas concluídas depois. Reabrir a aula descarta o valor congelado; trocar o professor de uma aula concluída exige reabri-la. | Cobre os modelos comuns (fixo por aula / por aluno / garantia mínima). Implementa RF-20 e RF-25. |
+| D-08 | **Pagamento do professor**, por aula **concluída**: `pay_per_class` + soma do valor de cada aluno presente (D-18), **nunca abaixo de `min_pay_per_lesson`**. Se todos faltarem, paga apenas o mínimo; sem mínimo, a aula **aparece no relatório com R$ 0** e conta como aula dada (sem presença). Valores configuráveis por professor e **congelados na conclusão** de cada aula: alterar a remuneração só afeta aulas concluídas depois. Reabrir a aula descarta o valor congelado; trocar o professor de uma aula concluída exige reabri-la. | Cobre os modelos comuns (fixo por aula / por aluno / garantia mínima). Implementa RF-20 e RF-25. |
 | D-09 | É possível definir um **professor substituto** em uma aula específica; a aula conta para quem a deu. | Complementa RF-19/RF-20. |
 | D-10 | Professor (usuário) consulta tudo, mas só faz chamada, reagendamento e cancelamento **nas próprias aulas** e vê apenas o próprio relatório de pagamento. | Controle de acesso. |
 | D-11 | Descontos são **percentuais ou de valor fixo**, gerais ou restritos a um plano. Preço e quantidade de aulas são **congelados** quando o plano é vinculado ao aluno. | Implementa RF-15. |
@@ -157,7 +163,11 @@ O contrato entre elas é a API REST do back (`packages/api-client`, gerado do Op
 | D-26 | Na contratação o serviço recebe **sala, profissional e horário** (sessões de 1h, seg–sex, no horário do estúdio), herdados por todas as sessões. Sala e profissional não podem ter **turma** (aula não cancelada) nem **outra sessão** no mesmo dia/hora; criar ou mover turmas também respeita as sessões futuras. As sessões aparecem no **calendário** (cor própria) e em **Finalizar aulas**. | Implementa RF-37. |
 | D-27 | Sessão de serviço: **agendada → presente/falta** (finalização pelo profissional da sessão ou admin, depois do início; justificativa opcional na falta) ou **cancelada**. Admin pode reabrir. Presente gera ao profissional `service_share_percent` (padrão **40%**, por profissional, separado do % das aulas) × valor combinado da sessão; falta gera R$ 0. O valor é **congelado na finalização**. O mínimo por aula vale só para aulas de pilates. O relatório de professores soma aulas + serviços. | Implementa RF-38 e RF-39. |
 | D-28 | Tela **Planos e serviços** com abas **Planos**, **Descontos** e **Serviços avulsos**: cadastro, edição, desativação/reativação e uso atual (alunos com o plano em uso, na fila, pagamentos pendentes; contratações e sessões futuras de cada serviço). Descontos podem ter nome, tipo, valor e plano alterados. Toda alteração vale só para novas contratações (valores congelados). | Implementa RF-40. |
+| D-29 | Modal da turma com abas **Turma** e **Alunos**. **Fixo**: adiciona a turma ao horário padrão do aluno a partir de uma data (limite do plano e lotação valem); remover tira a turma a partir de uma data, preservando o histórico. **Avulso**: reagenda uma **aula futura do aluno** (origem, de `GET /students/{id}/upcoming-lessons`) para uma data desta turma com vaga — é uma reposição, conta como reagendamento e não altera o horário padrão. | Implementa RF-41. |
 | D-17 | A tela de finalização lista as aulas que **já começaram** nos últimos 30 dias, têm alunos e não foram concluídas/canceladas. Professor vê apenas as próprias. | Implementa RF-21. |
+| D-31 | Plano com `sessions_per_week = 0` = **sem recorrência**: não permite turmas padrão. **Aula avulsa** = registro de presença fora do horário padrão **sem aula de origem** (`is_makeup = true`, `makeup_from` vazio; exposto como `is_drop_in`). Só em aula que ainda não começou, com vaga e sem conflito de horário; o aluno precisa ter saldo (aulas restantes menos avulsas já marcadas e não concluídas, inclusive as que foram reagendadas). A aula do plano é debitada na conclusão, como qualquer presença; pode ser reagendada e removida enquanto pendente. Vale para qualquer plano, não só os sem recorrência. | Implementa RF-42. |
+| D-32 | Detalhes da aula: **incluir aluno** (antes da aula começar) como **aula avulsa** (exige `drop_in_available > 0` = aulas restantes menos avulsas já marcadas) ou como **reposição** de uma aula futura do aluno (exige aulas restantes > 0). **Alterar professor** (admin) vale só para aquela data (substituto), não em aulas concluídas ou canceladas, e é recusado se o professor já der outra aula ou atender um serviço no mesmo dia e horário. | Implementa RF-43. |
+| D-30 | Datas são exibidas e digitadas sempre como **dd/mm/aaaa** (componente `DateInput` no front), independente do idioma do navegador/SO — o `<input type="date">` nativo segue a localidade do sistema. A API continua trocando datas em ISO (`aaaa-mm-dd`). | Vale também para o mobile. |
 
 ## 6. Fora do escopo (por enquanto)
 
@@ -182,6 +192,9 @@ O contrato entre elas é a API REST do back (`packages/api-client`, gerado do Op
 | RF-15 | `/discounts`, `GET /plans/{id}/price` |
 | RF-16 a RF-18 | `GET /calendar`, `GET /lessons/{class_group_id}/{date}`, `.../cancel` |
 | RF-19, RF-20 | `GET /reports/teacher-payments` |
+| RF-41 | `PUT /students/{id}/schedule`, `GET /students/{id}/upcoming-lessons`, `POST /lessons/{class_group_id}/{date}/reschedule` |
+| RF-42 | `POST /plans` (`sessions_per_week: 0`), `POST /lessons/{class_group_id}/{date}/drop-in`, `DELETE /lessons/{class_group_id}/{date}/drop-in/{student_id}` |
+| RF-43 | `GET /students/{id}` (`drop_in_available`), `POST /lessons/{class_group_id}/{date}/drop-in`, `PATCH /lessons/{class_group_id}/{date}` (`teacher_id`) |
 | RF-40 | `/plans`, `/discounts`, `/services`, `GET /catalog/overview` |
 | RF-33 a RF-36 | `/services`, `GET/POST /students/{id}/services`, `PATCH .../services/{cid}`, `.../cancel`, `.../sessions/{sid}` |
 | RF-37 a RF-39 | `GET /calendar` (`kind = service`), `GET /lessons/pending`, `GET /service-sessions/{id}`, `.../complete`, `.../reopen`, `GET /reports/teacher-payments` (`services`) |
