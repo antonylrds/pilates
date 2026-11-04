@@ -272,7 +272,7 @@ def test_teacher_payment_report_counts_only_completed_lessons(client, studio):
     studio.complete(g, week2, [(s1, "present"), (s2, "absent"), (s3, "absent")])
     # semana 3: aula aconteceu mas não foi concluída => não conta
     client.patch(f"{API}/lessons/{g['id']}/{week3.isoformat()}", json={"notes": "sem chamada"}, headers=studio.h)
-    # aula em que todos faltaram (sem mínimo) não conta como aula dada
+    # aula em que todos faltaram (sem mínimo) conta como aula dada, com R$ 0
     studio.complete(g_empty, past_weekday(1), [(rui, "absent")])
 
     report = client.get(
@@ -282,7 +282,10 @@ def test_teacher_payment_report_counts_only_completed_lessons(client, studio):
     ).json()
     by_name = {t["teacher"]["name"]: t for t in report["teachers"]}
     ana_lesson = by_name["Ana"]["lessons"][0]
-    assert by_name["Ana"]["lessons_given"] == 1
+    assert by_name["Ana"]["lessons_given"] == 2 and by_name["Ana"]["lessons_without_presence"] == 1
+    empty = by_name["Ana"]["lessons"][1]
+    assert empty["class_group_id"] == g_empty["id"] and empty["amount"] == "0.00"
+    assert not empty["minimum_applied"] and [s["name"] for s in empty["absent_students"]] == ["Rui"]
     assert by_name["Ana"]["total_presences"] == 2
     assert by_name["Ana"]["amount"] == "90.00"  # 50 + 2 x 20
     assert [(s["name"], s["amount"], s["plan"]) for s in ana_lesson["present_students"]] == [
@@ -392,7 +395,9 @@ def test_teacher_minimum_pay_per_lesson(client, studio):
     studio.complete(group, w2, [(s, "absent") for s in students])
     report = client.get(f"{API}/reports/teacher-payments", params=period, headers=studio.h).json()
     assert report["teachers"][0]["amount"] == "105.00"  # 50 + 55
-    assert report["teachers"][0]["lessons_given"] == 2
+    # a aula sem presentes continua no relatório, com R$ 0
+    assert report["teachers"][0]["lessons_given"] == 3
+    assert [l["amount"] for l in report["teachers"][0]["lessons"] if l["date"] == w2.isoformat()] == ["0.00"]
 
 
 def test_cannot_change_teacher_of_completed_lesson(client, studio):

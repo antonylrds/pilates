@@ -126,6 +126,9 @@ class StudentDetail(StudentRead):
         description="Renovações antecipadas: começam a contar quando o plano em uso acabar"
     )
     credits_remaining: int = Field(description="Soma das aulas restantes nos planos ativos")
+    drop_in_available: int = Field(
+        0, description="Aulas que ainda podem ser usadas como avulsas (restantes menos avulsas já marcadas)"
+    )
     needs_renewal: bool
     schedule: list[ScheduleItem]
     free_schedule_slots: int = Field(description="Turmas que o plano ainda permite escolher")

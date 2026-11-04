@@ -1,7 +1,7 @@
 import { api, call } from "../lib/api";
 import { fmtDate, money } from "../lib/format";
 import { useAsync } from "../lib/hooks";
-import { subscriptionUsage, usageTone } from "../lib/labels";
+import { subscriptionUsage, usageTone, perWeekLabel } from "../lib/labels";
 import { Badge, ErrorBox, Loading } from "./ui";
 
 /** Histórico de planos do aluno, com os valores congelados na contratação. */
@@ -40,7 +40,7 @@ export function PlanHistory({ studentId, version }: { studentId: number; version
                 <tr key={h.id} className={h.usage === "in_use" ? "is-current" : ""}>
                   <td>
                     <strong>{h.plan_name ?? h.plan.name}</strong>
-                    <div className="muted small">{h.sessions_per_week}x por semana</div>
+                    <div className="muted small">{perWeekLabel(h.sessions_per_week)}</div>
                   </td>
                   <td>{fmtDate(h.start_date)}</td>
                   <td className="num">

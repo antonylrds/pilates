@@ -1,11 +1,12 @@
 import type { Schemas } from "@pilates/api-client";
 import { useState } from "react";
 
+import { DateInput } from "../components/DateInput";
 import { LessonPanel } from "../components/LessonPanel";
 import { ServiceSessionPanel } from "../components/ServiceSessionPanel";
 import { ErrorBox } from "../components/ui";
 import { api, call } from "../lib/api";
-import { addDays, fmtDate, fmtHour, fmtShortDay, mondayOf, toISO, todayISO } from "../lib/format";
+import { addDays, fmtDate, fmtHour, fmtShortDay, mondayOf, parseISO, toISO, todayISO } from "../lib/format";
 import { useAsync } from "../lib/hooks";
 import { lessonStatus } from "../lib/labels";
 import { useSession } from "../lib/session";
@@ -15,6 +16,8 @@ type Entry = Schemas["CalendarEntry"];
 export function AgendaPage() {
   const { session } = useSession();
   const [monday, setMonday] = useState(() => mondayOf(new Date()));
+  // Data escolhida no campo de data (destacada na grade).
+  const [picked, setPicked] = useState<string | null>(null);
   const [selected, setSelected] = useState<{ groupId: number; date: string } | null>(null);
   const [selectedService, setSelectedService] = useState<number | null>(null);
   const days = [0, 1, 2, 3, 4].map((i) => toISO(addDays(monday, i)));
@@ -36,6 +39,17 @@ export function AgendaPage() {
   const cell = (day: string, hour: number): Entry[] =>
     (calendar.data ?? []).filter((e) => e.date === day && Number(e.starts_at.slice(11, 13)) === hour);
 
+  const goTo = (iso: string) => {
+    setPicked(iso);
+    setMonday(mondayOf(parseISO(iso)));
+  };
+  const shiftWeek = (weeks: number) => {
+    setPicked(null);
+    setMonday(addDays(monday, weeks * 7));
+  };
+  const pickedIsWeekend = picked !== null && parseISO(picked).getDay() % 6 === 0;
+  const dateValue = picked ?? (days.includes(today) ? today : days[0]);
+
   const totals = (calendar.data ?? []).reduce(
     (acc, e) => ({ ...acc, [e.status]: (acc[e.status] ?? 0) + 1 }),
     {} as Record<string, number>,
@@ -51,17 +65,29 @@ export function AgendaPage() {
           </p>
         </div>
         <div className="toolbar">
-          <button className="btn" onClick={() => setMonday(addDays(monday, -7))} aria-label="Semana anterior">
+          <DateInput
+            className="date-jump"
+            value={dateValue}
+            onChange={(iso) => iso && goTo(iso)}
+            aria-label="Ir para a data"
+            title="Ir para uma data específica"
+          />
+          <button className="btn" onClick={() => shiftWeek(-1)} aria-label="Semana anterior">
             ‹
           </button>
-          <button className="btn" onClick={() => setMonday(mondayOf(new Date()))}>
+          <button className="btn" onClick={() => goTo(today)}>
             Hoje
           </button>
-          <button className="btn" onClick={() => setMonday(addDays(monday, 7))} aria-label="Próxima semana">
+          <button className="btn" onClick={() => shiftWeek(1)} aria-label="Próxima semana">
             ›
           </button>
         </div>
       </header>
+      {pickedIsWeekend && (
+        <div className="alert alert-info">
+          {fmtDate(picked!)} é fim de semana; o estúdio funciona de segunda a sexta. Mostrando a semana correspondente.
+        </div>
+      )}
 
       <div className="legend">
         {(["confirmed", "completed", "inactive", "cancelled"] as const).map((s) => (
@@ -79,7 +105,7 @@ export function AgendaPage() {
       <div className={`calendar ${calendar.loading ? "is-loading" : ""}`}>
         <div className="cal-corner" />
         {days.map((d) => (
-          <div key={d} className={`cal-day ${d === today ? "is-today" : ""}`}>
+          <div key={d} className={`cal-day ${d === today ? "is-today" : ""} ${d === picked ? "is-picked" : ""}`}>
             {fmtShortDay(d)}
           </div>
         ))}
@@ -87,7 +113,7 @@ export function AgendaPage() {
           <div className="cal-row" key={h}>
             <div className="cal-hour">{fmtHour(h)}</div>
             {days.map((d) => (
-              <div key={d} className={`cal-cell ${d === today ? "is-today" : ""}`}>
+              <div key={d} className={`cal-cell ${d === today ? "is-today" : ""} ${d === picked ? "is-picked" : ""}`}>
                 {cell(d, h).map((e) =>
                   e.kind === "service" ? (
                     <button

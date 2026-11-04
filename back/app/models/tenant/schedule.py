@@ -122,6 +122,8 @@ class Attendance(TenantBase, TimestampMixin):
 
     - Alunos fixos da turma só ganham registro quando a chamada é feita ou são reagendados.
     - Reposições (is_makeup) são criadas no reagendamento, apontando para a aula de origem.
+    - Aulas avulsas (is_drop_in) são registros fora do horário padrão **sem** aula de origem:
+      is_makeup=True e makeup_from vazio. Usam uma aula do plano (ex.: plano sem recorrência).
     - subscription_id indica de qual plano a aula foi debitada.
     """
 
@@ -149,6 +151,11 @@ class Attendance(TenantBase, TimestampMixin):
     subscription: Mapped[Subscription | None] = relationship()
     makeup_from: Mapped[Attendance | None] = relationship(remote_side="Attendance.id", back_populates="makeup_to")
     makeup_to: Mapped[Attendance | None] = relationship(back_populates="makeup_from")
+
+    @property
+    def is_drop_in(self) -> bool:
+        """Aula avulsa: o aluno foi incluído nesta aula sem vir de outra (não é reposição)."""
+        return self.is_makeup and self.makeup_from_id is None and self.makeup_from is None
 
     def reschedule_chain(self) -> list[Attendance]:
         """Registros desta aula desde a aula original (horário padrão) até este, em ordem."""

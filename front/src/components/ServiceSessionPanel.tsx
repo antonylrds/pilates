@@ -5,6 +5,7 @@ import { api, call } from "../lib/api";
 import { fmtDateTime, fmtHour, fmtWeekday, money } from "../lib/format";
 import { useAsync } from "../lib/hooks";
 import { useSession } from "../lib/session";
+import { ConfirmPanel } from "./ConfirmPanel";
 import { Badge, ErrorBox, Loading } from "./ui";
 
 export const sessionStatus: Record<string, [string, string]> = {
@@ -25,6 +26,7 @@ export function ServiceSessionPanel({ sessionId, onClose, onChanged }: Props) {
   );
   const [error, setError] = useState<string>();
   const [busy, setBusy] = useState(false);
+  const [reopening, setReopening] = useState(false);
 
   async function run(action: () => Promise<unknown>) {
     setBusy(true);
@@ -33,8 +35,10 @@ export function ServiceSessionPanel({ sessionId, onClose, onChanged }: Props) {
       await action();
       detail.reload();
       onChanged();
+      return true;
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
+      return false;
     } finally {
       setBusy(false);
     }
@@ -114,21 +118,38 @@ export function ServiceSessionPanel({ sessionId, onClose, onChanged }: Props) {
               </Link>
             )}
             {error && <ErrorBox message={error} />}
+            {isAdmin && s.completed_at && reopening && (
+              <ConfirmPanel
+                title="Reabrir sessão"
+                confirmLabel="Confirmar reabertura"
+                busy={busy}
+                onConfirm={async () => {
+                  const ok = await run(() =>
+                    call(api.POST("/api/v1/service-sessions/{session_id}/reopen", { params: { path: { session_id: s.id } } })),
+                  );
+                  if (ok) setReopening(false);
+                }}
+                onCancel={() => setReopening(false)}
+              >
+                <p>A sessão volta para agendada e precisa ser finalizada de novo:</p>
+                <ul className="confirm-list">
+                  <li>
+                    o valor do profissional
+                    {s.teacher_pay != null && Number(s.teacher_pay) > 0 ? ` (${money(s.teacher_pay)})` : ""} sai do relatório
+                    de pagamento;
+                  </li>
+                  <li>a presença ou falta{s.justification ? " e a justificativa" : ""} são apagadas.</li>
+                </ul>
+              </ConfirmPanel>
+            )}
             {isAdmin && (
               <footer className="drawer-footer">
                 {s.completed_at ? (
-                  <button
-                    className="btn"
-                    disabled={busy}
-                    onClick={() =>
-                      window.confirm("Reabrir a sessão? O valor do profissional sai do relatório.") &&
-                      run(() =>
-                        call(api.POST("/api/v1/service-sessions/{session_id}/reopen", { params: { path: { session_id: s.id } } })),
-                      )
-                    }
-                  >
-                    Reabrir sessão
-                  </button>
+                  !reopening && (
+                    <button className="btn" disabled={busy} onClick={() => setReopening(true)}>
+                      Reabrir sessão
+                    </button>
+                  )
                 ) : s.status === "cancelled" ? (
                   <button className="btn" disabled={busy} onClick={() => setStatus("scheduled")}>
                     Reativar sessão

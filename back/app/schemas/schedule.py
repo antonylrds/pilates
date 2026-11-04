@@ -79,7 +79,8 @@ class RosterEntry(BaseModel):
     student: StudentSummary
     status: AttendanceStatus
     justification: str | None = None
-    is_makeup: bool = Field(description="Aluno veio por reposição de outra aula")
+    is_makeup: bool = Field(description="Aluno está fora do horário padrão (reposição ou aula avulsa)")
+    is_drop_in: bool = Field(False, description="Aula avulsa: incluído sem aula de origem")
     makeup_from: LessonRef | None = None
     rescheduled_to: LessonRef | None = None
     reschedule_count: int = Field(0, description="Quantas vezes a aula original deste aluno já foi reagendada")
@@ -92,6 +93,7 @@ class LessonDetail(CalendarEntry):
     notes: str | None
     completed_by: str | None = None
     can_complete: bool = Field(description="A aula já começou, tem alunos e ainda não foi concluída/cancelada")
+    default_teacher: TeacherSummary = Field(description="Professor titular da turma (difere de `teacher` se houver substituto)")
     students: list[RosterEntry]
 
 
@@ -132,6 +134,22 @@ class RescheduleRequest(BaseModel):
     target_class_group_id: int
     target_date: date
     justification: str | None = Field(None, max_length=500)
+
+
+class DropInRequest(BaseModel):
+    student_id: int
+    justification: str | None = Field(None, max_length=500, description="Observação (ex.: aula experimental)")
+
+
+class UpcomingLesson(BaseModel):
+    """Aula futura do aluno (ainda não começou), que pode ser reagendada."""
+
+    class_group_id: int
+    class_group_name: str
+    date: date
+    start_hour: int
+    room: str
+    is_makeup: bool
 
 
 class RescheduleStep(BaseModel):
@@ -219,7 +237,7 @@ class TeacherPaymentReport(BaseModel):
     student_share_percent: Decimal
     min_pay_per_lesson: Decimal
     service_share_percent: Decimal
-    lessons_given: int = Field(description="Aulas concluídas que geraram pagamento")
+    lessons_given: int = Field(description="Aulas concluídas no período (inclusive as de R$ 0)")
     lessons_without_presence: int = Field(description="Dessas, quantas tiveram todos os alunos ausentes")
     total_presences: int
     lessons_amount: Decimal

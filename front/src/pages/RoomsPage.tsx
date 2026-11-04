@@ -2,6 +2,9 @@ import type { Schemas } from "@pilates/api-client";
 import { type FormEvent, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 
+import { ConfirmPanel } from "../components/ConfirmPanel";
+import { DateInput } from "../components/DateInput";
+import { GroupStudents } from "../components/GroupStudents";
 import { Modal } from "../components/Modal";
 import { Badge, Empty, ErrorBox, Loading } from "../components/ui";
 import { api, call } from "../lib/api";
@@ -108,6 +111,7 @@ export function RoomsPage() {
             setEditing(null);
             groups.reload();
           }}
+          onStudentsChanged={groups.reload}
         />
       )}
     </div>
@@ -233,9 +237,11 @@ function RoomsCard(props: {
     if (ok) setEditId(null);
   }
 
-  const deactivate = (room: Room) =>
-    window.confirm(`Desativar a sala ${room.name}?`) &&
-    run(() => call(api.DELETE("/api/v1/rooms/{room_id}", { params: { path: { room_id: room.id } } })));
+  const [confirmRoomId, setConfirmRoomId] = useState<number | null>(null);
+  const deactivate = async (room: Room) => {
+    const ok = await run(() => call(api.DELETE("/api/v1/rooms/{room_id}", { params: { path: { room_id: room.id } } })));
+    if (ok) setConfirmRoomId(null);
+  };
 
   const reactivate = (room: Room) =>
     run(() =>
@@ -302,7 +308,7 @@ function RoomsCard(props: {
                     >
                       ✎
                     </button>
-                    <button className="btn btn-sm btn-ghost" title="Desativar" onClick={() => deactivate(room)}>
+                    <button className="btn btn-sm btn-ghost" title="Desativar" onClick={() => setConfirmRoomId(room.id)}>
                       🗑
                     </button>
                   </span>
@@ -313,6 +319,31 @@ function RoomsCard(props: {
                   </button>
                 )}
               </div>
+              {confirmRoomId === room.id && (() => {
+                // O back só deixa desativar sala sem turmas ativas (sem data de encerramento).
+                const blocking = groups.filter((g) => g.room.id === room.id && !g.end_date);
+                return (
+                  <ConfirmPanel
+                    title={`Desativar ${room.name}`}
+                    confirmLabel="Desativar sala"
+                    tone="danger"
+                    confirmDisabled={blocking.length > 0}
+                    onConfirm={() => deactivate(room)}
+                    onCancel={() => setConfirmRoomId(null)}
+                  >
+                    {blocking.length > 0 ? (
+                      <p>
+                        A sala tem {blocking.length} turma(s) ativa(s). Encerre as turmas antes de desativá-la.
+                      </p>
+                    ) : (
+                      <p>
+                        A sala deixa de aparecer para novas turmas e serviços. O histórico é mantido e ela pode ser
+                        reativada depois em "Mostrar inativas".
+                      </p>
+                    )}
+                  </ConfirmPanel>
+                );
+              })()}
             </li>
           );
         })}
@@ -416,8 +447,10 @@ function GroupModal(props: {
   canEdit: boolean;
   onClose: () => void;
   onSaved: () => void;
+  onStudentsChanged: () => void;
 }) {
-  const { editing, rooms, teachers, groups, canEdit, onClose, onSaved } = props;
+  const { editing, rooms, teachers, groups, canEdit, onClose, onSaved, onStudentsChanged } = props;
+  const [tab, setTab] = useState<"turma" | "alunos">("turma");
   const isCreate = editing.mode === "create";
   const base = isCreate ? null : editing.group;
   const weekday = isCreate ? editing.weekday : base!.weekday;
@@ -491,8 +524,10 @@ function GroupModal(props: {
     }
   }
 
+  const [confirmEnd, setConfirmEnd] = useState(false);
   function endGroup() {
-    if (!base || !window.confirm(`Encerrar a turma a partir de ${fmtDate(endDate)}? Os alunos serão liberados.`)) return;
+    if (!base) return;
+    setConfirmEnd(false);
     run(() =>
       call(
         api.DELETE("/api/v1/class-groups/{group_id}", {
@@ -510,13 +545,15 @@ function GroupModal(props: {
       title={title}
       subtitle={subtitle}
       onClose={onClose}
+      wide={!isCreate}
       footer={
-        canEdit && (
+        canEdit &&
+        tab === "turma" && (
           <>
             {!isCreate && (
               <div className="end-group">
-                <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} aria-label="Encerrar em" />
-                <button type="button" className="btn btn-danger-outline" disabled={busy} onClick={endGroup}>
+                <DateInput value={endDate} onChange={setEndDate} aria-label="Encerrar em" />
+                <button type="button" className="btn btn-danger-outline" disabled={busy || confirmEnd} onClick={() => setConfirmEnd(true)}>
                   Encerrar turma
                 </button>
               </div>
@@ -528,6 +565,53 @@ function GroupModal(props: {
         )
       }
     >
+      {!isCreate && (
+        <div className="tabs" role="tablist">
+          <button role="tab" aria-selected={tab === "turma"} className={`tab ${tab === "turma" ? "is-active" : ""}`} onClick={() => setTab("turma")}>
+            Turma
+          </button>
+          <button role="tab" aria-selected={tab === "alunos"} className={`tab ${tab === "alunos" ? "is-active" : ""}`} onClick={() => setTab("alunos")}>
+            Alunos {detail.data && <span className="muted small">({detail.data.enrolled_count}/{detail.data.capacity})</span>}
+          </button>
+        </div>
+      )}
+
+      {tab === "alunos" && !isCreate ? (
+        detail.data ? (
+          <GroupStudents
+            group={detail.data}
+            canEdit={canEdit}
+            onChanged={() => {
+              detail.reload();
+              onStudentsChanged();
+            }}
+          />
+        ) : (
+          <Loading />
+        )
+      ) : (
+      <>
+      {confirmEnd && base && (
+        <ConfirmPanel
+          title={`Encerrar ${base.display_name}`}
+          confirmLabel={`Encerrar em ${fmtDate(endDate)}`}
+          tone="danger"
+          busy={busy}
+          onConfirm={endGroup}
+          onCancel={() => setConfirmEnd(false)}
+        >
+          <p>A turma vale até {fmtDate(endDate)} (inclusive) e não tem aulas depois dessa data:</p>
+          <ul className="confirm-list">
+            <li>
+              {base.enrolled_count > 0
+                ? `${base.enrolled_count} aluno(s) fixo(s) deixam de ter esta turma no horário padrão depois dessa data e ficam com o horário livre no plano;`
+                : "a turma não tem alunos fixos;"}
+            </li>
+            <li>aulas já dadas continuam no histórico e no relatório de pagamento.</li>
+          </ul>
+          <p className="muted small">A data de encerramento é escolhida no campo ao lado do botão "Encerrar turma".</p>
+        </ConfirmPanel>
+      )}
       <form id="group-form" onSubmit={submit}>
         <div className="form-row">
           <label className="field">
@@ -583,7 +667,7 @@ function GroupModal(props: {
           {isCreate ? (
             <label className="field">
               <span>Começa em</span>
-              <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+              <DateInput value={startDate} onChange={setStartDate} />
             </label>
           ) : (
             <div className="field">
@@ -605,28 +689,15 @@ function GroupModal(props: {
 
       {error && <ErrorBox message={error} />}
 
-      {!isCreate && (
-        <div className="group-students">
-          <h3 className="section-title">
-            Alunos fixos{" "}
-            {detail.data && (
-              <span className="muted small">
-                ({detail.data.enrolled_count}/{detail.data.capacity})
-              </span>
-            )}
-          </h3>
-          {detail.loading && !detail.data && <Loading />}
-          {detail.data?.students.length === 0 && <p className="muted small">Nenhum aluno nesta turma.</p>}
-          <ul className="chips">
-            {detail.data?.students.map((s) => (
-              <li key={s.id}>
-                <Link to={`/alunos/${s.id}`} className="chip">
-                  {s.name}
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </div>
+      {!isCreate && detail.data && (
+        <p className="muted small group-students-hint">
+          {detail.data.enrolled_count} aluno(s) fixo(s) ·{" "}
+          <button type="button" className="link-button" onClick={() => setTab("alunos")}>
+            gerenciar alunos
+          </button>
+        </p>
+      )}
+      </>
       )}
     </Modal>
   );

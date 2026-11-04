@@ -691,6 +691,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/students/{student_id}/upcoming-lessons": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Próximas aulas do aluno que ainda podem ser reagendadas */
+        get: operations["student_upcoming_lessons_api_v1_students__student_id__upcoming_lessons_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/students/{student_id}/reschedules": {
         parameters: {
             query?: never;
@@ -885,6 +902,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/lessons/{class_group_id}/{lesson_date}/drop-in": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Inclui o aluno nesta aula como avulso (sem aula de origem); usa uma aula do plano */
+        post: operations["add_drop_in_api_v1_lessons__class_group_id___lesson_date__drop_in_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/lessons/{class_group_id}/{lesson_date}/drop-in/{student_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Remove o aluno avulso desta aula (antes da conclusão) */
+        delete: operations["remove_drop_in_api_v1_lessons__class_group_id___lesson_date__drop_in__student_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/lessons/{class_group_id}/{lesson_date}/cancel": {
         parameters: {
             query?: never;
@@ -979,6 +1030,26 @@ export interface paths {
         };
         /** Aulas dadas por professor, alunos presentes e valor a receber */
         get: operations["get_teacher_payments_api_v1_reports_teacher_payments_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/reports/cash": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Caixa: recebimentos, faturamento, pagamento dos professores e valores a receber
+         * @description Recebimentos pela data do pagamento; pagamento dos professores pela data da aula/sessão finalizada. 'A receber' lista planos e serviços não pagos de qualquer data.
+         */
+        get: operations["get_cash_report_api_v1_reports_cash_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1098,6 +1169,143 @@ export interface components {
             status: components["schemas"]["LessonStatus"];
             /** Completed At */
             completed_at?: string | null;
+        };
+        /**
+         * CashPending
+         * @description Plano ou serviço contratado ainda não pago.
+         */
+        CashPending: {
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "plan" | "service";
+            /** Id */
+            id: number;
+            /**
+             * Since
+             * Format: date
+             * @description Início do plano / da primeira sessão
+             */
+            since: string;
+            student: components["schemas"]["StudentSummary"];
+            /** Description */
+            description: string;
+            /** Amount */
+            amount: string;
+        };
+        /**
+         * CashReceipt
+         * @description Um recebimento do estúdio (plano ou serviço avulso pago).
+         */
+        CashReceipt: {
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "plan" | "service";
+            /**
+             * Id
+             * @description Id da assinatura (plano) ou da contratação (serviço)
+             */
+            id: number;
+            /**
+             * Date
+             * Format: date
+             * @description Data do pagamento
+             */
+            date: string;
+            student: components["schemas"]["StudentSummary"];
+            /**
+             * Description
+             * @description Nome do plano ou do serviço
+             */
+            description: string;
+            /**
+             * Detail
+             * @description Ex.: desconto aplicado, quantidade de sessões
+             */
+            detail?: string | null;
+            /**
+             * Gross
+             * @description Valor de tabela
+             */
+            gross: string;
+            /**
+             * Discount
+             * @description Desconto concedido (tabela - pago)
+             */
+            discount: string;
+            /**
+             * Amount
+             * @description Valor recebido
+             */
+            amount: string;
+        };
+        /** CashReport */
+        CashReport: {
+            /**
+             * Date From
+             * Format: date
+             */
+            date_from: string;
+            /**
+             * Date To
+             * Format: date
+             */
+            date_to: string;
+            /**
+             * Received Total
+             * @description Faturamento: tudo o que foi pago no período
+             */
+            received_total: string;
+            /** Plans Total */
+            plans_total: string;
+            /** Services Total */
+            services_total: string;
+            /**
+             * Discounts Total
+             * @description Descontos concedidos nos recebimentos do período
+             */
+            discounts_total: string;
+            /**
+             * Teacher Payments Total
+             * @description Pagamento dos professores pelas aulas/serviços do período
+             */
+            teacher_payments_total: string;
+            /**
+             * Net Total
+             * @description Resultado: faturamento - pagamento dos professores
+             */
+            net_total: string;
+            /**
+             * Pending Total
+             * @description A receber: planos e serviços em aberto (qualquer data)
+             */
+            pending_total: string;
+            /** Receipts */
+            receipts: components["schemas"]["CashReceipt"][];
+            /** Teachers */
+            teachers: components["schemas"]["CashTeacher"][];
+            /** Pending */
+            pending: components["schemas"]["CashPending"][];
+        };
+        /**
+         * CashTeacher
+         * @description Pagamento devido ao professor no período (aulas e serviços finalizados).
+         */
+        CashTeacher: {
+            teacher: components["schemas"]["TeacherSummary"];
+            /** Lessons Given */
+            lessons_given: number;
+            /** Lessons Amount */
+            lessons_amount: string;
+            /** Services Given */
+            services_given: number;
+            /** Services Amount */
+            services_amount: string;
+            /** Amount */
+            amount: string;
         };
         /** CatalogOverview */
         CatalogOverview: {
@@ -1305,6 +1513,16 @@ export interface components {
             /** Is Active */
             is_active?: boolean | null;
         };
+        /** DropInRequest */
+        DropInRequest: {
+            /** Student Id */
+            student_id: number;
+            /**
+             * Justification
+             * @description Observação (ex.: aula experimental)
+             */
+            justification?: string | null;
+        };
         /** HTTPValidationError */
         HTTPValidationError: {
             /** Detail */
@@ -1388,6 +1606,8 @@ export interface components {
              * @description A aula já começou, tem alunos e ainda não foi concluída/cancelada
              */
             can_complete: boolean;
+            /** @description Professor titular da turma (difere de `teacher` se houver substituto) */
+            default_teacher: components["schemas"]["TeacherSummary"];
             /** Students */
             students: components["schemas"]["RosterEntry"][];
         };
@@ -1483,7 +1703,7 @@ export interface components {
             description?: string | null;
             /**
              * Sessions Per Week
-             * @description Aulas por semana: 1, 2 ou 3
+             * @description Aulas fixas por semana: 1, 2 ou 3; 0 = sem recorrência (só aulas avulsas)
              */
             sessions_per_week: number;
             /**
@@ -1694,9 +1914,15 @@ export interface components {
             justification?: string | null;
             /**
              * Is Makeup
-             * @description Aluno veio por reposição de outra aula
+             * @description Aluno está fora do horário padrão (reposição ou aula avulsa)
              */
             is_makeup: boolean;
+            /**
+             * Is Drop In
+             * @description Aula avulsa: incluído sem aula de origem
+             * @default false
+             */
+            is_drop_in: boolean;
             makeup_from?: components["schemas"]["LessonRef"] | null;
             rescheduled_to?: components["schemas"]["LessonRef"] | null;
             /**
@@ -2153,6 +2379,12 @@ export interface components {
              * @description Soma das aulas restantes nos planos ativos
              */
             credits_remaining: number;
+            /**
+             * Drop In Available
+             * @description Aulas que ainda podem ser usadas como avulsas (restantes menos avulsas já marcadas)
+             * @default 0
+             */
+            drop_in_available: number;
             /** Needs Renewal */
             needs_renewal: boolean;
             /** Schedule */
@@ -2524,7 +2756,7 @@ export interface components {
             service_share_percent: string;
             /**
              * Lessons Given
-             * @description Aulas concluídas que geraram pagamento
+             * @description Aulas concluídas no período (inclusive as de R$ 0)
              */
             lessons_given: number;
             /**
@@ -2674,6 +2906,27 @@ export interface components {
             token_type: string;
             user: components["schemas"]["UserRead"];
             studio: components["schemas"]["StudioRead"];
+        };
+        /**
+         * UpcomingLesson
+         * @description Aula futura do aluno (ainda não começou), que pode ser reagendada.
+         */
+        UpcomingLesson: {
+            /** Class Group Id */
+            class_group_id: number;
+            /** Class Group Name */
+            class_group_name: string;
+            /**
+             * Date
+             * Format: date
+             */
+            date: string;
+            /** Start Hour */
+            start_hour: number;
+            /** Room */
+            room: string;
+            /** Is Makeup */
+            is_makeup: boolean;
         };
         /** UpcomingMakeup */
         UpcomingMakeup: {
@@ -4665,6 +4918,39 @@ export interface operations {
             };
         };
     };
+    student_upcoming_lessons_api_v1_students__student_id__upcoming_lessons_get: {
+        parameters: {
+            query?: {
+                days?: number;
+            };
+            header?: never;
+            path: {
+                student_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UpcomingLesson"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     student_reschedules_api_v1_students__student_id__reschedules_get: {
         parameters: {
             query?: never;
@@ -5165,6 +5451,75 @@ export interface operations {
             };
         };
     };
+    add_drop_in_api_v1_lessons__class_group_id___lesson_date__drop_in_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                class_group_id: number;
+                lesson_date: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DropInRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LessonDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    remove_drop_in_api_v1_lessons__class_group_id___lesson_date__drop_in__student_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                class_group_id: number;
+                lesson_date: string;
+                student_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LessonDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     cancel_lesson_api_v1_lessons__class_group_id___lesson_date__cancel_post: {
         parameters: {
             query?: never;
@@ -5336,6 +5691,38 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TeacherPaymentsResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_cash_report_api_v1_reports_cash_get: {
+        parameters: {
+            query: {
+                date_from: string;
+                date_to: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CashReport"];
                 };
             };
             /** @description Validation Error */

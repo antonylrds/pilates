@@ -92,7 +92,7 @@ def teacher_payments(
 ) -> TeacherPaymentsResponse:
     """Soma os valores congelados das aulas concluídas no período.
 
-    Aula dada = aula concluída que gerou pagamento (com presentes, ou todos ausentes com mínimo).
+    Aula dada = toda aula concluída. Se todos faltaram e o professor não tem mínimo, aparece com R$ 0.
     """
     query = (
         select(Lesson)
@@ -161,8 +161,6 @@ def teacher_payments(
             attendances = sorted(lesson.attendances, key=lambda a: a.student.name.lower())
             present = [a for a in attendances if a.status == AttendanceStatus.PRESENT]
             amount = lesson.pay_amount or ZERO
-            if amount <= 0 and not present:
-                continue  # todos faltaram e não há mínimo: não conta como aula dada
             lesson_reports.append(
                 TeacherLessonReport(
                     date=lesson.date,

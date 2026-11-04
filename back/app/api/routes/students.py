@@ -19,9 +19,15 @@ from app.schemas.people import (
     StudentUpdate,
     UpcomingMakeup,
 )
-from app.schemas.schedule import LessonRef, RescheduleChain, StudentAttendanceRead
+from app.schemas.schedule import LessonRef, RescheduleChain, StudentAttendanceRead, UpcomingLesson
 from app.services import audit, credits
-from app.services.schedule import current_enrollments, enrollment_history, reschedule_chains, set_schedule
+from app.services.schedule import (
+    current_enrollments,
+    enrollment_history,
+    reschedule_chains,
+    set_schedule,
+    upcoming_lessons,
+)
 
 router = APIRouter(prefix="/students", tags=["students"])
 
@@ -69,6 +75,7 @@ def _detail(ctx, student: Student) -> StudentDetail:
             SubscriptionRead.model_validate(s) for s in credits.queued_subscriptions(db, student.id)
         ],
         credits_remaining=remaining,
+        drop_in_available=credits.drop_in_available(db, student.id),
         needs_renewal=remaining == 0,
         schedule=schedule,
         free_schedule_slots=max(credits.weekly_allowance(db, student.id) - len(schedule), 0),
@@ -318,6 +325,17 @@ def change_history(student_id: int, ctx: Staff, limit: int = 100):
         .order_by(AuditLog.created_at.desc(), AuditLog.id.desc())
         .limit(min(limit, 500))
     ).all()
+
+
+# ---------- Próximas aulas ----------
+@router.get(
+    "/{student_id}/upcoming-lessons",
+    response_model=list[UpcomingLesson],
+    summary="Próximas aulas do aluno que ainda podem ser reagendadas",
+)
+def student_upcoming_lessons(student_id: int, ctx: Staff, days: int = 28):
+    _student(ctx, student_id)
+    return upcoming_lessons(ctx.db, student_id, min(max(days, 1), 62))
 
 
 # ---------- Reagendamentos ----------

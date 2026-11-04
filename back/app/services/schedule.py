@@ -20,6 +20,7 @@ from app.schemas.schedule import (
     LessonRef,
     RescheduleChain,
     RescheduleStep,
+    UpcomingLesson,
 )
 from app.schemas.schedule import RosterEntry as RosterEntryOut
 from app.services import credits
@@ -188,6 +189,11 @@ def set_schedule(db: Session, student: Student, group_ids: list[int], effective_
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Turma repetida na lista")
     allowance = credits.weekly_allowance(db, student.id)
     if group_ids and allowance == 0:
+        if credits.latest_subscription(db, student.id) is not None:
+            raise HTTPException(
+                status.HTTP_400_BAD_REQUEST,
+                "O plano do aluno não tem recorrência: inclua-o nas aulas como avulso",
+            )
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Aluno precisa ter um plano para entrar em turmas")
     if len(group_ids) > allowance:
         raise HTTPException(
@@ -491,6 +497,71 @@ def lesson_ref(attendance: Attendance | None) -> LessonRef | None:
     )
 
 
+def upcoming_lessons(db: Session, student_id: int, days: int = 28) -> list[UpcomingLesson]:
+    """Próximas aulas em que o aluno está previsto (fixas e reposições) e que ainda não começaram.
+
+    São as aulas que podem ser reagendadas (origem de um reagendamento).
+    """
+    today = date.today()
+    end = today + timedelta(days=days)
+    now = datetime.now()
+    result: list[UpcomingLesson] = []
+    seen: set[tuple[int, date]] = set()
+
+    def add(group: ClassGroup, day: date, is_makeup: bool) -> None:
+        if (group.id, day) in seen or lesson_start(group, day) <= now:
+            return
+        lesson = find_lesson(db, group.id, day)
+        if lesson is not None and (lesson.is_cancelled or lesson.is_completed):
+            return
+        entry = next((r for r in build_roster(group, day, lesson) if r.student.id == student_id), None)
+        if entry is None or entry.status != AttendanceStatus.PENDING:
+            return
+        seen.add((group.id, day))
+        result.append(
+            UpcomingLesson(
+                class_group_id=group.id,
+                class_group_name=group.display_name,
+                date=day,
+                start_hour=group.start_hour,
+                room=group.room.name,
+                is_makeup=is_makeup,
+            )
+        )
+
+    enrollments = db.scalars(
+        select(Enrollment).where(
+            Enrollment.student_id == student_id,
+            Enrollment.start_date <= end,
+            or_(Enrollment.end_date.is_(None), Enrollment.end_date >= today),
+        )
+    )
+    for enrollment in enrollments:
+        group = load_group(db, enrollment.class_group_id)
+        day = today
+        while day <= end:
+            if group.runs_on(day) and enrollment.active_on(day):
+                add(group, day, False)
+            day += timedelta(days=1)
+
+    makeups = db.scalars(
+        select(Attendance)
+        .join(Attendance.lesson)
+        .where(
+            Attendance.student_id == student_id,
+            Attendance.is_makeup.is_(True),
+            Attendance.status == AttendanceStatus.PENDING,
+            Lesson.date >= today,
+            Lesson.date <= end,
+        )
+    )
+    for attendance in makeups:
+        add(load_group(db, attendance.lesson.class_group_id), attendance.lesson.date, True)
+
+    result.sort(key=lambda u: (u.date, u.start_hour))
+    return result
+
+
 def reschedule_chains(db: Session, student_id: int) -> list[RescheduleChain]:
     """Cada aula do horário padrão que foi reagendada, com todos os reagendamentos até a situação atual."""
     roots = db.scalars(
@@ -544,10 +615,13 @@ def lesson_detail(db: Session, group: ClassGroup, day: date) -> LessonDetail:
             status=r.status,
             justification=r.attendance.justification if r.attendance else None,
             is_makeup=r.is_makeup,
+            is_drop_in=bool(r.attendance and r.attendance.is_drop_in),
             makeup_from=lesson_ref(r.attendance.makeup_from) if r.attendance else None,
             rescheduled_to=lesson_ref(r.attendance.makeup_to) if r.attendance else None,
             reschedule_count=r.attendance.reschedule_count if r.attendance else 0,
-            original_lesson=lesson_ref(r.attendance.original) if r.attendance and r.attendance.is_makeup else None,
+            original_lesson=lesson_ref(r.attendance.original)
+            if r.attendance and r.attendance.makeup_from is not None
+            else None,
             credits_remaining=credits.credits_remaining(db, r.student.id),
         )
         for r in roster
@@ -559,5 +633,6 @@ def lesson_detail(db: Session, group: ClassGroup, day: date) -> LessonDetail:
         notes=lesson.notes if lesson else None,
         completed_by=lesson.completed_by.name if lesson and lesson.completed_by else None,
         can_complete=entry["status"] == LessonStatus.CONFIRMED and has_started(group, day),
+        default_teacher=TeacherSummary.model_validate(group.teacher),
         students=students,
     )

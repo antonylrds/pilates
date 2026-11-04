@@ -12,7 +12,7 @@ import { Badge, Empty, ErrorBox, Loading } from "../components/ui";
 import { api, call } from "../lib/api";
 import { addDays, fmtDate, fmtHour, fmtShortDay, money, parseISO, toISO, todayISO } from "../lib/format";
 import { useAsync } from "../lib/hooks";
-import { subscriptionUsage, usageTone } from "../lib/labels";
+import { subscriptionUsage, usageTone, perWeekLabel } from "../lib/labels";
 import { useSession } from "../lib/session";
 
 export function StudentsPage() {
@@ -202,7 +202,7 @@ function StudentDetail({ id, onEdited }: { id: number; onEdited: () => void }) {
               </div>
               <p className="small">
                 <strong>{sub.credits_remaining}</strong> de {sub.total_classes} aulas restantes ·{" "}
-                {sub.sessions_per_week}x por semana
+                {perWeekLabel(sub.sessions_per_week)}
               </p>
               <p className="small muted">
                 {money(sub.final_price)}

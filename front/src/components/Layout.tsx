@@ -11,11 +11,12 @@ const NAV = [
   { to: "/alunos", label: "Alunos", icon: "◉" },
   { to: "/catalogo", label: "Planos e serviços", icon: "★" },
   { to: "/professores", label: "Professores", icon: "✦" },
+  { to: "/caixa", label: "Caixa", icon: "$", adminOnly: true },
   { to: "/avisos", label: "Avisos", icon: "◔", badge: "unread" },
 ] as const;
 
 export function Layout() {
-  const { session, logout } = useSession();
+  const { session, logout, isAdmin } = useSession();
   const location = useLocation();
   const unread = useAsync(
     () => call(api.GET("/api/v1/notifications", { params: { query: { unread_only: true } } })),
@@ -38,7 +39,7 @@ export function Layout() {
           </div>
         </div>
         <nav className="nav">
-          {NAV.map((item) => {
+          {NAV.filter((item) => !("adminOnly" in item) || isAdmin).map((item) => {
             const count = "badge" in item ? badges[item.badge] : 0;
             return (
               <NavLink key={item.to} to={item.to} end={"end" in item ? item.end : false} className="nav-link">

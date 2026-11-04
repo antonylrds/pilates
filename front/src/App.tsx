@@ -3,6 +3,7 @@ import { Navigate, Route, Routes } from "react-router-dom";
 import { Layout } from "./components/Layout";
 import { useSession } from "./lib/session";
 import { AgendaPage } from "./pages/AgendaPage";
+import { CashPage } from "./pages/CashPage";
 import { FinalizePage } from "./pages/FinalizePage";
 import { LoginPage } from "./pages/LoginPage";
 import { NotificationsPage } from "./pages/NotificationsPage";
@@ -35,6 +36,7 @@ export function App() {
         <Route path="catalogo" element={<CatalogPage />} />
         <Route path="servicos" element={<Navigate to="/catalogo?aba=servicos" replace />} />
         <Route path="professores" element={<TeachersPage />} />
+        <Route path="caixa" element={<CashPage />} />
         <Route path="avisos" element={<NotificationsPage />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />

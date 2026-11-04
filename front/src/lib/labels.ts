@@ -38,3 +38,9 @@ export const usageTone: Record<string, string> = {
   finished: "neutral",
   cancelled: "danger",
 };
+
+/** Frequência do plano: "2x por semana" ou "sem recorrência" (0 = só aulas avulsas). */
+export function perWeekLabel(n: number, short = false): string {
+  if (n === 0) return "sem recorrência";
+  return short ? `${n}x/semana` : `${n}x por semana`;
+}

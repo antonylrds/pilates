@@ -28,7 +28,7 @@ class Plan(TenantBase, TimestampMixin):
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(String(120))
     description: Mapped[str | None] = mapped_column(Text)
-    sessions_per_week: Mapped[int]  # 1, 2 ou 3
+    sessions_per_week: Mapped[int]  # 1, 2 ou 3; 0 = sem recorrência (só aulas avulsas)
     total_classes: Mapped[int]
     price: Mapped[Decimal] = mapped_column(Numeric(10, 2))
     is_active: Mapped[bool] = mapped_column(default=True)

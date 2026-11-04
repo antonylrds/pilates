@@ -2,9 +2,10 @@ import type { Schemas } from "@pilates/api-client";
 import { type FormEvent, useState } from "react";
 
 import { api, call } from "../lib/api";
+import { DateInput } from "./DateInput";
 import { fmtDate, money, todayISO } from "../lib/format";
 import { useAsync } from "../lib/hooks";
-import { subscriptionUsage } from "../lib/labels";
+import { subscriptionUsage, perWeekLabel } from "../lib/labels";
 import { GroupPicker } from "./GroupPicker";
 import { Modal } from "./Modal";
 import { ErrorBox, Loading } from "./ui";
@@ -109,6 +110,7 @@ export function StudentFormModal({ student, onClose, onSaved }: Props) {
   const limit = editing
     ? Math.max(0, ...editableSubs.map((s) => s.sessions_per_week))
     : (plan?.sessions_per_week ?? 0);
+  const hasPlan = editing ? editableSubs.length > 0 : !!plan;
   const scheduleChanged =
     editing && (groupIds.length !== ownGroupIds.length || groupIds.some((id) => !ownGroupIds.includes(id)));
   const clean = (list: string[]) => list.map((v) => v.trim()).filter(Boolean);
@@ -201,7 +203,7 @@ export function StudentFormModal({ student, onClose, onSaved }: Props) {
             </label>
             <label className="field">
               <span>Data de nascimento</span>
-              <input type="date" value={birthDate} onChange={(e) => setBirthDate(e.target.value)} />
+              <DateInput value={birthDate} onChange={setBirthDate} />
             </label>
           </div>
           <div className="form-row">
@@ -233,7 +235,7 @@ export function StudentFormModal({ student, onClose, onSaved }: Props) {
                     <option value="">Sem plano por enquanto</option>
                     {(plans.data ?? []).map((p) => (
                       <option key={p.id} value={p.id}>
-                        {p.name} · {p.sessions_per_week}x/semana · {p.total_classes} aulas · {money(p.price)}
+                        {p.name} · {perWeekLabel(p.sessions_per_week, true)} · {p.total_classes} aulas · {money(p.price)}
                       </option>
                     ))}
                   </select>
@@ -258,7 +260,7 @@ export function StudentFormModal({ student, onClose, onSaved }: Props) {
                 <div className="form-row">
                   <label className="field">
                     <span>Data da contratação</span>
-                    <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+                    <DateInput value={startDate} onChange={setStartDate} />
                   </label>
                   <div className="field">
                     <span>Pagamento {price.data && <>· {money(price.data.final_price)}</>}</span>
@@ -267,7 +269,7 @@ export function StudentFormModal({ student, onClose, onSaved }: Props) {
                         <input type="checkbox" checked={isPaid} onChange={(e) => setIsPaid(e.target.checked)} />
                         <span>Já foi pago</span>
                       </label>
-                      {isPaid && <input type="date" value={paidAt} onChange={(e) => setPaidAt(e.target.value)} aria-label="Data do pagamento" />}
+                      {isPaid && <DateInput value={paidAt} onChange={setPaidAt} aria-label="Data do pagamento" />}
                     </div>
                   </div>
                 </div>
@@ -297,10 +299,9 @@ export function StudentFormModal({ student, onClose, onSaved }: Props) {
                         <span>Pago</span>
                       </label>
                       {p.is_paid && (
-                        <input
-                          type="date"
+                        <DateInput
                           value={p.paid_at}
-                          onChange={(e) => setPayments({ ...payments, [s.id]: { ...p, paid_at: e.target.value } })}
+                          onChange={(iso) => setPayments({ ...payments, [s.id]: { ...p, paid_at: iso } })}
                           aria-label="Data do pagamento"
                         />
                       )}
@@ -318,13 +319,17 @@ export function StudentFormModal({ student, onClose, onSaved }: Props) {
             <h3 className="section-title">
               Turmas padrão{" "}
               <span className="muted small">
-                {limit > 0 ? `(${groupIds.length} de ${limit} pelo plano)` : "(escolha um plano primeiro)"}
+                {limit > 0
+                  ? `(${groupIds.length} de ${limit} pelo plano)`
+                  : hasPlan
+                    ? "(plano sem recorrência: inclua o aluno nas aulas como avulso, pelo modal da turma ou pela agenda)"
+                    : "(escolha um plano primeiro)"}
               </span>
             </h3>
             {editing && scheduleChanged && (
               <label className="field inline-field">
                 <span>Vale a partir de</span>
-                <input type="date" value={effectiveFrom} onChange={(e) => setEffectiveFrom(e.target.value)} />
+                <DateInput value={effectiveFrom} onChange={setEffectiveFrom} />
               </label>
             )}
           </div>
