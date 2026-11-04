@@ -6,6 +6,7 @@ import { DateInput } from "./DateInput";
 import { addDays, fmtDate, fmtHour, money, parseISO, toISO, todayISO } from "../lib/format";
 import { useAsync } from "../lib/hooks";
 import { useSession } from "../lib/session";
+import { ConfirmPanel } from "./ConfirmPanel";
 import { Modal } from "./Modal";
 import { ServiceSessionPanel, sessionStatus } from "./ServiceSessionPanel";
 import { Badge, ErrorBox, Loading } from "./ui";
@@ -55,14 +56,18 @@ export function StudentServices({ studentId, active, version, onChanged }: {
   const [openSession, setOpenSession] = useState<number | null>(null);
   const [error, setError] = useState<string>();
 
+  const [confirmCancelId, setConfirmCancelId] = useState<number | null>(null);
+
   async function run(action: () => Promise<unknown>) {
     setError(undefined);
     try {
       await action();
       contracts.reload();
       onChanged();
+      return true;
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
+      return false;
     }
   }
 
@@ -166,25 +171,42 @@ export function StudentServices({ studentId, active, version, onChanged }: {
                 }
               />
 
-              {isAdmin && c.situation === "active" && (
+              {isAdmin && c.situation === "active" && confirmCancelId !== c.id && (
                 <div className="sc-actions">
-                  <button
-                    className="btn btn-sm btn-danger-outline"
-                    onClick={() =>
-                      window.confirm(`Cancelar ${c.service_name}? As sessões futuras serão canceladas.`) &&
-                      run(() =>
+                  <button className="btn btn-sm btn-danger-outline" onClick={() => setConfirmCancelId(c.id)}>
+                    Cancelar serviço
+                  </button>
+                </div>
+              )}
+              {isAdmin && c.situation === "active" && confirmCancelId === c.id && (() => {
+                const today = todayISO();
+                const future = c.sessions.filter((s) => s.status === "scheduled" && s.date >= today).length;
+                return (
+                  <ConfirmPanel
+                    title={`Cancelar ${c.service_name}`}
+                    confirmLabel="Cancelar serviço"
+                    tone="danger"
+                    onConfirm={async () => {
+                      const ok = await run(() =>
                         call(
                           api.POST("/api/v1/students/{student_id}/services/{contract_id}/cancel", {
                             params: { path: path(c) },
                           }),
                         ),
-                      )
-                    }
+                      );
+                      if (ok) setConfirmCancelId(null);
+                    }}
+                    onCancel={() => setConfirmCancelId(null)}
                   >
-                    Cancelar serviço
-                  </button>
-                </div>
-              )}
+                    <p>
+                      {future > 0
+                        ? `${future} sessão(ões) agendada(s) de hoje em diante serão canceladas e liberam a sala e o profissional.`
+                        : "Não há sessões agendadas daqui para frente."}
+                    </p>
+                    <p className="muted small">Sessões já finalizadas continuam no histórico e no pagamento do profissional.</p>
+                  </ConfirmPanel>
+                );
+              })()}
             </li>
           );
         })}

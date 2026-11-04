@@ -2,6 +2,7 @@ import type { Schemas } from "@pilates/api-client";
 import { type FormEvent, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 
+import { ConfirmPanel } from "../components/ConfirmPanel";
 import { DateInput } from "../components/DateInput";
 import { GroupStudents } from "../components/GroupStudents";
 import { Modal } from "../components/Modal";
@@ -236,9 +237,11 @@ function RoomsCard(props: {
     if (ok) setEditId(null);
   }
 
-  const deactivate = (room: Room) =>
-    window.confirm(`Desativar a sala ${room.name}?`) &&
-    run(() => call(api.DELETE("/api/v1/rooms/{room_id}", { params: { path: { room_id: room.id } } })));
+  const [confirmRoomId, setConfirmRoomId] = useState<number | null>(null);
+  const deactivate = async (room: Room) => {
+    const ok = await run(() => call(api.DELETE("/api/v1/rooms/{room_id}", { params: { path: { room_id: room.id } } })));
+    if (ok) setConfirmRoomId(null);
+  };
 
   const reactivate = (room: Room) =>
     run(() =>
@@ -305,7 +308,7 @@ function RoomsCard(props: {
                     >
                       ✎
                     </button>
-                    <button className="btn btn-sm btn-ghost" title="Desativar" onClick={() => deactivate(room)}>
+                    <button className="btn btn-sm btn-ghost" title="Desativar" onClick={() => setConfirmRoomId(room.id)}>
                       🗑
                     </button>
                   </span>
@@ -316,6 +319,31 @@ function RoomsCard(props: {
                   </button>
                 )}
               </div>
+              {confirmRoomId === room.id && (() => {
+                // O back só deixa desativar sala sem turmas ativas (sem data de encerramento).
+                const blocking = groups.filter((g) => g.room.id === room.id && !g.end_date);
+                return (
+                  <ConfirmPanel
+                    title={`Desativar ${room.name}`}
+                    confirmLabel="Desativar sala"
+                    tone="danger"
+                    confirmDisabled={blocking.length > 0}
+                    onConfirm={() => deactivate(room)}
+                    onCancel={() => setConfirmRoomId(null)}
+                  >
+                    {blocking.length > 0 ? (
+                      <p>
+                        A sala tem {blocking.length} turma(s) ativa(s). Encerre as turmas antes de desativá-la.
+                      </p>
+                    ) : (
+                      <p>
+                        A sala deixa de aparecer para novas turmas e serviços. O histórico é mantido e ela pode ser
+                        reativada depois em "Mostrar inativas".
+                      </p>
+                    )}
+                  </ConfirmPanel>
+                );
+              })()}
             </li>
           );
         })}
@@ -496,8 +524,10 @@ function GroupModal(props: {
     }
   }
 
+  const [confirmEnd, setConfirmEnd] = useState(false);
   function endGroup() {
-    if (!base || !window.confirm(`Encerrar a turma a partir de ${fmtDate(endDate)}? Os alunos serão liberados.`)) return;
+    if (!base) return;
+    setConfirmEnd(false);
     run(() =>
       call(
         api.DELETE("/api/v1/class-groups/{group_id}", {
@@ -523,7 +553,7 @@ function GroupModal(props: {
             {!isCreate && (
               <div className="end-group">
                 <DateInput value={endDate} onChange={setEndDate} aria-label="Encerrar em" />
-                <button type="button" className="btn btn-danger-outline" disabled={busy} onClick={endGroup}>
+                <button type="button" className="btn btn-danger-outline" disabled={busy || confirmEnd} onClick={() => setConfirmEnd(true)}>
                   Encerrar turma
                 </button>
               </div>
@@ -561,6 +591,27 @@ function GroupModal(props: {
         )
       ) : (
       <>
+      {confirmEnd && base && (
+        <ConfirmPanel
+          title={`Encerrar ${base.display_name}`}
+          confirmLabel={`Encerrar em ${fmtDate(endDate)}`}
+          tone="danger"
+          busy={busy}
+          onConfirm={endGroup}
+          onCancel={() => setConfirmEnd(false)}
+        >
+          <p>A turma vale até {fmtDate(endDate)} (inclusive) e não tem aulas depois dessa data:</p>
+          <ul className="confirm-list">
+            <li>
+              {base.enrolled_count > 0
+                ? `${base.enrolled_count} aluno(s) fixo(s) deixam de ter esta turma no horário padrão depois dessa data e ficam com o horário livre no plano;`
+                : "a turma não tem alunos fixos;"}
+            </li>
+            <li>aulas já dadas continuam no histórico e no relatório de pagamento.</li>
+          </ul>
+          <p className="muted small">A data de encerramento é escolhida no campo ao lado do botão "Encerrar turma".</p>
+        </ConfirmPanel>
+      )}
       <form id="group-form" onSubmit={submit}>
         <div className="form-row">
           <label className="field">

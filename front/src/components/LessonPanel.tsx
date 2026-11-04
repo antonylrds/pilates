@@ -1,5 +1,5 @@
 import type { Schemas } from "@pilates/api-client";
-import { useState } from "react";
+import { type FormEvent, useState } from "react";
 import { Link } from "react-router-dom";
 
 import { api, call } from "../lib/api";
@@ -7,6 +7,7 @@ import { fmtDate, fmtDateTime, fmtHour, fmtWeekday } from "../lib/format";
 import { useAsync } from "../lib/hooks";
 import { attendanceStatus, attendanceTone, lessonStatus } from "../lib/labels";
 import { useSession } from "../lib/session";
+import { ConfirmPanel } from "./ConfirmPanel";
 import { LessonAddStudent } from "./LessonAddStudent";
 import { ReschedulePicker } from "./ReschedulePicker";
 import { Badge, ErrorBox, Loading } from "./ui";
@@ -65,17 +66,23 @@ export function LessonPanel({ groupId, date, onClose, onChanged }: Props) {
       ),
     );
 
-  const cancel = () => {
-    const reason = window.prompt("Motivo do cancelamento (opcional):");
-    if (reason === null) return;
-    run(() =>
+  const [cancelling, setCancelling] = useState(false);
+  const [cancelReason, setCancelReason] = useState("");
+
+  const cancel = async (e: FormEvent) => {
+    e.preventDefault();
+    const ok = await run(() =>
       call(
         api.POST("/api/v1/lessons/{class_group_id}/{lesson_date}/cancel", {
           params: { path },
-          body: { reason: reason || null },
+          body: { reason: cancelReason.trim() || null },
         }),
       ),
     );
+    if (ok) {
+      setCancelling(false);
+      setCancelReason("");
+    }
   };
 
   const changeTeacher = async () => {
@@ -94,9 +101,11 @@ export function LessonPanel({ groupId, date, onClose, onChanged }: Props) {
   const restore = () =>
     run(() => call(api.POST("/api/v1/lessons/{class_group_id}/{lesson_date}/restore", { params: { path } })));
 
-  const reopen = () =>
-    window.confirm("Reabrir a aula? As aulas debitadas dos planos serão devolvidas.") &&
-    run(() => call(api.POST("/api/v1/lessons/{class_group_id}/{lesson_date}/reopen", { params: { path } })));
+  const [reopening, setReopening] = useState(false);
+  const reopen = async () => {
+    const ok = await run(() => call(api.POST("/api/v1/lessons/{class_group_id}/{lesson_date}/reopen", { params: { path } })));
+    if (ok) setReopening(false);
+  };
 
   const data = lesson.data;
   const completed = data?.status === "completed";
@@ -323,9 +332,69 @@ export function LessonPanel({ groupId, date, onClose, onChanged }: Props) {
               </div>
             )}
 
+            {open && cancelling && (
+              <form className="picker cancel-form" onSubmit={cancel}>
+                <div className="picker-header">
+                  <strong>Cancelar aula</strong>
+                </div>
+                <label className="field">
+                  <span>Motivo do cancelamento (opcional)</span>
+                  <textarea
+                    value={cancelReason}
+                    onChange={(e) => setCancelReason(e.target.value)}
+                    placeholder="Ex.: professor doente, manutenção da sala…"
+                    maxLength={255}
+                    rows={3}
+                    autoFocus
+                  />
+                  <small className="muted">{cancelReason.length}/255</small>
+                </label>
+                <p className="muted small">
+                  {data.attendees_count > 0
+                    ? `${data.attendees_count} aluno(s) previsto(s) não terão esta aula. Nenhuma aula do plano é debitada.`
+                    : "Nenhum aluno previsto nesta aula."}{" "}
+                  O cancelamento pode ser desfeito depois.
+                </p>
+                <div className="cancel-actions">
+                  <button
+                    type="button"
+                    className="btn btn-ghost"
+                    disabled={busy}
+                    onClick={() => {
+                      setCancelling(false);
+                      setCancelReason("");
+                    }}
+                  >
+                    Voltar
+                  </button>
+                  <button type="submit" className="btn btn-danger" disabled={busy}>
+                    Confirmar cancelamento
+                  </button>
+                </div>
+              </form>
+            )}
+
+            {completed && isAdmin && reopening && (
+              <ConfirmPanel
+                title="Reabrir aula"
+                confirmLabel="Confirmar reabertura"
+                busy={busy}
+                onConfirm={reopen}
+                onCancel={() => setReopening(false)}
+              >
+                <p>A aula volta a ficar pendente de finalização:</p>
+                <ul className="confirm-list">
+                  <li>as aulas debitadas dos planos dos alunos são devolvidas;</li>
+                  <li>presenças e faltas voltam para pendente;</li>
+                  <li>o valor do professor sai do relatório de pagamento até a aula ser finalizada de novo.</li>
+                </ul>
+                <p className="muted small">Reagendamentos feitos a partir desta aula continuam valendo.</p>
+              </ConfirmPanel>
+            )}
+
             <footer className="drawer-footer">
-              {completed && isAdmin && (
-                <button className="btn" disabled={busy} onClick={reopen}>
+              {completed && isAdmin && !reopening && (
+                <button className="btn" disabled={busy} onClick={() => setReopening(true)}>
                   Reabrir aula
                 </button>
               )}
@@ -334,8 +403,8 @@ export function LessonPanel({ groupId, date, onClose, onChanged }: Props) {
                   Desfazer cancelamento
                 </button>
               )}
-              {open && (
-                <button className="btn btn-danger-outline" disabled={busy} onClick={cancel}>
+              {open && !cancelling && (
+                <button className="btn btn-danger-outline" disabled={busy} onClick={() => setCancelling(true)}>
                   Cancelar aula
                 </button>
               )}
