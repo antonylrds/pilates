@@ -82,6 +82,8 @@ O contrato entre elas é a API REST do back (`packages/api-client`, gerado do Op
   **incluído nas aulas como avulso**, uma data por vez, usando as aulas do plano.
 - **RF-43** Nos **detalhes da aula** (agenda) deve ser possível **incluir alunos** e **alterar o professor**.
   Se o aluno **não tiver aulas disponíveis**, o sistema informa e **impede** a inclusão.
+- **RF-44** Deve haver uma tela de **caixa** com **todos os recebimentos** do estúdio, o **faturamento do mês**
+  e o **desconto do pagamento dos professores**.
 
 ### Planos e renovação
 - **RF-13** Cada plano dá acesso a um **número X de aulas**.
@@ -167,6 +169,7 @@ O contrato entre elas é a API REST do back (`packages/api-client`, gerado do Op
 | D-17 | A tela de finalização lista as aulas que **já começaram** nos últimos 30 dias, têm alunos e não foram concluídas/canceladas. Professor vê apenas as próprias. | Implementa RF-21. |
 | D-31 | Plano com `sessions_per_week = 0` = **sem recorrência**: não permite turmas padrão. **Aula avulsa** = registro de presença fora do horário padrão **sem aula de origem** (`is_makeup = true`, `makeup_from` vazio; exposto como `is_drop_in`). Só em aula que ainda não começou, com vaga e sem conflito de horário; o aluno precisa ter saldo (aulas restantes menos avulsas já marcadas e não concluídas, inclusive as que foram reagendadas). A aula do plano é debitada na conclusão, como qualquer presença; pode ser reagendada e removida enquanto pendente. Vale para qualquer plano, não só os sem recorrência. | Implementa RF-42. |
 | D-32 | Detalhes da aula: **incluir aluno** (antes da aula começar) como **aula avulsa** (exige `drop_in_available > 0` = aulas restantes menos avulsas já marcadas) ou como **reposição** de uma aula futura do aluno (exige aulas restantes > 0). **Alterar professor** (admin) vale só para aquela data (substituto), não em aulas concluídas ou canceladas, e é recusado se o professor já der outra aula ou atender um serviço no mesmo dia e horário. | Implementa RF-43. |
+| D-33 | **Caixa** (só admin), por mês: recebimentos = planos e serviços **pagos**, pela **data do pagamento** (`paid_at`), com valor de tabela, desconto e valor recebido (serviço = valor por sessão × sessões contratadas). Pagamento dos professores = relatório de pagamento (D-08) das aulas/sessões **finalizadas no mês**. Resultado = faturamento − professores. **A receber** = planos e serviços não pagos e não cancelados, de qualquer data (planos gratuitos ficam de fora). Estornos/reembolsos não são controlados. | Implementa RF-44. |
 | D-30 | Datas são exibidas e digitadas sempre como **dd/mm/aaaa** (componente `DateInput` no front), independente do idioma do navegador/SO — o `<input type="date">` nativo segue a localidade do sistema. A API continua trocando datas em ISO (`aaaa-mm-dd`). | Vale também para o mobile. |
 
 ## 6. Fora do escopo (por enquanto)
@@ -195,6 +198,7 @@ O contrato entre elas é a API REST do back (`packages/api-client`, gerado do Op
 | RF-41 | `PUT /students/{id}/schedule`, `GET /students/{id}/upcoming-lessons`, `POST /lessons/{class_group_id}/{date}/reschedule` |
 | RF-42 | `POST /plans` (`sessions_per_week: 0`), `POST /lessons/{class_group_id}/{date}/drop-in`, `DELETE /lessons/{class_group_id}/{date}/drop-in/{student_id}` |
 | RF-43 | `GET /students/{id}` (`drop_in_available`), `POST /lessons/{class_group_id}/{date}/drop-in`, `PATCH /lessons/{class_group_id}/{date}` (`teacher_id`) |
+| RF-44 | `GET /reports/cash` |
 | RF-40 | `/plans`, `/discounts`, `/services`, `GET /catalog/overview` |
 | RF-33 a RF-36 | `/services`, `GET/POST /students/{id}/services`, `PATCH .../services/{cid}`, `.../cancel`, `.../sessions/{sid}` |
 | RF-37 a RF-39 | `GET /calendar` (`kind = service`), `GET /lessons/pending`, `GET /service-sessions/{id}`, `.../complete`, `.../reopen`, `GET /reports/teacher-payments` (`services`) |

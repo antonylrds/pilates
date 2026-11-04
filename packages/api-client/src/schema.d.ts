@@ -1038,6 +1038,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/reports/cash": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Caixa: recebimentos, faturamento, pagamento dos professores e valores a receber
+         * @description Recebimentos pela data do pagamento; pagamento dos professores pela data da aula/sessão finalizada. 'A receber' lista planos e serviços não pagos de qualquer data.
+         */
+        get: operations["get_cash_report_api_v1_reports_cash_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1149,6 +1169,143 @@ export interface components {
             status: components["schemas"]["LessonStatus"];
             /** Completed At */
             completed_at?: string | null;
+        };
+        /**
+         * CashPending
+         * @description Plano ou serviço contratado ainda não pago.
+         */
+        CashPending: {
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "plan" | "service";
+            /** Id */
+            id: number;
+            /**
+             * Since
+             * Format: date
+             * @description Início do plano / da primeira sessão
+             */
+            since: string;
+            student: components["schemas"]["StudentSummary"];
+            /** Description */
+            description: string;
+            /** Amount */
+            amount: string;
+        };
+        /**
+         * CashReceipt
+         * @description Um recebimento do estúdio (plano ou serviço avulso pago).
+         */
+        CashReceipt: {
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "plan" | "service";
+            /**
+             * Id
+             * @description Id da assinatura (plano) ou da contratação (serviço)
+             */
+            id: number;
+            /**
+             * Date
+             * Format: date
+             * @description Data do pagamento
+             */
+            date: string;
+            student: components["schemas"]["StudentSummary"];
+            /**
+             * Description
+             * @description Nome do plano ou do serviço
+             */
+            description: string;
+            /**
+             * Detail
+             * @description Ex.: desconto aplicado, quantidade de sessões
+             */
+            detail?: string | null;
+            /**
+             * Gross
+             * @description Valor de tabela
+             */
+            gross: string;
+            /**
+             * Discount
+             * @description Desconto concedido (tabela - pago)
+             */
+            discount: string;
+            /**
+             * Amount
+             * @description Valor recebido
+             */
+            amount: string;
+        };
+        /** CashReport */
+        CashReport: {
+            /**
+             * Date From
+             * Format: date
+             */
+            date_from: string;
+            /**
+             * Date To
+             * Format: date
+             */
+            date_to: string;
+            /**
+             * Received Total
+             * @description Faturamento: tudo o que foi pago no período
+             */
+            received_total: string;
+            /** Plans Total */
+            plans_total: string;
+            /** Services Total */
+            services_total: string;
+            /**
+             * Discounts Total
+             * @description Descontos concedidos nos recebimentos do período
+             */
+            discounts_total: string;
+            /**
+             * Teacher Payments Total
+             * @description Pagamento dos professores pelas aulas/serviços do período
+             */
+            teacher_payments_total: string;
+            /**
+             * Net Total
+             * @description Resultado: faturamento - pagamento dos professores
+             */
+            net_total: string;
+            /**
+             * Pending Total
+             * @description A receber: planos e serviços em aberto (qualquer data)
+             */
+            pending_total: string;
+            /** Receipts */
+            receipts: components["schemas"]["CashReceipt"][];
+            /** Teachers */
+            teachers: components["schemas"]["CashTeacher"][];
+            /** Pending */
+            pending: components["schemas"]["CashPending"][];
+        };
+        /**
+         * CashTeacher
+         * @description Pagamento devido ao professor no período (aulas e serviços finalizados).
+         */
+        CashTeacher: {
+            teacher: components["schemas"]["TeacherSummary"];
+            /** Lessons Given */
+            lessons_given: number;
+            /** Lessons Amount */
+            lessons_amount: string;
+            /** Services Given */
+            services_given: number;
+            /** Services Amount */
+            services_amount: string;
+            /** Amount */
+            amount: string;
         };
         /** CatalogOverview */
         CatalogOverview: {
@@ -5534,6 +5691,38 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TeacherPaymentsResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_cash_report_api_v1_reports_cash_get: {
+        parameters: {
+            query: {
+                date_from: string;
+                date_to: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CashReport"];
                 };
             };
             /** @description Validation Error */

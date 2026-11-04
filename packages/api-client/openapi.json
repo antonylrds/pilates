@@ -4484,6 +4484,65 @@
           }
         }
       }
+    },
+    "/api/v1/reports/cash": {
+      "get": {
+        "tags": [
+          "reports"
+        ],
+        "summary": "Caixa: recebimentos, faturamento, pagamento dos professores e valores a receber",
+        "description": "Recebimentos pela data do pagamento; pagamento dos professores pela data da aula/sessão finalizada. 'A receber' lista planos e serviços não pagos de qualquer data.",
+        "operationId": "get_cash_report_api_v1_reports_cash_get",
+        "security": [
+          {
+            "Studio": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "date_from",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date",
+              "title": "Date From"
+            }
+          },
+          {
+            "name": "date_to",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date",
+              "title": "Date To"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CashReport"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -4734,6 +4793,243 @@
           "status"
         ],
         "title": "CalendarEntry"
+      },
+      "CashPending": {
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "plan",
+              "service"
+            ],
+            "title": "Kind"
+          },
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "since": {
+            "type": "string",
+            "format": "date",
+            "title": "Since",
+            "description": "Início do plano / da primeira sessão"
+          },
+          "student": {
+            "$ref": "#/components/schemas/StudentSummary"
+          },
+          "description": {
+            "type": "string",
+            "title": "Description"
+          },
+          "amount": {
+            "type": "string",
+            "title": "Amount"
+          }
+        },
+        "type": "object",
+        "required": [
+          "kind",
+          "id",
+          "since",
+          "student",
+          "description",
+          "amount"
+        ],
+        "title": "CashPending",
+        "description": "Plano ou serviço contratado ainda não pago."
+      },
+      "CashReceipt": {
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "plan",
+              "service"
+            ],
+            "title": "Kind"
+          },
+          "id": {
+            "type": "integer",
+            "title": "Id",
+            "description": "Id da assinatura (plano) ou da contratação (serviço)"
+          },
+          "date": {
+            "type": "string",
+            "format": "date",
+            "title": "Date",
+            "description": "Data do pagamento"
+          },
+          "student": {
+            "$ref": "#/components/schemas/StudentSummary"
+          },
+          "description": {
+            "type": "string",
+            "title": "Description",
+            "description": "Nome do plano ou do serviço"
+          },
+          "detail": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Detail",
+            "description": "Ex.: desconto aplicado, quantidade de sessões"
+          },
+          "gross": {
+            "type": "string",
+            "title": "Gross",
+            "description": "Valor de tabela"
+          },
+          "discount": {
+            "type": "string",
+            "title": "Discount",
+            "description": "Desconto concedido (tabela - pago)"
+          },
+          "amount": {
+            "type": "string",
+            "title": "Amount",
+            "description": "Valor recebido"
+          }
+        },
+        "type": "object",
+        "required": [
+          "kind",
+          "id",
+          "date",
+          "student",
+          "description",
+          "gross",
+          "discount",
+          "amount"
+        ],
+        "title": "CashReceipt",
+        "description": "Um recebimento do estúdio (plano ou serviço avulso pago)."
+      },
+      "CashReport": {
+        "properties": {
+          "date_from": {
+            "type": "string",
+            "format": "date",
+            "title": "Date From"
+          },
+          "date_to": {
+            "type": "string",
+            "format": "date",
+            "title": "Date To"
+          },
+          "received_total": {
+            "type": "string",
+            "title": "Received Total",
+            "description": "Faturamento: tudo o que foi pago no período"
+          },
+          "plans_total": {
+            "type": "string",
+            "title": "Plans Total"
+          },
+          "services_total": {
+            "type": "string",
+            "title": "Services Total"
+          },
+          "discounts_total": {
+            "type": "string",
+            "title": "Discounts Total",
+            "description": "Descontos concedidos nos recebimentos do período"
+          },
+          "teacher_payments_total": {
+            "type": "string",
+            "title": "Teacher Payments Total",
+            "description": "Pagamento dos professores pelas aulas/serviços do período"
+          },
+          "net_total": {
+            "type": "string",
+            "title": "Net Total",
+            "description": "Resultado: faturamento - pagamento dos professores"
+          },
+          "pending_total": {
+            "type": "string",
+            "title": "Pending Total",
+            "description": "A receber: planos e serviços em aberto (qualquer data)"
+          },
+          "receipts": {
+            "items": {
+              "$ref": "#/components/schemas/CashReceipt"
+            },
+            "type": "array",
+            "title": "Receipts"
+          },
+          "teachers": {
+            "items": {
+              "$ref": "#/components/schemas/CashTeacher"
+            },
+            "type": "array",
+            "title": "Teachers"
+          },
+          "pending": {
+            "items": {
+              "$ref": "#/components/schemas/CashPending"
+            },
+            "type": "array",
+            "title": "Pending"
+          }
+        },
+        "type": "object",
+        "required": [
+          "date_from",
+          "date_to",
+          "received_total",
+          "plans_total",
+          "services_total",
+          "discounts_total",
+          "teacher_payments_total",
+          "net_total",
+          "pending_total",
+          "receipts",
+          "teachers",
+          "pending"
+        ],
+        "title": "CashReport"
+      },
+      "CashTeacher": {
+        "properties": {
+          "teacher": {
+            "$ref": "#/components/schemas/TeacherSummary"
+          },
+          "lessons_given": {
+            "type": "integer",
+            "title": "Lessons Given"
+          },
+          "lessons_amount": {
+            "type": "string",
+            "title": "Lessons Amount"
+          },
+          "services_given": {
+            "type": "integer",
+            "title": "Services Given"
+          },
+          "services_amount": {
+            "type": "string",
+            "title": "Services Amount"
+          },
+          "amount": {
+            "type": "string",
+            "title": "Amount"
+          }
+        },
+        "type": "object",
+        "required": [
+          "teacher",
+          "lessons_given",
+          "lessons_amount",
+          "services_given",
+          "services_amount",
+          "amount"
+        ],
+        "title": "CashTeacher",
+        "description": "Pagamento devido ao professor no período (aulas e serviços finalizados)."
       },
       "CatalogOverview": {
         "properties": {
