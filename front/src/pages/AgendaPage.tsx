@@ -13,8 +13,18 @@ import { useSession } from "../lib/session";
 
 type Entry = Schemas["CalendarEntry"];
 
+/** Aula com alunos, já iniciada e ainda não concluída: alguém precisa registrar a presença. */
+function needsAttention(e: Entry, loadedAt: number): boolean {
+  const hasStudents = e.kind === "service" ? e.student != null : e.attendees_count > 0;
+  return e.status === "confirmed" && hasStudents && new Date(e.starts_at).getTime() < loadedAt;
+}
+
+const ATTENTION_TITLE = "Aula já passou e ainda não foi concluída";
+
 export function AgendaPage() {
   const { session } = useSession();
+  // Momento em que a página foi carregada: define o que já ficou para trás.
+  const [loadedAt] = useState(() => Date.now());
   const [monday, setMonday] = useState(() => mondayOf(new Date()));
   // Data escolhida no campo de data (destacada na grade).
   const [picked, setPicked] = useState<string | null>(null);
@@ -126,7 +136,19 @@ export function AgendaPage() {
                       <span className="chip-teacher">
                         {e.student?.name.split(" ")[0]} · {e.teacher.name.split(" ")[0]}
                       </span>
-                      <span className="chip-count">{e.status === "completed" ? "✓" : e.status === "cancelled" ? "—" : ""}</span>
+                      <span className="chip-count">
+                        {needsAttention(e, loadedAt) ? (
+                          <span className="chip-alert" title={ATTENTION_TITLE} aria-label={ATTENTION_TITLE}>
+                            !
+                          </span>
+                        ) : e.status === "completed" ? (
+                          "✓"
+                        ) : e.status === "cancelled" ? (
+                          "—"
+                        ) : (
+                          ""
+                        )}
+                      </span>
                     </button>
                   ) : (
                     <button
@@ -138,6 +160,11 @@ export function AgendaPage() {
                       <span className="chip-room">{e.room.name}</span>
                       <span className="chip-teacher">{e.teacher.name.split(" ")[0]}</span>
                       <span className="chip-count">
+                        {needsAttention(e, loadedAt) && (
+                          <span className="chip-alert" title={ATTENTION_TITLE} aria-label={ATTENTION_TITLE}>
+                            !
+                          </span>
+                        )}
                         {e.status === "cancelled" ? "—" : `${e.attendees_count}/${e.capacity}`}
                       </span>
                     </button>
