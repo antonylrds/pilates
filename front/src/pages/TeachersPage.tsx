@@ -3,7 +3,7 @@ import { type FormEvent, useState } from "react";
 
 import { Modal } from "../components/Modal";
 import { TeacherPayments } from "../components/TeacherPayments";
-import { Badge, Empty, ErrorBox, Loading } from "../components/ui";
+import { Badge, Empty, ErrorBox, HelpTip, Loading } from "../components/ui";
 import { api, call } from "../lib/api";
 import { fmtDate, fmtHour, money, toISO } from "../lib/format";
 import { useAsync } from "../lib/hooks";
@@ -294,24 +294,48 @@ function PayModal({ report, onClose, onSaved }: { report: Report; onClose: () =>
       <form id="pay-form" onSubmit={save}>
         <div className="form-row">
           <label className="field">
-            <span>Valor fixo por aula</span>
+            <span>
+              Valor fixo por aula
+              <HelpTip>
+                Quanto o professor recebe, em reais, por cada aula concluída em que pelo menos um aluno esteve presente.
+                Se todos faltarem, o fixo não é pago (vale o valor mínimo).
+              </HelpTip>
+            </span>
             {prefixed("R$", perClass, setPerClass)}
             <small className="muted">Pago por aula concluída com alunos presentes</small>
           </label>
           <label className="field">
-            <span>% por aluno presente</span>
+            <span>
+              % por aluno presente
+              <HelpTip align="right">
+                Percentual do valor de uma aula do plano do aluno (preço pago ÷ aulas do plano), somado para cada aluno
+                presente. Ex.: plano de R$ 320 com 8 aulas vale R$ 40 por aula; com 40%, rende R$ 16 por aluno.
+              </HelpTip>
+            </span>
             {prefixed("%", percent, setPercent, 100)}
             <small className="muted">Do valor de uma aula do plano do aluno</small>
           </label>
         </div>
         <div className="form-row">
           <label className="field">
-            <span>Valor mínimo por aula</span>
+            <span>
+              Valor mínimo por aula
+              <HelpTip>
+                Menor valor que o professor recebe por aula concluída, mesmo que todos os alunos faltem. Se o fixo mais o
+                valor dos alunos presentes der menos que isso, vale o mínimo.
+              </HelpTip>
+            </span>
             {prefixed("R$", minimum, setMinimum)}
             <small className="muted">Garantido por aula concluída, inclusive quando todos os alunos faltam</small>
           </label>
           <label className="field">
-            <span>% em serviços avulsos</span>
+            <span>
+              % em serviços avulsos
+              <HelpTip align="right">
+                Percentual do valor combinado da sessão de serviço avulso (fisioterapia, RPG…) pago ao profissional quando
+                o cliente comparece. Falta do cliente não gera valor.
+              </HelpTip>
+            </span>
             {prefixed("%", servicePercent, setServicePercent, 100)}
             <small className="muted">Do valor da sessão (fisioterapia, RPG…), quando o cliente comparece</small>
           </label>
