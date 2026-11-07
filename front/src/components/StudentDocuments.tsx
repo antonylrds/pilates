@@ -1,10 +1,11 @@
-import { type FormEvent, useRef, useState } from "react";
+import { type FormEvent, useEffect, useRef, useState } from "react";
 
 import { api, authFetch, call, errorMessage } from "../lib/api";
 import { fmtDateTime } from "../lib/format";
 import { useAsync } from "../lib/hooks";
 import { useSession } from "../lib/session";
 import { ConfirmPanel } from "./ConfirmPanel";
+import { Modal } from "./Modal";
 import { Empty, ErrorBox, Loading } from "./ui";
 
 type Props = { studentId: number; version: number };
@@ -31,6 +32,15 @@ export function StudentDocuments({ studentId, version }: Props) {
   const [error, setError] = useState<string>();
   const [removing, setRemoving] = useState<number>();
   const [editing, setEditing] = useState<{ id: number; text: string }>();
+  const [preview, setPreview] = useState<{ url: string; filename: string; type: string }>();
+
+  // Libera o arquivo da memória quando a pré-visualização fecha (ou troca).
+  useEffect(() => {
+    const url = preview?.url;
+    return () => {
+      if (url) URL.revokeObjectURL(url);
+    };
+  }, [preview?.url]);
 
   async function upload(e: FormEvent) {
     e.preventDefault();
@@ -65,6 +75,19 @@ export function StudentDocuments({ studentId, version }: Props) {
       link.download = filename;
       link.click();
       setTimeout(() => URL.revokeObjectURL(url), 10_000);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    }
+  }
+
+  /** Mostra o arquivo (imagem ou PDF) num modal, sem sair da página. */
+  async function view(id: number, filename: string) {
+    setError(undefined);
+    try {
+      const response = await authFetch(`/api/v1/students/${studentId}/documents/${id}/download`);
+      if (!response.ok) throw new Error(errorMessage(await response.json().catch(() => undefined)));
+      const blob = await response.blob();
+      setPreview({ url: URL.createObjectURL(blob), filename, type: blob.type });
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     }
@@ -166,7 +189,9 @@ export function StudentDocuments({ studentId, version }: Props) {
               {docs.map((d) => (
                 <tr key={d.id}>
                   <td>
-                    {d.filename}
+                    <div className="doc-name" title={d.filename}>
+                      {d.filename}
+                    </div>
                     <div className="muted small">{fmtSize(d.size)}</div>
                   </td>
                   <td className="small">
@@ -214,6 +239,9 @@ export function StudentDocuments({ studentId, version }: Props) {
                   </td>
                   <td>
                     <div className="toolbar">
+                      <button className="btn btn-sm btn-primary" onClick={() => view(d.id, d.filename)}>
+                        Visualizar
+                      </button>
                       <button className="btn btn-sm" onClick={() => download(d.id, d.filename)}>
                         Baixar
                       </button>
@@ -243,6 +271,16 @@ export function StudentDocuments({ studentId, version }: Props) {
             </tbody>
           </table>
         </div>
+      )}
+
+      {preview && (
+        <Modal title={preview.filename} onClose={() => setPreview(undefined)} wide>
+          {preview.type.startsWith("image/") ? (
+            <img className="doc-preview-image" src={preview.url} alt={preview.filename} />
+          ) : (
+            <iframe className="doc-preview-frame" src={preview.url} title={preview.filename} />
+          )}
+        </Modal>
       )}
     </div>
   );
