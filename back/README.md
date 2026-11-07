@@ -79,6 +79,7 @@ cancelamento e substituição apenas nas próprias aulas; vê apenas o próprio 
 | `/students/{id}/schedule` | Ver/alterar turmas padrão |
 | `/students/{id}/attendances` | Histórico de aulas (independe do horário atual) |
 | `/students/{id}/schedule/history` | Histórico de horários padrão (atuais, futuros, encerrados) |
+| `/students/{id}/documents` | Laudos/exames do aluno (PDF, JPG, PNG): enviar (admin), listar, baixar e excluir (admin). Armazenamento local ou S3 (`STORAGE_BACKEND`) |
 | `/students/{id}/history` | Registro de alterações: o que mudou, quem e quando |
 | `/students/{id}/subscriptions/{sid}/payment` | Marca o plano como pago/pendente (atualiza o pagamento do plano) |
 | `/payments` | Pagamentos de alunos (plano) e professores: lista com filtros `kind`, `student_id`, `teacher_id`, `status`, `date_from`/`date_to` (+ `date_field`); `POST /payments/{id}/pay`, `/pending`, `/cancel`; observações via `PATCH` |

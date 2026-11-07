@@ -65,6 +65,21 @@ export const api = createApiClient({
   },
 });
 
+/** fetch autenticado (upload/download de arquivos, que o cliente tipado não cobre). Usa o mesmo token e URL base. */
+export function authFetch(path: string, init: RequestInit = {}): Promise<Response> {
+  const base = import.meta.env.VITE_API_URL || window.location.origin;
+  const headers = new Headers(init.headers);
+  const token = getToken();
+  if (token) headers.set("Authorization", `Bearer ${token}`);
+  return fetch(`${base}${path}`, { ...init, headers }).then((response) => {
+    if (response.status === 401 && token) {
+      clearSession();
+      window.location.assign("/login");
+    }
+    return response;
+  });
+}
+
 export function errorMessage(error: unknown): string {
   if (error && typeof error === "object" && "detail" in error) {
     const detail = (error as { detail: unknown }).detail;

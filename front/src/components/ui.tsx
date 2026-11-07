@@ -15,3 +15,17 @@ export function ErrorBox({ message }: { message: string }) {
 export function Empty({ children }: { children: ReactNode }) {
   return <div className="empty">{children}</div>;
 }
+
+/** Ícone "?" que explica o campo ao passar o mouse ou focar (também funciona ao tocar). */
+export function HelpTip({ children, align = "left" }: { children: ReactNode; align?: "left" | "right" }) {
+  return (
+    <span className="help-tip">
+      <button type="button" className="help-tip-btn" aria-label="O que significa este valor?">
+        ?
+      </button>
+      <span role="tooltip" className={`help-tip-text help-tip-${align}`}>
+        {children}
+      </span>
+    </span>
+  );
+}

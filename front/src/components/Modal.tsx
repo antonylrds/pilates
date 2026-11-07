@@ -20,11 +20,11 @@ export function Modal({ title, subtitle, onClose, children, footer, wide }: Prop
     <div className="modal-backdrop" onClick={onClose}>
       <div className={`modal ${wide ? "modal-wide" : ""}`} role="dialog" aria-label={title} onClick={(e) => e.stopPropagation()}>
         <header className="modal-header">
-          <div>
-            <h2>{title}</h2>
+          <div className="modal-title">
+            <h2 title={title}>{title}</h2>
             {subtitle && <p className="muted small">{subtitle}</p>}
           </div>
-          <button className="btn btn-ghost" onClick={onClose} aria-label="Fechar">
+          <button className="btn btn-ghost modal-close" onClick={onClose} aria-label="Fechar">
             ✕
           </button>
         </header>

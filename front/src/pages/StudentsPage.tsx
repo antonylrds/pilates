@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 
 import { LessonPanel } from "../components/LessonPanel";
 import { PlanHistory } from "../components/PlanHistory";
+import { StudentDocuments } from "../components/StudentDocuments";
 import { RenewPlanModal } from "../components/RenewPlanModal";
 import { RescheduleTracking } from "../components/RescheduleTracking";
 import { StudentFormModal } from "../components/StudentFormModal";
@@ -319,6 +320,8 @@ function StudentDetail({ id, onEdited }: { id: number; onEdited: () => void }) {
         version={historyVersion}
         onChanged={() => setHistoryVersion((v) => v + 1)}
       />
+
+      <StudentDocuments studentId={s.id} version={historyVersion} />
 
       <ChangeLog studentId={s.id} version={historyVersion} />
 
