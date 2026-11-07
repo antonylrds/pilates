@@ -273,7 +273,7 @@ def test_teacher_payment_report_counts_only_completed_lessons(client, studio):
     # semana 3: aula aconteceu mas não foi concluída => não conta
     client.patch(f"{API}/lessons/{g['id']}/{week3.isoformat()}", json={"notes": "sem chamada"}, headers=studio.h)
     # aula em que todos faltaram (sem mínimo) conta como aula dada, com R$ 0
-    studio.complete(g_empty, past_weekday(1), [(rui, "absent")])
+    studio.complete(g_empty, past_weekday(1, 2), [(rui, "absent")])
 
     report = client.get(
         f"{API}/reports/teacher-payments",
