@@ -38,6 +38,7 @@ banco central            banco por estúdio (pilates_<slug>)
 ├── studios              ├── users, teachers, students
 └── platform_users       ├── rooms, plans, discounts, subscriptions
                          ├── class_groups (turmas), enrollments (horários padrão)
+                         ├── payments (pagamentos de alunos e professores)
                          ├── lessons (aulas), attendances (chamada)
                          └── notifications
 ```
@@ -79,7 +80,8 @@ cancelamento e substituição apenas nas próprias aulas; vê apenas o próprio 
 | `/students/{id}/attendances` | Histórico de aulas (independe do horário atual) |
 | `/students/{id}/schedule/history` | Histórico de horários padrão (atuais, futuros, encerrados) |
 | `/students/{id}/history` | Registro de alterações: o que mudou, quem e quando |
-| `/students/{id}/subscriptions/{sid}/payment` | Marca o plano como pago/pendente |
+| `/students/{id}/subscriptions/{sid}/payment` | Marca o plano como pago/pendente (atualiza o pagamento do plano) |
+| `/payments` | Pagamentos de alunos (plano) e professores: lista com filtros `kind`, `student_id`, `teacher_id`, `status`, `date_from`/`date_to` (+ `date_field`); `POST /payments/{id}/pay`, `/pending`, `/cancel`; observações via `PATCH` |
 | `/services` | Catálogo de serviços avulsos (fisioterapia, RPG…) |
 | `/catalog/overview` | Uso de cada plano (em uso, na fila, pendentes) e serviço (contratos, sessões futuras) |
 | `/students/{id}/services` | Serviços avulsos do aluno: contratar (sala, profissional, horário, valor editável, recorrência opcional), histórico, observações, cancelar |

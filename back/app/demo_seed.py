@@ -25,8 +25,9 @@ from app.models.tenant.enums import (
 )
 from app.schemas.offerings import ServiceContractCreate
 from app.schemas.catalog import SubscriptionCreate
+from app.schemas.payments import PaymentCreate
 from app.schemas.schedule import CompletionItem
-from app.services import attendance, audit, credits, offerings, schedule
+from app.services import attendance, audit, credits, offerings, payments, schedule
 
 STUDENTS = [
     ("Mariana Costa", "11 98811-2233", "mariana.costa@email.com", "Hérnia de disco L4-L5. Evitar flexão profunda."),
@@ -310,6 +311,43 @@ def seed(slug: str, reset: bool = False) -> None:
                 if session.date < yesterday:
                     offerings.complete_session(ctx, session, present=i != 1, justification=None if i != 1 else "Desmarcou em cima da hora")
             audit.log(ctx, who.id, audit.Action.SERVICE_CONTRACTED, f"Serviço avulso contratado: {service_name}")
+        db.commit()
+
+        # Pagamentos de professores (nos professores criados acima, inclusive a fisioterapeuta):
+        # pagos em datas diferentes, pendentes e um cancelado, para a ficha do professor e o caixa terem o que mostrar.
+        teachers_by_name = {**teachers, physio.name: physio}
+        month_start = today.replace(day=1)
+        prev_end = month_start - timedelta(days=1)
+        prev_start = prev_end.replace(day=1)
+        # (professor, valor, período, pago há N dias | None = pendente, observação, cancelar)
+        teacher_payments = [
+            ("Ana Paula", "650.00", (prev_start, prev_end), 20, "Fechamento do mês anterior", False),
+            ("Ana Paula", "420.00", (month_start, today), 3, "Pagamento parcial do mês", False),
+            ("Bruno Tavares", "580.00", (prev_start, prev_end), 12, "Fechamento do mês anterior", False),
+            ("Bruno Tavares", "300.00", (month_start, today), None, "Aguardando fechamento do mês", False),
+            ("Carla Menezes", "410.00", (prev_start, prev_end), 9, None, False),
+            ("Carla Menezes", "150.00", (month_start, today), 2, "Adiantamento", False),
+            ("Carla Menezes", "200.00", (month_start, today), 6, "Lançado em duplicidade", True),
+            ("Daniela Rocha", "350.00", (prev_start, prev_end), 6, "Atendimentos de fisioterapia/RPG", False),
+            ("Daniela Rocha", "280.00", (month_start, today), None, None, False),
+        ]
+        for name, amount, (period_start, period_end), paid_days_ago, note, cancel in teacher_payments:
+            paid = paid_days_ago is not None or cancel
+            payment = payments.create_payment(
+                db,
+                PaymentCreate(
+                    kind="teacher",
+                    teacher_id=teachers_by_name[name].id,
+                    amount=Decimal(amount),
+                    period_start=period_start,
+                    period_end=period_end,
+                    is_paid=paid,
+                    paid_at=today - timedelta(days=paid_days_ago if paid_days_ago is not None else 0) if paid else None,
+                    notes=note,
+                ),
+            )
+            if cancel:
+                payments.cancel(payment, note)
         db.commit()
 
         # Uma reposição e uma aula cancelada na próxima semana

@@ -4543,6 +4543,499 @@
           }
         }
       }
+    },
+    "/api/v1/payments": {
+      "get": {
+        "tags": [
+          "payments"
+        ],
+        "summary": "Lista os pagamentos (alunos e professores) com filtros",
+        "description": "`date_from`/`date_to` filtram pela data escolhida em `date_field` (criação, pagamento ou cancelamento; padrão: criação). Os totais por status consideram todos os pagamentos filtrados.",
+        "operationId": "list_payments_api_v1_payments_get",
+        "security": [
+          {
+            "Studio": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "kind",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/PaymentKind"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Kind"
+            }
+          },
+          {
+            "name": "student_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Student Id"
+            }
+          },
+          {
+            "name": "teacher_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Teacher Id"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/PaymentStatus"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          },
+          {
+            "name": "date_from",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Date From"
+            }
+          },
+          {
+            "name": "date_to",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Date To"
+            }
+          },
+          {
+            "name": "date_field",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "enum": [
+                "created",
+                "paid",
+                "cancelled"
+              ],
+              "type": "string",
+              "default": "created",
+              "title": "Date Field"
+            }
+          },
+          {
+            "name": "skip",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 0,
+              "title": "Skip"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 100,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaymentList"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "payments"
+        ],
+        "summary": "Registra um pagamento",
+        "operationId": "create_payment_api_v1_payments_post",
+        "security": [
+          {
+            "Studio": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PaymentCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaymentRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/payments/{payment_id}": {
+      "get": {
+        "tags": [
+          "payments"
+        ],
+        "summary": "Get Payment",
+        "operationId": "get_payment_api_v1_payments__payment_id__get",
+        "security": [
+          {
+            "Studio": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "payment_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Payment Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaymentRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "payments"
+        ],
+        "summary": "Altera observações, valor (professor) ou data do pagamento",
+        "operationId": "update_payment_api_v1_payments__payment_id__patch",
+        "security": [
+          {
+            "Studio": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "payment_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Payment Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PaymentUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaymentRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/payments/{payment_id}/pay": {
+      "post": {
+        "tags": [
+          "payments"
+        ],
+        "summary": "Marca como pago",
+        "operationId": "pay_api_v1_payments__payment_id__pay_post",
+        "security": [
+          {
+            "Studio": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "payment_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Payment Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/PaymentPay"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Data"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaymentRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/payments/{payment_id}/pending": {
+      "post": {
+        "tags": [
+          "payments"
+        ],
+        "summary": "Volta para pendente",
+        "operationId": "pending_api_v1_payments__payment_id__pending_post",
+        "security": [
+          {
+            "Studio": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "payment_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Payment Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaymentRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/payments/{payment_id}/cancel": {
+      "post": {
+        "tags": [
+          "payments"
+        ],
+        "summary": "Cancela o pagamento",
+        "operationId": "cancel_api_v1_payments__payment_id__cancel_post",
+        "security": [
+          {
+            "Studio": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "payment_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Payment Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/PaymentCancel"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Data"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaymentRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -4942,12 +5435,17 @@
           "teacher_payments_total": {
             "type": "string",
             "title": "Teacher Payments Total",
-            "description": "Pagamento dos professores pelas aulas/serviços do período"
+            "description": "Devido aos professores pelas aulas/serviços do período"
+          },
+          "teacher_paid_total": {
+            "type": "string",
+            "title": "Teacher Paid Total",
+            "description": "Pago aos professores no período (desconto do caixa)"
           },
           "net_total": {
             "type": "string",
             "title": "Net Total",
-            "description": "Resultado: faturamento - pagamento dos professores"
+            "description": "Resultado: faturamento - pago aos professores"
           },
           "pending_total": {
             "type": "string",
@@ -4968,6 +5466,13 @@
             "type": "array",
             "title": "Teachers"
           },
+          "teacher_payments": {
+            "items": {
+              "$ref": "#/components/schemas/CashTeacherPayment"
+            },
+            "type": "array",
+            "title": "Teacher Payments"
+          },
           "pending": {
             "items": {
               "$ref": "#/components/schemas/CashPending"
@@ -4985,10 +5490,12 @@
           "services_total",
           "discounts_total",
           "teacher_payments_total",
+          "teacher_paid_total",
           "net_total",
           "pending_total",
           "receipts",
           "teachers",
+          "teacher_payments",
           "pending"
         ],
         "title": "CashReport"
@@ -5016,7 +5523,13 @@
           },
           "amount": {
             "type": "string",
-            "title": "Amount"
+            "title": "Amount",
+            "description": "Devido no período (aulas e serviços finalizados)"
+          },
+          "paid": {
+            "type": "string",
+            "title": "Paid",
+            "description": "Já pago no período (pagamentos de professor com status pago)"
           }
         },
         "type": "object",
@@ -5026,10 +5539,53 @@
           "lessons_amount",
           "services_given",
           "services_amount",
-          "amount"
+          "amount",
+          "paid"
         ],
         "title": "CashTeacher",
         "description": "Pagamento devido ao professor no período (aulas e serviços finalizados)."
+      },
+      "CashTeacherPayment": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "date": {
+            "type": "string",
+            "format": "date",
+            "title": "Date",
+            "description": "Data do pagamento"
+          },
+          "teacher": {
+            "$ref": "#/components/schemas/TeacherSummary"
+          },
+          "amount": {
+            "type": "string",
+            "title": "Amount"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "date",
+          "teacher",
+          "amount",
+          "notes"
+        ],
+        "title": "CashTeacherPayment",
+        "description": "Pagamento efetivamente feito a um professor (entra como desconto no caixa)."
       },
       "CatalogOverview": {
         "properties": {
@@ -6072,6 +6628,422 @@
           "new_password"
         ],
         "title": "PasswordChange"
+      },
+      "PaymentCancel": {
+        "properties": {
+          "notes": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 2000
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes",
+            "description": "Motivo (substitui as observações, se informado)"
+          }
+        },
+        "type": "object",
+        "title": "PaymentCancel"
+      },
+      "PaymentCreate": {
+        "properties": {
+          "kind": {
+            "$ref": "#/components/schemas/PaymentKind"
+          },
+          "amount": {
+            "anyOf": [
+              {
+                "type": "number",
+                "minimum": 0.0
+              },
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Amount",
+            "description": "Padrão (aluno): valor pago do plano. Obrigatório para professor"
+          },
+          "is_paid": {
+            "type": "boolean",
+            "title": "Is Paid",
+            "description": "Registrar já como pago",
+            "default": false
+          },
+          "paid_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Paid At",
+            "description": "Data do pagamento (padrão: hoje, se pago)"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 2000
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          },
+          "student_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Student Id"
+          },
+          "subscription_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Subscription Id",
+            "description": "Plano do aluno ao qual o pagamento se refere"
+          },
+          "teacher_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Teacher Id"
+          },
+          "period_start": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Period Start"
+          },
+          "period_end": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Period End"
+          }
+        },
+        "type": "object",
+        "required": [
+          "kind"
+        ],
+        "title": "PaymentCreate"
+      },
+      "PaymentKind": {
+        "type": "string",
+        "enum": [
+          "student",
+          "teacher"
+        ],
+        "title": "PaymentKind"
+      },
+      "PaymentList": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/PaymentRead"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "count": {
+            "type": "integer",
+            "title": "Count",
+            "description": "Total de pagamentos que atendem aos filtros (ignora skip/limit)"
+          },
+          "totals": {
+            "$ref": "#/components/schemas/PaymentTotals",
+            "description": "Soma por status dos pagamentos filtrados"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items",
+          "count",
+          "totals"
+        ],
+        "title": "PaymentList"
+      },
+      "PaymentPay": {
+        "properties": {
+          "paid_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Paid At",
+            "description": "Padrão: hoje"
+          }
+        },
+        "type": "object",
+        "title": "PaymentPay"
+      },
+      "PaymentRead": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/PaymentKind"
+          },
+          "status": {
+            "$ref": "#/components/schemas/PaymentStatus"
+          },
+          "amount": {
+            "type": "string",
+            "title": "Amount"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At",
+            "description": "Data de criação"
+          },
+          "paid_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Paid At",
+            "description": "Data do pagamento"
+          },
+          "cancelled_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cancelled At",
+            "description": "Data do cancelamento"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          },
+          "student": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/StudentSummary"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "subscription_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Subscription Id"
+          },
+          "plan_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Plan Name",
+            "description": "Plano contratado (pagamento de aluno)"
+          },
+          "teacher": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TeacherSummary"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "period_start": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Period Start"
+          },
+          "period_end": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Period End"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "kind",
+          "status",
+          "amount",
+          "created_at",
+          "paid_at",
+          "cancelled_at",
+          "notes",
+          "student",
+          "subscription_id",
+          "plan_name",
+          "teacher",
+          "period_start",
+          "period_end"
+        ],
+        "title": "PaymentRead"
+      },
+      "PaymentStatus": {
+        "type": "string",
+        "enum": [
+          "pending",
+          "paid",
+          "cancelled"
+        ],
+        "title": "PaymentStatus"
+      },
+      "PaymentTotals": {
+        "properties": {
+          "pending": {
+            "type": "string",
+            "title": "Pending"
+          },
+          "paid": {
+            "type": "string",
+            "title": "Paid"
+          },
+          "cancelled": {
+            "type": "string",
+            "title": "Cancelled"
+          }
+        },
+        "type": "object",
+        "required": [
+          "pending",
+          "paid",
+          "cancelled"
+        ],
+        "title": "PaymentTotals"
+      },
+      "PaymentUpdate": {
+        "properties": {
+          "notes": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 2000
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          },
+          "amount": {
+            "anyOf": [
+              {
+                "type": "number",
+                "minimum": 0.0
+              },
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Amount",
+            "description": "Só enquanto o pagamento está pendente"
+          },
+          "paid_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Paid At",
+            "description": "Corrige a data de um pagamento já pago"
+          }
+        },
+        "type": "object",
+        "title": "PaymentUpdate",
+        "description": "Campos editáveis. O status muda pelas ações pay / pending / cancel."
       },
       "PlanCreate": {
         "properties": {

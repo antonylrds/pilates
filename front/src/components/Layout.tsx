@@ -12,6 +12,7 @@ const NAV = [
   { to: "/catalogo", label: "Planos e serviços", icon: "★" },
   { to: "/professores", label: "Professores", icon: "✦" },
   { to: "/caixa", label: "Caixa", icon: "$", adminOnly: true },
+  { to: "/pagamentos", label: "Pagamentos", icon: "≡", adminOnly: true },
   { to: "/avisos", label: "Avisos", icon: "◔", badge: "unread" },
 ] as const;
 

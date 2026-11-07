@@ -72,3 +72,43 @@ def test_freeze_pay_migration_keeps_data_and_backfills(tmp_path):
         # nome do plano congelado nas contratações existentes
         assert conn.scalar(text("SELECT plan_name FROM subscriptions WHERE id = 1")) == "Mensal"
     engine.dispose()
+
+
+def test_payments_migration_backfills_one_payment_per_subscription(tmp_path):
+    url = tenant_url("migr_pay")
+    cfg = _alembic_config("tenant", url)
+    command.upgrade(cfg, "884860db39b5")  # antes da tabela de pagamentos
+
+    engine = create_engine(url)
+    with engine.begin() as conn:
+        conn.execute(text("INSERT INTO students (id, name, phones, emails, is_active) VALUES (1, 'Ana', '[]', '[]', 1)"))
+        conn.execute(text(
+            "INSERT INTO plans (id, name, sessions_per_week, total_classes, price, is_active) "
+            "VALUES (1, 'Mensal', 1, 8, 320, 1)"
+        ))
+        # 1 pago com data, 2 pago sem data, 3 pendente, 4 cancelado sem pagamento, 5 cancelado mas pago
+        rows = [(1, 1, "active", "'2026-10-05'"), (2, 1, "active", "NULL"), (3, 0, "active", "NULL"),
+                (4, 0, "cancelled", "NULL"), (5, 1, "cancelled", "'2026-09-01'")]
+        for sid, paid, st, paid_at in rows:
+            conn.execute(text(
+                "INSERT INTO subscriptions (id, student_id, plan_id, start_date, total_classes, sessions_per_week, "
+                "base_price, discount_amount, final_price, status, is_paid, paid_at) "
+                f"VALUES ({sid}, 1, 1, '2026-08-01', 8, 1, 320, 20, 300, '{st}', {paid}, {paid_at})"
+            ))
+
+    command.upgrade(cfg, "head")
+
+    with engine.connect() as conn:
+        payments = conn.execute(text(
+            "SELECT subscription_id, kind, status, amount, paid_at, student_id FROM payments ORDER BY subscription_id"
+        )).fetchall()
+        mirror = conn.scalar(text("SELECT paid_at FROM subscriptions WHERE id = 2"))
+    engine.dispose()
+    assert [(p[0], p[1], p[2], float(p[3]), p[4], p[5]) for p in payments] == [
+        (1, "student", "paid", 300.0, "2026-10-05", 1),
+        (2, "student", "paid", 300.0, "2026-08-01", 1),  # sem data: usa o início do plano
+        (3, "student", "pending", 300.0, None, 1),
+        (4, "student", "cancelled", 300.0, None, 1),
+        (5, "student", "paid", 300.0, "2026-09-01", 1),
+    ]
+    assert mirror == "2026-08-01"

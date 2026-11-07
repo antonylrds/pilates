@@ -11,6 +11,7 @@ from app.models.central import Studio
 from app.models.tenant import Attendance, Discount, Lesson, Notification, Plan, Student, Subscription
 from app.models.tenant.enums import AttendanceStatus, DiscountKind, NotificationKind, SubscriptionStatus
 from app.schemas.catalog import SubscriptionCreate
+from app.services import payments
 
 CENT = Decimal("0.01")
 
@@ -54,12 +55,12 @@ def create_subscription(db: Session, student: Student, data: SubscriptionCreate)
         base_price=plan.price,
         discount_amount=disc,
         final_price=plan.price - disc,
-        is_paid=data.is_paid,
-        paid_at=(data.paid_at or date.today()) if data.is_paid else None,
         notes=data.notes,
     )
     db.add(subscription)
     db.flush()
+    # Todo plano nasce com um pagamento: pendente, ou já pago quando informado.
+    payments.create_for_subscription(db, subscription, data.is_paid, data.paid_at)
     return subscription
 
 

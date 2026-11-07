@@ -20,7 +20,7 @@ from app.schemas.people import (
     UpcomingMakeup,
 )
 from app.schemas.schedule import LessonRef, RescheduleChain, StudentAttendanceRead, UpcomingLesson
-from app.services import audit, credits
+from app.services import audit, credits, payments
 from app.services.schedule import (
     current_enrollments,
     enrollment_history,
@@ -223,6 +223,7 @@ def cancel_subscription(student_id: int, subscription_id: int, ctx: Admin):
     if subscription.status == SubscriptionStatus.CANCELLED:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Plano já está cancelado")
     subscription.status = SubscriptionStatus.CANCELLED
+    payments.cancel_for_subscription(ctx.db, subscription)
     audit.log(ctx, student_id, audit.Action.PLAN_CANCELLED, f"Plano cancelado: {subscription.plan_name}")
     ctx.db.commit()
     return subscription
@@ -245,8 +246,7 @@ def update_payment(student_id: int, subscription_id: int, data: SubscriptionPaym
             "to": paid_at.isoformat() if paid_at else None,
         },
     }
-    subscription.is_paid = data.is_paid
-    subscription.paid_at = paid_at
+    payments.set_subscription_paid(ctx.db, subscription, data.is_paid, paid_at)
     description = (
         f"Plano {subscription.plan_name} marcado como pago em {audit.fmt_date(paid_at)}"
         if data.is_paid

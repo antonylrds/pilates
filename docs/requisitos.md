@@ -84,6 +84,15 @@ O contrato entre elas é a API REST do back (`packages/api-client`, gerado do Op
   Se o aluno **não tiver aulas disponíveis**, o sistema informa e **impede** a inclusão.
 - **RF-44** Deve haver uma tela de **caixa** com **todos os recebimentos** do estúdio, o **faturamento do mês**
   e o **desconto do pagamento dos professores**.
+- **RF-45** Deve existir a entidade **pagamento**, de dois tipos: **aluno** e **professor**. O pagamento de aluno é
+  vinculado ao **estúdio, aluno e plano**; ao vincular um plano novo nasce **pendente**, mas é possível vincular
+  já **pago**. Todo pagamento tem **data de criação, de pagamento e de cancelamento** e um campo de
+  **observações**, editável direto na área de pagamentos. Deve ser possível **ver todos os pagamentos** e filtrar
+  por **aluno, intervalo de datas ou status**.
+
+- **RF-46** O pagamento do **professor** é vinculado somente ao estúdio e ao professor, exibe o **valor pago**, **data** e
+  **status**, e deve ser visível na **ficha do professor**. O que foi pago ao professor entra no **caixa como desconto**
+  (o pagamento do aluno entra como valor recebido).
 
 ### Planos e renovação
 - **RF-13** Cada plano dá acesso a um **número X de aulas**.
@@ -169,12 +178,14 @@ O contrato entre elas é a API REST do back (`packages/api-client`, gerado do Op
 | D-17 | A tela de finalização lista as aulas que **já começaram** nos últimos 30 dias, têm alunos e não foram concluídas/canceladas. Professor vê apenas as próprias. | Implementa RF-21. |
 | D-31 | Plano com `sessions_per_week = 0` = **sem recorrência**: não permite turmas padrão. **Aula avulsa** = registro de presença fora do horário padrão **sem aula de origem** (`is_makeup = true`, `makeup_from` vazio; exposto como `is_drop_in`). Só em aula que ainda não começou, com vaga e sem conflito de horário; o aluno precisa ter saldo (aulas restantes menos avulsas já marcadas e não concluídas, inclusive as que foram reagendadas). A aula do plano é debitada na conclusão, como qualquer presença; pode ser reagendada e removida enquanto pendente. Vale para qualquer plano, não só os sem recorrência. | Implementa RF-42. |
 | D-32 | Detalhes da aula: **incluir aluno** (antes da aula começar) como **aula avulsa** (exige `drop_in_available > 0` = aulas restantes menos avulsas já marcadas) ou como **reposição** de uma aula futura do aluno (exige aulas restantes > 0). **Alterar professor** (admin) vale só para aquela data (substituto), não em aulas concluídas ou canceladas, e é recusado se o professor já der outra aula ou atender um serviço no mesmo dia e horário. | Implementa RF-43. |
-| D-33 | **Caixa** (só admin), por mês: recebimentos = planos e serviços **pagos**, pela **data do pagamento** (`paid_at`), com valor de tabela, desconto e valor recebido (serviço = valor por sessão × sessões contratadas). Pagamento dos professores = relatório de pagamento (D-08) das aulas/sessões **finalizadas no mês**. Resultado = faturamento − professores. **A receber** = planos e serviços não pagos e não cancelados, de qualquer data (planos gratuitos ficam de fora). Estornos/reembolsos não são controlados. | Implementa RF-44. |
+| D-33 | **Caixa** (só admin), por mês: recebimentos = planos e serviços **pagos**, pela **data do pagamento** (`paid_at`), com valor de tabela, desconto e valor recebido (serviço = valor por sessão × sessões contratadas). Pagamento dos professores = o que foi **efetivamente pago** (pagamentos de professor com status pago, D-34/D-35) pela **data do pagamento**, que entra como **desconto**; o relatório de pagamento (D-08) das aulas/sessões finalizadas no mês aparece como **devido**, para comparação. Resultado = faturamento − pago aos professores. **A receber** = planos e serviços não pagos e não cancelados, de qualquer data (planos gratuitos ficam de fora). Estornos/reembolsos não são controlados. | Implementa RF-44. |
+| D-34 | **Pagamento** (`payments`): `kind` = `student` (aluno + plano contratado) ou `teacher` (professor, valor e período opcional); `status` = `pending` → `paid` → (volta a `pending`) ou `cancelled` (terminal). O vínculo com o estúdio é implícito (um banco por estúdio, D-01). Todo plano vinculado cria seu pagamento (pendente, ou pago se `is_paid`); o valor é o **valor pago do plano** e não é editável. Um plano tem **um** pagamento ativo (não cancelado). O pagamento do plano é a fonte da verdade: `Subscription.is_paid/paid_at` são um **espelho** mantido pelo back (D-22, caixa e catálogo continuam lendo-os). Cancelar o **plano** cancela o pagamento ainda **pendente**; pagamento já pago é mantido. Pagamento de professor é um **registro manual** do repasse (não é calculado nem altera D-08). Filtro de datas por **criação** (padrão), **pagamento** ou **cancelamento** (`date_field`). Só o **admin** acessa. Serviços avulsos continuam com `is_paid/paid_at` na contratação (fora desta entidade). | Implementa RF-45. |
+| D-35 | **Pagamento de professor**: vinculado apenas ao professor (e ao estúdio, implícito); tem **data** (criação, pagamento e cancelamento), **valor**, **status** e observações. Aparece na **ficha do professor** (tela Professores), que sugere o valor **devido** no mês e o período. Na ficha, o professor é pago pelo valor digitado (pode diferir do devido: adiantamento, parcial, bônus). No **caixa**, só entram como desconto os pagamentos **pagos**, na data do pagamento; pendentes e cancelados não. | Implementa RF-46. Diferente do aluno, que entra como valor recebido. |
 | D-30 | Datas são exibidas e digitadas sempre como **dd/mm/aaaa** (componente `DateInput` no front), independente do idioma do navegador/SO — o `<input type="date">` nativo segue a localidade do sistema. A API continua trocando datas em ISO (`aaaa-mm-dd`). | Vale também para o mobile. |
 
 ## 6. Fora do escopo (por enquanto)
 
-- Cobrança e financeiro de mensalidades (pagamentos, inadimplência).
+- Cobrança automática, formas de pagamento, pagamentos parciais e inadimplência (o controle de pagamentos é manual, D-34).
 - Validade de planos por data.
 - Feriados e fechamentos pontuais do estúdio.
 - Área do aluno (login do aluno no app).
@@ -199,6 +210,8 @@ O contrato entre elas é a API REST do back (`packages/api-client`, gerado do Op
 | RF-42 | `POST /plans` (`sessions_per_week: 0`), `POST /lessons/{class_group_id}/{date}/drop-in`, `DELETE /lessons/{class_group_id}/{date}/drop-in/{student_id}` |
 | RF-43 | `GET /students/{id}` (`drop_in_available`), `POST /lessons/{class_group_id}/{date}/drop-in`, `PATCH /lessons/{class_group_id}/{date}` (`teacher_id`) |
 | RF-44 | `GET /reports/cash` |
+| RF-46 | `GET/POST /payments` (`kind=teacher`, `teacher_id`), `GET /reports/cash` (`teacher_paid_total`, `teacher_payments`) |
+| RF-45 | `GET/POST /payments`, `GET/PATCH /payments/{id}`, `POST /payments/{id}/pay`, `.../pending`, `.../cancel`; `is_paid` em `POST /students`/`.../subscriptions` |
 | RF-40 | `/plans`, `/discounts`, `/services`, `GET /catalog/overview` |
 | RF-33 a RF-36 | `/services`, `GET/POST /students/{id}/services`, `PATCH .../services/{cid}`, `.../cancel`, `.../sessions/{sid}` |
 | RF-37 a RF-39 | `GET /calendar` (`kind = service`), `GET /lessons/pending`, `GET /service-sessions/{id}`, `.../complete`, `.../reopen`, `GET /reports/teacher-payments` (`services`) |
