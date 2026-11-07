@@ -42,7 +42,18 @@ class CashTeacher(BaseModel):
     lessons_amount: Decimal
     services_given: int
     services_amount: Decimal
+    amount: Decimal = Field(description="Devido no período (aulas e serviços finalizados)")
+    paid: Decimal = Field(description="Já pago no período (pagamentos de professor com status pago)")
+
+
+class CashTeacherPayment(BaseModel):
+    """Pagamento efetivamente feito a um professor (entra como desconto no caixa)."""
+
+    id: int
+    date: dt.date = Field(description="Data do pagamento")
+    teacher: TeacherSummary
     amount: Decimal
+    notes: str | None
 
 
 class CashReport(BaseModel):
@@ -52,9 +63,11 @@ class CashReport(BaseModel):
     plans_total: Decimal
     services_total: Decimal
     discounts_total: Decimal = Field(description="Descontos concedidos nos recebimentos do período")
-    teacher_payments_total: Decimal = Field(description="Pagamento dos professores pelas aulas/serviços do período")
-    net_total: Decimal = Field(description="Resultado: faturamento - pagamento dos professores")
+    teacher_payments_total: Decimal = Field(description="Devido aos professores pelas aulas/serviços do período")
+    teacher_paid_total: Decimal = Field(description="Pago aos professores no período (desconto do caixa)")
+    net_total: Decimal = Field(description="Resultado: faturamento - pago aos professores")
     pending_total: Decimal = Field(description="A receber: planos e serviços em aberto (qualquer data)")
     receipts: list[CashReceipt]
     teachers: list[CashTeacher]
+    teacher_payments: list[CashTeacherPayment]
     pending: list[CashPending]

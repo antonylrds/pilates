@@ -26,6 +26,17 @@ class SubscriptionUsage(StrEnum):
     CANCELLED = "cancelled"
 
 
+class PaymentKind(StrEnum):
+    STUDENT = "student"  # recebimento de plano do aluno
+    TEACHER = "teacher"  # repasse ao professor
+
+
+class PaymentStatus(StrEnum):
+    PENDING = "pending"
+    PAID = "paid"
+    CANCELLED = "cancelled"
+
+
 class ServiceRecurrence(StrEnum):
     NONE = "none"  # sessão única (padrão)
     WEEKLY = "weekly"

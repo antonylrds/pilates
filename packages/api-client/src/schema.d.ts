@@ -1058,6 +1058,96 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/payments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Lista os pagamentos (alunos e professores) com filtros
+         * @description `date_from`/`date_to` filtram pela data escolhida em `date_field` (criação, pagamento ou cancelamento; padrão: criação). Os totais por status consideram todos os pagamentos filtrados.
+         */
+        get: operations["list_payments_api_v1_payments_get"];
+        put?: never;
+        /** Registra um pagamento */
+        post: operations["create_payment_api_v1_payments_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/payments/{payment_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Payment */
+        get: operations["get_payment_api_v1_payments__payment_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Altera observações, valor (professor) ou data do pagamento */
+        patch: operations["update_payment_api_v1_payments__payment_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/payments/{payment_id}/pay": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Marca como pago */
+        post: operations["pay_api_v1_payments__payment_id__pay_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/payments/{payment_id}/pending": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Volta para pendente */
+        post: operations["pending_api_v1_payments__payment_id__pending_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/payments/{payment_id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Cancela o pagamento */
+        post: operations["cancel_api_v1_payments__payment_id__cancel_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1270,12 +1360,17 @@ export interface components {
             discounts_total: string;
             /**
              * Teacher Payments Total
-             * @description Pagamento dos professores pelas aulas/serviços do período
+             * @description Devido aos professores pelas aulas/serviços do período
              */
             teacher_payments_total: string;
             /**
+             * Teacher Paid Total
+             * @description Pago aos professores no período (desconto do caixa)
+             */
+            teacher_paid_total: string;
+            /**
              * Net Total
-             * @description Resultado: faturamento - pagamento dos professores
+             * @description Resultado: faturamento - pago aos professores
              */
             net_total: string;
             /**
@@ -1287,6 +1382,8 @@ export interface components {
             receipts: components["schemas"]["CashReceipt"][];
             /** Teachers */
             teachers: components["schemas"]["CashTeacher"][];
+            /** Teacher Payments */
+            teacher_payments: components["schemas"]["CashTeacherPayment"][];
             /** Pending */
             pending: components["schemas"]["CashPending"][];
         };
@@ -1304,8 +1401,35 @@ export interface components {
             services_given: number;
             /** Services Amount */
             services_amount: string;
+            /**
+             * Amount
+             * @description Devido no período (aulas e serviços finalizados)
+             */
+            amount: string;
+            /**
+             * Paid
+             * @description Já pago no período (pagamentos de professor com status pago)
+             */
+            paid: string;
+        };
+        /**
+         * CashTeacherPayment
+         * @description Pagamento efetivamente feito a um professor (entra como desconto no caixa).
+         */
+        CashTeacherPayment: {
+            /** Id */
+            id: number;
+            /**
+             * Date
+             * Format: date
+             * @description Data do pagamento
+             */
+            date: string;
+            teacher: components["schemas"]["TeacherSummary"];
             /** Amount */
             amount: string;
+            /** Notes */
+            notes: string | null;
         };
         /** CatalogOverview */
         CatalogOverview: {
@@ -1694,6 +1818,146 @@ export interface components {
             current_password: string;
             /** New Password */
             new_password: string;
+        };
+        /** PaymentCancel */
+        PaymentCancel: {
+            /**
+             * Notes
+             * @description Motivo (substitui as observações, se informado)
+             */
+            notes?: string | null;
+        };
+        /** PaymentCreate */
+        PaymentCreate: {
+            kind: components["schemas"]["PaymentKind"];
+            /**
+             * Amount
+             * @description Padrão (aluno): valor pago do plano. Obrigatório para professor
+             */
+            amount?: number | string | null;
+            /**
+             * Is Paid
+             * @description Registrar já como pago
+             * @default false
+             */
+            is_paid: boolean;
+            /**
+             * Paid At
+             * @description Data do pagamento (padrão: hoje, se pago)
+             */
+            paid_at?: string | null;
+            /** Notes */
+            notes?: string | null;
+            /** Student Id */
+            student_id?: number | null;
+            /**
+             * Subscription Id
+             * @description Plano do aluno ao qual o pagamento se refere
+             */
+            subscription_id?: number | null;
+            /** Teacher Id */
+            teacher_id?: number | null;
+            /** Period Start */
+            period_start?: string | null;
+            /** Period End */
+            period_end?: string | null;
+        };
+        /**
+         * PaymentKind
+         * @enum {string}
+         */
+        PaymentKind: "student" | "teacher";
+        /** PaymentList */
+        PaymentList: {
+            /** Items */
+            items: components["schemas"]["PaymentRead"][];
+            /**
+             * Count
+             * @description Total de pagamentos que atendem aos filtros (ignora skip/limit)
+             */
+            count: number;
+            /** @description Soma por status dos pagamentos filtrados */
+            totals: components["schemas"]["PaymentTotals"];
+        };
+        /** PaymentPay */
+        PaymentPay: {
+            /**
+             * Paid At
+             * @description Padrão: hoje
+             */
+            paid_at?: string | null;
+        };
+        /** PaymentRead */
+        PaymentRead: {
+            /** Id */
+            id: number;
+            kind: components["schemas"]["PaymentKind"];
+            status: components["schemas"]["PaymentStatus"];
+            /** Amount */
+            amount: string;
+            /**
+             * Created At
+             * Format: date-time
+             * @description Data de criação
+             */
+            created_at: string;
+            /**
+             * Paid At
+             * @description Data do pagamento
+             */
+            paid_at: string | null;
+            /**
+             * Cancelled At
+             * @description Data do cancelamento
+             */
+            cancelled_at: string | null;
+            /** Notes */
+            notes: string | null;
+            student: components["schemas"]["StudentSummary"] | null;
+            /** Subscription Id */
+            subscription_id: number | null;
+            /**
+             * Plan Name
+             * @description Plano contratado (pagamento de aluno)
+             */
+            plan_name: string | null;
+            teacher: components["schemas"]["TeacherSummary"] | null;
+            /** Period Start */
+            period_start: string | null;
+            /** Period End */
+            period_end: string | null;
+        };
+        /**
+         * PaymentStatus
+         * @enum {string}
+         */
+        PaymentStatus: "pending" | "paid" | "cancelled";
+        /** PaymentTotals */
+        PaymentTotals: {
+            /** Pending */
+            pending: string;
+            /** Paid */
+            paid: string;
+            /** Cancelled */
+            cancelled: string;
+        };
+        /**
+         * PaymentUpdate
+         * @description Campos editáveis. O status muda pelas ações pay / pending / cancel.
+         */
+        PaymentUpdate: {
+            /** Notes */
+            notes?: string | null;
+            /**
+             * Amount
+             * @description Só enquanto o pagamento está pendente
+             */
+            amount?: number | string | null;
+            /**
+             * Paid At
+             * @description Corrige a data de um pagamento já pago
+             */
+            paid_at?: string | null;
         };
         /** PlanCreate */
         PlanCreate: {
@@ -5723,6 +5987,245 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["CashReport"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_payments_api_v1_payments_get: {
+        parameters: {
+            query?: {
+                kind?: components["schemas"]["PaymentKind"] | null;
+                student_id?: number | null;
+                teacher_id?: number | null;
+                status?: components["schemas"]["PaymentStatus"] | null;
+                date_from?: string | null;
+                date_to?: string | null;
+                date_field?: "created" | "paid" | "cancelled";
+                skip?: number;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaymentList"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_payment_api_v1_payments_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PaymentCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaymentRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_payment_api_v1_payments__payment_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                payment_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaymentRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_payment_api_v1_payments__payment_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                payment_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PaymentUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaymentRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    pay_api_v1_payments__payment_id__pay_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                payment_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PaymentPay"] | null;
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaymentRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    pending_api_v1_payments__payment_id__pending_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                payment_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaymentRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    cancel_api_v1_payments__payment_id__cancel_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                payment_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PaymentCancel"] | null;
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaymentRead"];
                 };
             };
             /** @description Validation Error */

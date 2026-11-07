@@ -7,6 +7,7 @@ import { CashPage } from "./pages/CashPage";
 import { FinalizePage } from "./pages/FinalizePage";
 import { LoginPage } from "./pages/LoginPage";
 import { NotificationsPage } from "./pages/NotificationsPage";
+import { PaymentsPage } from "./pages/PaymentsPage";
 import { RoomsPage } from "./pages/RoomsPage";
 import { CatalogPage } from "./pages/CatalogPage";
 import { StudentsPage } from "./pages/StudentsPage";
@@ -37,6 +38,7 @@ export function App() {
         <Route path="servicos" element={<Navigate to="/catalogo?aba=servicos" replace />} />
         <Route path="professores" element={<TeachersPage />} />
         <Route path="caixa" element={<CashPage />} />
+        <Route path="pagamentos" element={<PaymentsPage />} />
         <Route path="avisos" element={<NotificationsPage />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />

@@ -2,6 +2,7 @@ import type { Schemas } from "@pilates/api-client";
 import { type FormEvent, useState } from "react";
 
 import { Modal } from "../components/Modal";
+import { TeacherPayments } from "../components/TeacherPayments";
 import { Badge, Empty, ErrorBox, Loading } from "../components/ui";
 import { api, call } from "../lib/api";
 import { fmtDate, fmtHour, money, toISO } from "../lib/format";
@@ -159,6 +160,9 @@ export function TeachersPage() {
                       )}
                     </tbody>
                   </table>
+                )}
+                {open === t.teacher.id && isAdmin && (
+                  <TeacherPayments teacher={t.teacher} owed={t.amount} periodStart={dateFrom} periodEnd={dateTo} />
                 )}
                 {open === t.teacher.id && t.services.length > 0 && (
                   <table className="table">

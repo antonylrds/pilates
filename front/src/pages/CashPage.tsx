@@ -88,14 +88,14 @@ export function CashPage() {
               </span>
             </div>
             <div className="stat">
-              <span className="stat-label">Pagamento de professores</span>
-              <span className="stat-value text-danger">− {money(data.teacher_payments_total)}</span>
-              <span className="muted small">{data.teachers.length} professor(es) com aulas no mês</span>
+              <span className="stat-label">Pago aos professores</span>
+              <span className="stat-value text-danger">− {money(data.teacher_paid_total)}</span>
+              <span className="muted small">Devido pelas aulas do mês: {money(data.teacher_payments_total)}</span>
             </div>
             <div className="stat">
               <span className="stat-label">Resultado</span>
               <span className={`stat-value ${net < 0 ? "text-danger" : "text-success"}`}>{money(data.net_total)}</span>
-              <span className="muted small">Faturamento − professores</span>
+              <span className="muted small">Faturamento − pago aos professores</span>
             </div>
             <div className="stat">
               <span className="stat-label">A receber</span>
@@ -177,7 +177,7 @@ export function CashPage() {
               </Link>
             </div>
             {data.teachers.length === 0 ? (
-              <Empty>Nenhuma aula ou sessão finalizada neste mês.</Empty>
+              <Empty>Nenhuma aula, sessão finalizada ou pagamento a professor neste mês.</Empty>
             ) : (
               <div className="table-scroll">
                 <table className="table">
@@ -186,7 +186,8 @@ export function CashPage() {
                       <th>Professor</th>
                       <th className="num">Aulas</th>
                       <th className="num">Serviços</th>
-                      <th className="num">Total</th>
+                      <th className="num">Devido</th>
+                      <th className="num">Pago</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -199,8 +200,9 @@ export function CashPage() {
                         <td className="num">
                           {money(t.services_amount)} <span className="muted small">({t.services_given})</span>
                         </td>
+                        <td className="num">{money(t.amount)}</td>
                         <td className="num">
-                          <strong>− {money(t.amount)}</strong>
+                          <strong>{Number(t.paid) > 0 ? `− ${money(t.paid)}` : "—"}</strong>
                         </td>
                       </tr>
                     ))}
@@ -210,8 +212,9 @@ export function CashPage() {
                       <td colSpan={3} className="num muted">
                         Total
                       </td>
+                      <td className="num">{money(data.teacher_payments_total)}</td>
                       <td className="num text-danger">
-                        <strong>− {money(data.teacher_payments_total)}</strong>
+                        <strong>− {money(data.teacher_paid_total)}</strong>
                       </td>
                     </tr>
                   </tfoot>
@@ -220,12 +223,37 @@ export function CashPage() {
             )}
             <div className="cash-summary">
               <span>Faturamento {money(data.received_total)}</span>
-              <span>− Professores {money(data.teacher_payments_total)}</span>
+              <span>− Pago aos professores {money(data.teacher_paid_total)}</span>
               <strong className={net < 0 ? "text-danger" : "text-success"}>= Resultado {money(data.net_total)}</strong>
             </div>
             <p className="muted small">
-              Faturamento pela data do pagamento; pagamento dos professores pelas aulas e sessões finalizadas no mês.
+              Faturamento pela data do pagamento. Só entra como desconto o que foi pago aos professores no mês (pela data do
+              pagamento); o devido é calculado pelas aulas e sessões finalizadas e serve de referência.
             </p>
+            {data.teacher_payments.length > 0 && (
+              <div className="table-scroll">
+                <table className="table">
+                  <thead>
+                    <tr>
+                      <th>Data</th>
+                      <th>Professor</th>
+                      <th>Observações</th>
+                      <th className="num">Valor pago</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {data.teacher_payments.map((p) => (
+                      <tr key={p.id}>
+                        <td>{fmtDate(p.date)}</td>
+                        <td>{p.teacher.name}</td>
+                        <td className="small">{p.notes || <span className="muted">—</span>}</td>
+                        <td className="num">− {money(p.amount)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </section>
 
           <section className="card">

@@ -1,7 +1,8 @@
 """Caixa do estúdio: recebimentos, faturamento e pagamento dos professores no período.
 
 - Recebimentos e faturamento seguem a **data do pagamento** (`paid_at`) de planos e serviços.
-- Pagamento dos professores segue a **data da aula/sessão** finalizada (valores congelados, ver reports).
+- Pagamento dos professores: o **devido** segue a data da aula/sessão finalizada (valores congelados, ver reports);
+  o **pago** (desconto do caixa) segue a data do pagamento dos repasses com status pago.
 - A receber: planos e serviços não pagos e não cancelados, de qualquer data.
 """
 
@@ -11,10 +12,10 @@ from decimal import Decimal
 from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
-from app.models.tenant import ServiceContract, Subscription
-from app.models.tenant.enums import ServiceContractStatus, SubscriptionStatus
-from app.schemas.finance import CashPending, CashReceipt, CashReport, CashTeacher
-from app.schemas.people import StudentSummary
+from app.models.tenant import Payment, ServiceContract, Subscription
+from app.models.tenant.enums import PaymentKind, PaymentStatus, ServiceContractStatus, SubscriptionStatus
+from app.schemas.finance import CashPending, CashReceipt, CashReport, CashTeacher, CashTeacherPayment
+from app.schemas.people import StudentSummary, TeacherSummary
 from app.services.reports import teacher_payments
 
 ZERO = Decimal("0.00")
@@ -117,6 +118,28 @@ def cash_report(db: Session, date_from: date, date_to: date) -> CashReport:
         )
     pending.sort(key=lambda p: (p.since, p.student.name.lower()))
 
+    # Repasses efetivamente pagos no período (pela data do pagamento): é o que sai do caixa.
+    paid_rows = db.scalars(
+        select(Payment)
+        .options(selectinload(Payment.teacher))
+        .where(
+            Payment.kind == PaymentKind.TEACHER,
+            Payment.status == PaymentStatus.PAID,
+            Payment.paid_at >= date_from,
+            Payment.paid_at <= date_to,
+        )
+        .order_by(Payment.paid_at.desc(), Payment.id.desc())
+    ).all()
+    teacher_payments_list = [
+        CashTeacherPayment(
+            id=p.id, date=p.paid_at, teacher=TeacherSummary.model_validate(p.teacher), amount=p.amount, notes=p.notes
+        )
+        for p in paid_rows
+    ]
+    paid_by_teacher: dict[int, Decimal] = {}
+    for p in paid_rows:
+        paid_by_teacher[p.teacher_id] = paid_by_teacher.get(p.teacher_id, ZERO) + p.amount
+
     pay = teacher_payments(db, date_from, date_to)
     teachers = [
         CashTeacher(
@@ -126,9 +149,10 @@ def cash_report(db: Session, date_from: date, date_to: date) -> CashReport:
             services_given=t.services_given,
             services_amount=t.services_amount,
             amount=t.amount,
+            paid=paid_by_teacher.get(t.teacher.id, ZERO),
         )
         for t in pay.teachers
-        if t.lessons or t.services
+        if t.lessons or t.services or t.teacher.id in paid_by_teacher
     ]
     teachers.sort(key=lambda t: t.amount, reverse=True)
 
@@ -136,6 +160,7 @@ def cash_report(db: Session, date_from: date, date_to: date) -> CashReport:
     services_total = sum((r.amount for r in receipts if r.kind == "service"), ZERO)
     received = plans_total + services_total
     teacher_total = sum((t.amount for t in teachers), ZERO)
+    paid_total = sum((p.amount for p in teacher_payments_list), ZERO)
     return CashReport(
         date_from=date_from,
         date_to=date_to,
@@ -144,9 +169,11 @@ def cash_report(db: Session, date_from: date, date_to: date) -> CashReport:
         services_total=services_total,
         discounts_total=sum((r.discount for r in receipts), ZERO),
         teacher_payments_total=teacher_total,
-        net_total=received - teacher_total,
+        teacher_paid_total=paid_total,
+        net_total=received - paid_total,
         pending_total=sum((p.amount for p in pending), ZERO),
         receipts=receipts,
         teachers=teachers,
+        teacher_payments=teacher_payments_list,
         pending=pending,
     )
