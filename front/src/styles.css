@@ -2349,3 +2349,18 @@ textarea:focus {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+.chip-alert {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  margin-right: 5px;
+  border-radius: 50%;
+  background: var(--warning-soft);
+  border: 1px solid var(--warning);
+  color: var(--warning);
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1;
+}
