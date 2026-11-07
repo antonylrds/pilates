@@ -1,5 +1,6 @@
 from app.models.tenant.audit import AuditLog
 from app.models.tenant.catalog import Discount, Plan, Room
+from app.models.tenant.document import StudentDocument
 from app.models.tenant.notification import Notification
 from app.models.tenant.offerings import Service, ServiceContract, ServiceSession
 from app.models.tenant.payment import Payment
@@ -22,6 +23,7 @@ __all__ = [
     "ServiceContract",
     "ServiceSession",
     "Student",
+    "StudentDocument",
     "Subscription",
     "Teacher",
     "User",

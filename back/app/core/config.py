@@ -1,3 +1,5 @@
+from typing import Literal
+
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -20,6 +22,16 @@ class Settings(BaseSettings):
 
     # Lista JSON no .env, ex.: CORS_ORIGINS=["http://localhost:5173"]
     cors_origins: list[str] = ["http://localhost:5173", "http://localhost:3000", "http://localhost:8081"]
+
+    # Arquivos dos alunos (laudos). "local" = pasta no servidor; "s3" = S3/R2/B2/MinIO (uv sync --extra s3).
+    storage_backend: Literal["local", "s3"] = "local"
+    storage_local_root: str = "./data/files"
+    storage_max_upload_mb: int = 10
+    storage_s3_bucket: str = ""
+    storage_s3_endpoint_url: str | None = None  # vazio = AWS; R2/MinIO/B2 informam o endpoint
+    storage_s3_region: str | None = None
+    storage_s3_access_key: str | None = None
+    storage_s3_secret_key: str | None = None
 
     # Superusuário da plataforma (cria/gerencia estúdios). Usado por: python -m app.cli init
     platform_admin_name: str = "Plataforma"

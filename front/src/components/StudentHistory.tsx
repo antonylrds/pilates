@@ -126,6 +126,8 @@ const actionIcon: Record<string, string> = {
   service_contracted: "✚",
   service_updated: "✎",
   service_cancelled: "✕",
+  document_added: "📎",
+  document_removed: "✕",
 };
 
 /** Registro de alterações: o que mudou, quem fez e quando. */

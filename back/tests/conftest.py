@@ -18,6 +18,7 @@ def isolated_databases(tmp_path, monkeypatch):
     """Cada teste usa um banco central e bancos de estúdio novos em um diretório temporário."""
     base = tmp_path.as_posix()
     monkeypatch.setattr(settings, "central_database_url", f"sqlite:///{base}/central.db")
+    monkeypatch.setattr(settings, "storage_local_root", f"{base}/files")
     monkeypatch.setattr(settings, "tenant_database_url_template", f"sqlite:///{base}/tenant_{{slug}}.db")
     registry.dispose_all()
     migrate_central()

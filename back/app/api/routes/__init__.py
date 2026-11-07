@@ -5,6 +5,7 @@ from app.api.routes import (
     calendar,
     catalog,
     class_groups,
+    documents,
     notifications,
     offerings,
     payments,
@@ -20,6 +21,6 @@ api_router = APIRouter()
 api_router.include_router(platform.router)
 for module in (
     auth, studio, users, catalog, offerings, teachers, students, class_groups, calendar, notifications, reports,
-    payments,
+    payments, documents,
 ):
     api_router.include_router(module.router)

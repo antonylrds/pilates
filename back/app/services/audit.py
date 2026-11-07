@@ -28,6 +28,8 @@ class Action:
     SERVICE_CONTRACTED = "service_contracted"
     SERVICE_UPDATED = "service_updated"
     SERVICE_CANCELLED = "service_cancelled"
+    DOCUMENT_ADDED = "document_added"
+    DOCUMENT_REMOVED = "document_removed"
 
 
 def _plain(value: Any) -> Any:

@@ -1148,6 +1148,62 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/students/{student_id}/documents": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Lista os documentos do aluno */
+        get: operations["list_documents_api_v1_students__student_id__documents_get"];
+        put?: never;
+        /**
+         * Envia um documento (PDF, JPG ou PNG) para a ficha do aluno
+         * @description Multipart: `file` (obrigatório) e `description` (opcional). Tamanho máximo em `STORAGE_MAX_UPLOAD_MB` (padrão 10 MB). O tipo é verificado pelo conteúdo do arquivo.
+         */
+        post: operations["upload_document_api_v1_students__student_id__documents_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/students/{student_id}/documents/{document_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Apaga o documento */
+        delete: operations["delete_document_api_v1_students__student_id__documents__document_id__delete"];
+        options?: never;
+        head?: never;
+        /** Altera a descrição do documento (também depois do envio) */
+        patch: operations["update_document_api_v1_students__student_id__documents__document_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/students/{student_id}/documents/{document_id}/download": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Baixa o documento (exige login) */
+        get: operations["download_document_api_v1_students__student_id__documents__document_id__download_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1204,6 +1260,13 @@ export interface components {
              * Format: password
              */
             client_secret?: string | null;
+        };
+        /** Body_upload_document_api_v1_students__student_id__documents_post */
+        Body_upload_document_api_v1_students__student_id__documents_post: {
+            /** File */
+            file: string;
+            /** Description */
+            description?: string | null;
         };
         /** CalendarEntry */
         CalendarEntry: {
@@ -2660,6 +2723,46 @@ export interface components {
             free_schedule_slots: number;
             /** Upcoming Makeups */
             upcoming_makeups: components["schemas"]["UpcomingMakeup"][];
+        };
+        /** StudentDocumentRead */
+        StudentDocumentRead: {
+            /** Id */
+            id: number;
+            /** Student Id */
+            student_id: number;
+            /**
+             * Filename
+             * @description Nome original do arquivo
+             */
+            filename: string;
+            /** Content Type */
+            content_type: string;
+            /**
+             * Size
+             * @description Tamanho em bytes
+             */
+            size: number;
+            /** Description */
+            description: string | null;
+            /**
+             * Uploaded By Name
+             * @description Quem enviou
+             */
+            uploaded_by_name: string;
+            /**
+             * Created At
+             * Format: date-time
+             * @description Quando foi enviado
+             */
+            created_at: string;
+        };
+        /** StudentDocumentUpdate */
+        StudentDocumentUpdate: {
+            /**
+             * Description
+             * @description Vazio remove a descrição
+             */
+            description?: string | null;
         };
         /** StudentRead */
         StudentRead: {
@@ -6226,6 +6329,170 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PaymentRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_documents_api_v1_students__student_id__documents_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                student_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StudentDocumentRead"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    upload_document_api_v1_students__student_id__documents_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                student_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_upload_document_api_v1_students__student_id__documents_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StudentDocumentRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_document_api_v1_students__student_id__documents__document_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                student_id: number;
+                document_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_document_api_v1_students__student_id__documents__document_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                student_id: number;
+                document_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StudentDocumentUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StudentDocumentRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    download_document_api_v1_students__student_id__documents__document_id__download_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                student_id: number;
+                document_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
                 };
             };
             /** @description Validation Error */
