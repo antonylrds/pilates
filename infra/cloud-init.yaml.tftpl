@@ -1,0 +1,28 @@
+#cloud-config
+package_update: true
+packages:
+  - ca-certificates
+  - curl
+
+write_files:
+  - path: /opt/pilates/docker-compose.yml
+    encoding: b64
+    content: ${compose}
+  - path: /opt/pilates/Caddyfile
+    encoding: b64
+    content: ${caddyfile}
+  - path: /opt/pilates/.env
+    permissions: "0600"
+    content: |
+      DOMAIN=${domain}
+      API_IMAGE=${api_image}
+      CORS_ORIGINS=${cors_origins}
+      SECRET_KEY=${secret_key}
+      POSTGRES_PASSWORD=${postgres_password}
+      PLATFORM_ADMIN_EMAIL=${platform_admin_email}
+      PLATFORM_ADMIN_PASSWORD=${platform_admin_pass}
+
+runcmd:
+  - curl -fsSL https://get.docker.com | sh
+  - usermod -aG docker ubuntu
+  - cd /opt/pilates && docker compose pull && docker compose up -d
