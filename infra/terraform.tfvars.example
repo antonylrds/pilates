@@ -1,0 +1,9 @@
+# Copie para terraform.tfvars (ignorado pelo git) e ajuste.
+region               = "sa-saopaulo-1"
+tenancy_ocid         = "ocid1.tenancy.oc1..xxxx"
+ssh_public_key       = "ssh-ed25519 AAAA... voce@maquina"
+ssh_allowed_cidr     = "203.0.113.10/32"
+domain               = "api.exemplo.com.br"
+api_image            = "ghcr.io/SEU_USUARIO/pilates-api:latest"
+cors_origins         = ["https://app.exemplo.com.br"]
+platform_admin_email = "voce@exemplo.com.br"
