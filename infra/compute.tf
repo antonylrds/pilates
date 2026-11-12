@@ -54,13 +54,13 @@ resource "oci_core_instance" "api" {
     user_data = base64encode(templatefile("${path.module}/cloud-init.yaml.tftpl", {
       domain               = var.domain
       api_image            = var.api_image
+      web_image            = var.web_image
       cors_origins         = jsonencode(var.cors_origins)
       secret_key           = random_password.secret_key.result
       postgres_password    = random_password.postgres.result
       platform_admin_email = var.platform_admin_email
       platform_admin_pass  = random_password.platform_admin.result
       compose              = base64encode(file("${path.module}/deploy/docker-compose.yml"))
-      caddyfile            = base64encode(file("${path.module}/deploy/Caddyfile"))
     }))
   }
 

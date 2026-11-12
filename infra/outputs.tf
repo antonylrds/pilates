@@ -7,8 +7,9 @@ output "ssh" {
   value = "ssh ubuntu@${oci_core_public_ip.api.ip_address}"
 }
 
-output "api_url" {
-  value = "https://${var.domain}"
+output "app_url" {
+  description = "Endereço do app (front em /, API em /api/v1)."
+  value       = "https://${var.domain != "" ? var.domain : "${replace(oci_core_public_ip.api.ip_address, ".", "-")}.sslip.io"}"
 }
 
 output "platform_admin_email" {

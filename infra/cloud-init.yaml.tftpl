@@ -1,28 +1,31 @@
 #cloud-config
-package_update: true
-packages:
-  - ca-certificates
-  - curl
-
 write_files:
   - path: /opt/pilates/docker-compose.yml
     encoding: b64
     content: ${compose}
-  - path: /opt/pilates/Caddyfile
-    encoding: b64
-    content: ${caddyfile}
   - path: /opt/pilates/.env
     permissions: "0600"
     content: |
       DOMAIN=${domain}
       API_IMAGE=${api_image}
+      WEB_IMAGE=${web_image}
       CORS_ORIGINS=${cors_origins}
       SECRET_KEY=${secret_key}
       POSTGRES_PASSWORD=${postgres_password}
       PLATFORM_ADMIN_EMAIL=${platform_admin_email}
       PLATFORM_ADMIN_PASSWORD=${platform_admin_pass}
 
+# Tudo no runcmd: a VM nasce sem IP público (a reserva é anexada logo depois) e só tem internet após isso,
+# então primeiro esperamos a saída para a internet.
 runcmd:
+  - until curl -fsS4 --max-time 5 -o /dev/null https://api.ipify.org; do sleep 5; done
+  - |
+    # Sem domínio configurado, usa <ip>.sslip.io (DNS gratuito que resolve para o próprio IP).
+    cd /opt/pilates
+    if ! grep -q '^DOMAIN=.' .env; then
+      ip=$(curl -fsS4 https://api.ipify.org)
+      sed -i "s|^DOMAIN=.*|DOMAIN=$(echo "$ip" | tr . -).sslip.io|" .env
+    fi
   - curl -fsSL https://get.docker.com | sh
   - usermod -aG docker ubuntu
   - cd /opt/pilates && docker compose pull && docker compose up -d

@@ -31,8 +31,9 @@ services:
     volumes:
       - files:/app/data/files
 
-  caddy:
-    image: caddy:2-alpine
+  # Front estático + Caddy (HTTPS automático); repassa /api e /health para a API.
+  web:
+    image: ${WEB_IMAGE}
     restart: unless-stopped
     depends_on: [api]
     ports:
@@ -41,7 +42,6 @@ services:
     environment:
       DOMAIN: ${DOMAIN}
     volumes:
-      - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data
 
 volumes:

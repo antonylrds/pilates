@@ -19,8 +19,9 @@ variable "ssh_allowed_cidr" {
 }
 
 variable "domain" {
-  description = "Domínio da API (registro A apontando para o IP de saída). O Caddy emite o HTTPS dele. Ex.: api.exemplo.com.br"
+  description = "Domínio do app (front + API na mesma origem), com registro A para o public_ip. O Caddy emite o HTTPS dele. Vazio = <ip>.sslip.io (DNS gratuito)."
   type        = string
+  default     = ""
 }
 
 variable "api_image" {
@@ -28,9 +29,15 @@ variable "api_image" {
   type        = string
 }
 
+variable "web_image" {
+  description = "Imagem do front (arm64, Caddy + build estático) no registry. Ex.: ghcr.io/usuario/pilates-web:latest"
+  type        = string
+}
+
 variable "cors_origins" {
-  description = "Origens do front permitidas (CORS)."
+  description = "Origens extras permitidas (CORS). Vazio: front e API ficam na mesma origem. Útil p/ o app mobile ou dev local apontando para a API."
   type        = list(string)
+  default     = []
 }
 
 variable "platform_admin_email" {
