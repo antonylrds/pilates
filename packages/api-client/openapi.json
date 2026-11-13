@@ -242,6 +242,115 @@
         }
       }
     },
+    "/api/v1/platform/studios/{studio_id}/users": {
+      "get": {
+        "tags": [
+          "platform"
+        ],
+        "summary": "Usuários do estúdio (para escolher como ver o sistema)",
+        "operationId": "studio_users_api_v1_platform_studios__studio_id__users_get",
+        "security": [
+          {
+            "Platform": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "studio_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Studio Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/UserRead"
+                  },
+                  "title": "Response Studio Users Api V1 Platform Studios  Studio Id  Users Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/platform/studios/{studio_id}/impersonate": {
+      "post": {
+        "tags": [
+          "platform"
+        ],
+        "summary": "\"Ver como\": token de estúdio para ver (e agir) como um admin ou professor",
+        "description": "Devolve o mesmo formato do login do estúdio, com `impersonated_by`. O token dura `IMPERSONATION_EXPIRE_MINUTES`, deixa de valer se o usuário da plataforma for desativado, e os registros (histórico, laudos) levam o nome do operador. Trocar ou redefinir senhas fica bloqueado. Cada uso é gravado no log central (`impersonation_logs`).",
+        "operationId": "impersonate_api_v1_platform_studios__studio_id__impersonate_post",
+        "security": [
+          {
+            "Platform": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "studio_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Studio Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ImpersonateRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Token"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/auth/login": {
       "post": {
         "tags": [
@@ -6512,6 +6621,20 @@
         "type": "object",
         "title": "HTTPValidationError"
       },
+      "ImpersonateRequest": {
+        "properties": {
+          "user_id": {
+            "type": "integer",
+            "title": "User Id",
+            "description": "Usuário do estúdio (admin ou professor) a ser visto"
+          }
+        },
+        "type": "object",
+        "required": [
+          "user_id"
+        ],
+        "title": "ImpersonateRequest"
+      },
       "LessonCancel": {
         "properties": {
           "reason": {
@@ -6830,6 +6953,18 @@
           },
           "studio": {
             "$ref": "#/components/schemas/StudioRead"
+          },
+          "impersonated_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Impersonated By",
+            "description": "Nome do usuário da plataforma, no modo \"ver como\""
           }
         },
         "type": "object",
@@ -10803,6 +10938,18 @@
           },
           "studio": {
             "$ref": "#/components/schemas/StudioRead"
+          },
+          "impersonated_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Impersonated By",
+            "description": "Nome do usuário da plataforma, no modo \"ver como\""
           }
         },
         "type": "object",

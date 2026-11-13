@@ -63,6 +63,10 @@ class PlatformLogin(BaseModel):
     password: str
 
 
+class ImpersonateRequest(BaseModel):
+    user_id: int = Field(description="Usuário do estúdio (admin ou professor) a ser visto")
+
+
 class PlatformToken(BaseModel):
     access_token: str
     token_type: str = "bearer"

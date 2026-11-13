@@ -8,13 +8,23 @@ import { FinalizePage } from "./pages/FinalizePage";
 import { LoginPage } from "./pages/LoginPage";
 import { NotificationsPage } from "./pages/NotificationsPage";
 import { PaymentsPage } from "./pages/PaymentsPage";
+import { PlatformPage } from "./pages/PlatformPage";
 import { RoomsPage } from "./pages/RoomsPage";
 import { CatalogPage } from "./pages/CatalogPage";
 import { StudentsPage } from "./pages/StudentsPage";
 import { TeachersPage } from "./pages/TeachersPage";
 
 export function App() {
-  const { session } = useSession();
+  const { session, platform } = useSession();
+
+  // Usuário da plataforma sem estúdio aberto: escolhe o estúdio e a visão (admin/professor).
+  if (!session && platform) {
+    return (
+      <Routes>
+        <Route path="*" element={<PlatformPage />} />
+      </Routes>
+    );
+  }
 
   if (!session) {
     return (

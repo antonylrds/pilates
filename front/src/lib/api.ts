@@ -2,8 +2,17 @@ import { createApiClient, type Schemas } from "@pilates/api-client";
 
 const TOKEN_KEY = "pilates.token";
 const SESSION_KEY = "pilates.session";
+const PLATFORM_KEY = "pilates.platform";
 
-export type Session = { user: Schemas["UserRead"]; studio: Schemas["StudioRead"] };
+export type Session = {
+  user: Schemas["UserRead"];
+  studio: Schemas["StudioRead"];
+  /** Nome do usuário da plataforma, quando a sessão é um "ver como". */
+  impersonatedBy?: string | null;
+};
+
+/** Sessão do usuário da plataforma (escolhe o estúdio e o usuário a ver). */
+export type PlatformSession = { token: string; email: string };
 
 function read(key: string): string | null {
   try {
@@ -33,7 +42,7 @@ export function saveSession(token: Schemas["Token"]): Session {
   } catch {
     /* modo privado: a sessão vale só nesta aba */
   }
-  return storeSession({ user: token.user, studio: token.studio });
+  return storeSession({ user: token.user, studio: token.studio, impersonatedBy: token.impersonated_by ?? null });
 }
 
 export function storeSession(session: Session): Session {
@@ -49,6 +58,33 @@ export function clearSession(): void {
   try {
     localStorage.removeItem(TOKEN_KEY);
     localStorage.removeItem(SESSION_KEY);
+  } catch {
+    /* ignore */
+  }
+}
+
+export function loadPlatform(): PlatformSession | null {
+  const raw = read(PLATFORM_KEY);
+  if (!raw) return null;
+  try {
+    return JSON.parse(raw) as PlatformSession;
+  } catch {
+    return null;
+  }
+}
+
+export function savePlatform(platform: PlatformSession): PlatformSession {
+  try {
+    localStorage.setItem(PLATFORM_KEY, JSON.stringify(platform));
+  } catch {
+    /* modo privado: vale só nesta aba */
+  }
+  return platform;
+}
+
+export function clearPlatform(): void {
+  try {
+    localStorage.removeItem(PLATFORM_KEY);
   } catch {
     /* ignore */
   }
@@ -99,3 +135,16 @@ export async function call<R extends { data?: unknown; error?: unknown }>(
   if (error !== undefined) throw new Error(errorMessage(error));
   return data as NonNullable<R["data"]>;
 }
+
+/** Cliente com o token da plataforma (rotas /platform). Separado do `api`, que usa o token do estúdio. */
+export const platformApi = createApiClient({
+  baseUrl: import.meta.env.VITE_API_URL || window.location.origin,
+  getToken: () => loadPlatform()?.token,
+  onUnauthorized: () => {
+    if (loadPlatform()) {
+      clearPlatform();
+      clearSession();
+      window.location.assign("/login");
+    }
+  },
+});

@@ -64,7 +64,7 @@ def log(ctx, student_id: int, action: str, description: str, changes: dict[str, 
             description=description[:500],
             changes=changes,
             user_id=ctx.user.id,
-            user_name=ctx.user.name,
+            user_name=ctx.actor_name,
             # Horário local do estúdio (D-14); o padrão do banco (CURRENT_TIMESTAMP) seria UTC no SQLite.
             created_at=clock.now(),
         )

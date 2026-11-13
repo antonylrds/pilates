@@ -66,10 +66,19 @@ class TenantContext:
     studio: Studio
     db: Session
     user: User
+    # Usuário da plataforma, quando o token é de "ver como" (veja POST /platform/studios/{id}/impersonate).
+    impersonator: PlatformUser | None = None
 
     @property
     def is_admin(self) -> bool:
         return self.user.role == UserRole.ADMIN
+
+    @property
+    def actor_name(self) -> str:
+        """Nome gravado em registros (histórico, laudos): inclui o operador da plataforma no "ver como"."""
+        if self.impersonator is None:
+            return self.user.name
+        return f"{self.user.name[:60]} (plataforma: {self.impersonator.name[:40]})"
 
 
 def get_tenant(token: Annotated[str, Depends(tenant_oauth)]) -> Generator[TenantContext, None, None]:
@@ -84,12 +93,23 @@ def get_tenant(token: Annotated[str, Depends(tenant_oauth)]) -> Generator[Tenant
     if studio is None or not studio.is_active:
         raise HTTPException(status.HTTP_403_FORBIDDEN, "Estúdio inativo ou inexistente")
 
+    impersonator = None
+    if "imp" in payload:  # "ver como": o operador precisa continuar ativo
+        try:
+            platform_id = int(payload["imp"])
+        except (TypeError, ValueError):
+            raise _unauthorized()
+        with central_session() as central:
+            impersonator = central.get(PlatformUser, platform_id)
+        if impersonator is None or not impersonator.is_active:
+            raise _unauthorized()
+
     db = tenant_session(studio.slug)
     try:
         user = db.get(User, user_id)
         if user is None or not user.is_active:
             raise _unauthorized()
-        yield TenantContext(studio=studio, db=db, user=user)
+        yield TenantContext(studio=studio, db=db, user=user, impersonator=impersonator)
     finally:
         db.close()
 

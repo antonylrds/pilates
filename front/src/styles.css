@@ -2364,3 +2364,71 @@ textarea:focus {
   font-weight: 800;
   line-height: 1;
 }
+
+/* Modo "ver como" (usuário da plataforma) */
+.viewas-bar {
+  position: sticky;
+  top: 0;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  min-height: 41px;
+  padding: 6px 16px;
+  background: var(--warning-soft);
+  color: var(--warning);
+  border-bottom: 1px solid var(--warning);
+  font-size: 13px;
+}
+.viewas-bar .btn {
+  margin-left: auto;
+}
+.viewas-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.viewas-switch select {
+  padding: 3px 6px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+}
+.viewas-error {
+  color: var(--danger);
+}
+.has-viewas .shell {
+  min-height: calc(100vh - 41px);
+}
+.has-viewas .sidebar {
+  top: 41px;
+  height: calc(100vh - 41px);
+}
+
+/* Página da plataforma */
+.platform {
+  max-width: 880px;
+  margin: 0 auto;
+  padding: 24px 16px;
+}
+.platform-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+.platform-user-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.platform-user-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 4px;
+  border-top: 1px solid var(--border);
+}

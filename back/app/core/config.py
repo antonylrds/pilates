@@ -43,6 +43,8 @@ class Settings(BaseSettings):
     secret_key: str = DEV_SECRET_KEY
     jwt_algorithm: str = "HS256"
     access_token_expire_minutes: int = 60 * 24
+    # Duração do token de "ver como" (usuário da plataforma vendo um estúdio como admin/professor).
+    impersonation_expire_minutes: int = 120
 
     # Limite de tentativas de login que falharam (em memória, por processo): por IP+conta e por IP, na janela.
     login_max_attempts: int = 5

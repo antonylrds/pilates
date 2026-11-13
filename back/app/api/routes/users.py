@@ -41,6 +41,8 @@ def create_user(data: UserCreate, ctx: Admin):
 def update_user(user_id: int, data: UserUpdate, ctx: Admin):
     user = get_or_404(ctx.db, User, user_id, "Usuário")
     changes = data.model_dump(exclude_unset=True)
+    if ctx.impersonator and changes.get("password"):
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "Não é possível redefinir senhas ao ver o sistema como outro usuário")
     if user.id == ctx.user.id and (changes.get("is_active") is False or changes.get("role", UserRole.ADMIN) != UserRole.ADMIN):
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Você não pode remover seu próprio acesso de admin")
     _check_teacher_link(ctx, changes.get("role", user.role), changes.get("teacher_id", user.teacher_id))

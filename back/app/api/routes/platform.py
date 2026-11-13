@@ -8,10 +8,21 @@ from sqlalchemy import select
 
 from app.api.deps import CentralDb, PlatformAdmin, apply_update, get_or_404
 from app.core.ratelimit import LoginAttempt
+from app.core.config import settings
 from app.core.security import check_password, create_access_token
+from app.db.engines import tenant_session
 from app.db.studio_cache import studio_cache
-from app.models.central import PlatformUser, Studio
-from app.schemas.studio import PlatformLogin, PlatformToken, StudioCreate, StudioRead, StudioUpdate
+from app.models.central import ImpersonationLog, PlatformUser, Studio
+from app.models.tenant import User
+from app.schemas.auth import Token, UserRead
+from app.schemas.studio import (
+    ImpersonateRequest,
+    PlatformLogin,
+    PlatformToken,
+    StudioCreate,
+    StudioRead,
+    StudioUpdate,
+)
 from app.services.studios import create_studio
 
 router = APIRouter(prefix="/platform", tags=["platform"])
@@ -68,3 +79,55 @@ def update_studio(studio_id: int, data: StudioUpdate, db: CentralDb, _: Platform
     db.refresh(studio)
     studio_cache.invalidate(studio.slug)
     return studio
+
+
+@router.get(
+    "/studios/{studio_id}/users",
+    response_model=list[UserRead],
+    summary="Usuários do estúdio (para escolher como ver o sistema)",
+)
+def studio_users(studio_id: int, db: CentralDb, _: PlatformAdmin):
+    studio = get_or_404(db, Studio, studio_id, "Estúdio")
+    with tenant_session(studio.slug) as tenant_db:
+        users = tenant_db.scalars(select(User).order_by(User.role, User.name)).all()
+        return [UserRead.model_validate(u) for u in users]
+
+
+@router.post(
+    "/studios/{studio_id}/impersonate",
+    response_model=Token,
+    summary='"Ver como": token de estúdio para ver (e agir) como um admin ou professor',
+    description="Devolve o mesmo formato do login do estúdio, com `impersonated_by`. O token dura "
+    "`IMPERSONATION_EXPIRE_MINUTES`, deixa de valer se o usuário da plataforma for desativado, e os registros "
+    "(histórico, laudos) levam o nome do operador. Trocar ou redefinir senhas fica bloqueado. Cada uso é "
+    "gravado no log central (`impersonation_logs`).",
+)
+def impersonate(studio_id: int, data: ImpersonateRequest, db: CentralDb, operator: PlatformAdmin):
+    studio = get_or_404(db, Studio, studio_id, "Estúdio")
+    if not studio.is_active:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "Estúdio inativo")
+    with tenant_session(studio.slug) as tenant_db:
+        user = tenant_db.get(User, data.user_id)
+        if user is None or not user.is_active:
+            raise HTTPException(status.HTTP_404_NOT_FOUND, "Usuário não encontrado ou inativo neste estúdio")
+        token = create_access_token(
+            user.id,
+            {"scope": "tenant", "tenant": studio.slug, "role": user.role.value, "imp": operator.id},
+            expires_minutes=settings.impersonation_expire_minutes,
+        )
+        user_read = UserRead.model_validate(user)
+    db.add(
+        ImpersonationLog(
+            platform_user_id=operator.id,
+            platform_user_name=operator.name,
+            studio_id=studio.id,
+            studio_slug=studio.slug,
+            as_user_id=user_read.id,
+            as_user_name=user_read.name,
+            as_role=user_read.role.value,
+        )
+    )
+    db.commit()
+    return Token(
+        access_token=token, user=user_read, studio=StudioRead.model_validate(studio), impersonated_by=operator.name
+    )

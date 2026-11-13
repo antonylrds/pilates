@@ -2,7 +2,9 @@ import { NavLink, Outlet, useLocation } from "react-router-dom";
 
 import { api, call } from "../lib/api";
 import { useAsync } from "../lib/hooks";
+import { roleLabel } from "../lib/labels";
 import { useSession } from "../lib/session";
+import { ViewAsBar } from "./ViewAsBar";
 
 const NAV = [
   { to: "/", label: "Agenda", icon: "▦", end: true },
@@ -30,7 +32,9 @@ export function Layout() {
   };
 
   return (
-    <div className="shell">
+    <div className={session?.impersonatedBy ? "has-viewas" : undefined}>
+      <ViewAsBar />
+      <div className="shell">
       <aside className="sidebar">
         <div className="brand">
           <span className="brand-mark">P</span>
@@ -56,7 +60,7 @@ export function Layout() {
         <div className="sidebar-footer">
           <div>
             <div className="user-name">{session?.user.name}</div>
-            <div className="user-role">{session?.user.role === "admin" ? "Administrador" : "Professor"}</div>
+            <div className="user-role">{roleLabel(session?.user.role ?? "")}</div>
           </div>
           <button className="btn btn-ghost btn-sm" onClick={logout}>
             Sair
@@ -66,6 +70,7 @@ export function Layout() {
       <main className="content">
         <Outlet />
       </main>
+      </div>
     </div>
   );
 }
