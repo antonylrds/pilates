@@ -76,8 +76,12 @@ bancos `pilates_*` e copie o volume `files` (laudos, dados de saúde — LGPD). 
 
 ## Segredos e estado
 
-O estado do Tofu contém `SECRET_KEY` e senhas. `terraform.tfstate` e `*.tfvars` estão no `.gitignore`; não os commite.
+O estado do Tofu contém `SECRET_KEY` e senhas (Postgres admin, papel das requisições `pilates_app`, admin da plataforma). `terraform.tfstate` e `*.tfvars` estão no `.gitignore`; não os commite.
 Para uso em equipe, mova o estado para um backend remoto com [criptografia de estado](https://opentofu.org/docs/language/state/encryption/).
+
+## Papéis do Postgres
+
+A API fala com o Postgres por um papel sem privilégios de DDL (`pilates_app`, senha `APP_DB_PASSWORD` gerada pelo Tofu). Quem cria bancos e roda migrações é o admin `pilates` (`POSTGRES_PASSWORD`). O serviço `migrate` cria o papel e concede acesso a cada banco (idempotente), então nada manual. Para olhar ou consertar o banco, use o admin: `docker compose exec db psql -U pilates -d pilates_central`. Limite conhecido: a API ainda guarda a credencial de admin para criar estúdios em runtime (veja D-41).
 
 ## Alterações que recriam a VM
 

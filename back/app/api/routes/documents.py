@@ -133,7 +133,7 @@ def update_document(student_id: int, document_id: int, data: StudentDocumentUpda
     return document
 
 
-@router.get("/{document_id}/download", summary="Baixa o documento (exige login)")
+@router.get("/{document_id}/download", summary="Baixa o documento (exige login; o acesso é registrado no histórico)")
 def download_document(student_id: int, document_id: int, ctx: Staff):
     _student(ctx, student_id)
     document = _document(ctx, student_id, document_id)
@@ -141,6 +141,9 @@ def download_document(student_id: int, document_id: int, ctx: Staff):
         stream = get_storage().open(document.storage_key)
     except FileNotFoundError:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Arquivo não encontrado no armazenamento")
+    # Laudo é dado de saúde (LGPD): todo acesso fica registrado (quem e quando) e, sem o registro, não há acesso.
+    audit.log(ctx, student_id, audit.Action.DOCUMENT_ACCESSED, f"Documento acessado: {document.filename}")
+    ctx.db.commit()
     return StreamingResponse(
         stream,
         media_type=document.content_type,
