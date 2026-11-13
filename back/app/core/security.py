@@ -25,3 +25,20 @@ def create_access_token(subject: str | int, extra: dict[str, Any] | None = None)
 
 def decode_access_token(token: str) -> dict[str, Any]:
     return jwt.decode(token, settings.secret_key, algorithms=[settings.jwt_algorithm])
+
+
+_dummy_hash: str | None = None
+
+
+def check_password(password: str, hashed: str | None) -> bool:
+    """Como ``verify_password``, mas gasta o mesmo tempo quando o usuário não existe (``hashed`` None).
+
+    Sem isso, e-mail inexistente responde bem mais rápido que senha errada (o hash é caro) e revela quem tem conta.
+    """
+    global _dummy_hash
+    if hashed is None:
+        if _dummy_hash is None:
+            _dummy_hash = password_hash.hash("senha-ficticia-para-igualar-o-tempo")
+        password_hash.verify(password, _dummy_hash)
+        return False
+    return password_hash.verify(password, hashed)
