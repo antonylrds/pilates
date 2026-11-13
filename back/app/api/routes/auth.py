@@ -60,11 +60,17 @@ def login_form(request: Request, form: Annotated[OAuth2PasswordRequestForm, Depe
 
 @router.get("/me", response_model=Me)
 def me(ctx: Staff):
-    return Me(user=UserRead.model_validate(ctx.user), studio=StudioRead.model_validate(ctx.studio))
+    return Me(
+        user=UserRead.model_validate(ctx.user),
+        studio=StudioRead.model_validate(ctx.studio),
+        impersonated_by=ctx.impersonator.name if ctx.impersonator else None,
+    )
 
 
 @router.post("/me/password", response_model=Message)
 def change_password(data: PasswordChange, ctx: Staff):
+    if ctx.impersonator:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "Não é possível alterar a senha ao ver o sistema como outro usuário")
     if not verify_password(data.current_password, ctx.user.hashed_password):
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Senha atual incorreta")
     ctx.user.hashed_password = hash_password(data.new_password)

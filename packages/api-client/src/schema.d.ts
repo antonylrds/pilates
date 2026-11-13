@@ -74,6 +74,43 @@ export interface paths {
         patch: operations["update_studio_api_v1_platform_studios__studio_id__patch"];
         trace?: never;
     };
+    "/api/v1/platform/studios/{studio_id}/users": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Usuários do estúdio (para escolher como ver o sistema) */
+        get: operations["studio_users_api_v1_platform_studios__studio_id__users_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/platform/studios/{studio_id}/impersonate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * "Ver como": token de estúdio para ver (e agir) como um admin ou professor
+         * @description Devolve o mesmo formato do login do estúdio, com `impersonated_by`. O token dura `IMPERSONATION_EXPIRE_MINUTES`, deixa de valer se o usuário da plataforma for desativado, e os registros (histórico, laudos) levam o nome do operador. Trocar ou redefinir senhas fica bloqueado. Cada uso é gravado no log central (`impersonation_logs`).
+         */
+        post: operations["impersonate_api_v1_platform_studios__studio_id__impersonate_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/auth/login": {
         parameters: {
             query?: never;
@@ -1715,6 +1752,14 @@ export interface components {
             /** Detail */
             detail?: components["schemas"]["ValidationError"][];
         };
+        /** ImpersonateRequest */
+        ImpersonateRequest: {
+            /**
+             * User Id
+             * @description Usuário do estúdio (admin ou professor) a ser visto
+             */
+            user_id: number;
+        };
         /** LessonCancel */
         LessonCancel: {
             /** Reason */
@@ -1846,6 +1891,11 @@ export interface components {
         Me: {
             user: components["schemas"]["UserRead"];
             studio: components["schemas"]["StudioRead"];
+            /**
+             * Impersonated By
+             * @description Nome do usuário da plataforma, no modo "ver como"
+             */
+            impersonated_by?: string | null;
         };
         /** Message */
         Message: {
@@ -3273,6 +3323,11 @@ export interface components {
             token_type: string;
             user: components["schemas"]["UserRead"];
             studio: components["schemas"]["StudioRead"];
+            /**
+             * Impersonated By
+             * @description Nome do usuário da plataforma, no modo "ver como"
+             */
+            impersonated_by?: string | null;
         };
         /**
          * UpcomingLesson
@@ -3560,6 +3615,72 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["StudioRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    studio_users_api_v1_platform_studios__studio_id__users_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                studio_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserRead"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    impersonate_api_v1_platform_studios__studio_id__impersonate_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                studio_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ImpersonateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Token"];
                 };
             };
             /** @description Validation Error */

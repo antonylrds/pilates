@@ -45,11 +45,13 @@ class Token(BaseModel):
     token_type: str = "bearer"
     user: UserRead
     studio: StudioRead
+    impersonated_by: str | None = Field(None, description='Nome do usuário da plataforma, no modo "ver como"')
 
 
 class Me(BaseModel):
     user: UserRead
     studio: StudioRead
+    impersonated_by: str | None = Field(None, description='Nome do usuário da plataforma, no modo "ver como"')
 
 
 class PasswordChange(BaseModel):

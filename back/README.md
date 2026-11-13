@@ -113,6 +113,7 @@ app/
   services/    regras: agenda, chamada/reposição, créditos, relatórios
   api/         dependências (resolução do tenant, permissões) e rotas
   cli.py       init / migrate / create-studio
+  (plataforma)  POST /platform/studios/{id}/impersonate = "ver como" admin/professor (veja D-42)
 migrations/    central/ e tenant/ (Alembic)
 tests/         pytest (bancos SQLite temporários por teste)
 ```

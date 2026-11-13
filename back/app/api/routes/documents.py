@@ -106,7 +106,7 @@ def upload_document(
         storage_key=key,
         description=(description or "").strip() or None,
         uploaded_by_id=ctx.user.id,
-        uploaded_by_name=ctx.user.name,
+        uploaded_by_name=ctx.actor_name,
     )
     try:
         ctx.db.add(document)

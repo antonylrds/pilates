@@ -7,7 +7,8 @@ import { useSession } from "../lib/session";
 const DEMO = import.meta.env.DEV ? { studio: "demo", email: "admin@demo.com", password: "admin123" } : null;
 
 export function LoginPage() {
-  const { login } = useSession();
+  const { login, loginPlatform } = useSession();
+  const [platformMode, setPlatformMode] = useState(false);
   const [studio, setStudio] = useState(DEMO?.studio ?? "");
   const [email, setEmail] = useState(DEMO?.email ?? "");
   const [password, setPassword] = useState(DEMO?.password ?? "");
@@ -19,7 +20,8 @@ export function LoginPage() {
     setBusy(true);
     setError(undefined);
     try {
-      await login(studio, email, password);
+      if (platformMode) await loginPlatform(email, password);
+      else await login(studio, email, password);
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
@@ -34,11 +36,13 @@ export function LoginPage() {
           <span className="brand-mark">P</span>
           <div className="brand-name">Pilates Studio</div>
         </div>
-        <h1>Entrar</h1>
-        <label className="field">
-          <span>Estúdio</span>
-          <input value={studio} onChange={(e) => setStudio(e.target.value)} placeholder="ex.: demo" required />
-        </label>
+        <h1>{platformMode ? "Entrar na plataforma" : "Entrar"}</h1>
+        {!platformMode && (
+          <label className="field">
+            <span>Estúdio</span>
+            <input value={studio} onChange={(e) => setStudio(e.target.value)} placeholder="ex.: demo" required />
+          </label>
+        )}
         <label className="field">
           <span>E-mail</span>
           <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
@@ -51,7 +55,17 @@ export function LoginPage() {
         <button className="btn btn-primary btn-block" disabled={busy}>
           {busy ? "Entrando…" : "Entrar"}
         </button>
-        {DEMO && <p className="muted small center">Professora: ana@demo.com / admin123</p>}
+        {DEMO && !platformMode && <p className="muted small center">Professora: ana@demo.com / admin123</p>}
+        <button
+          type="button"
+          className="btn btn-ghost btn-sm btn-block"
+          onClick={() => {
+            setPlatformMode(!platformMode);
+            setError(undefined);
+          }}
+        >
+          {platformMode ? "Voltar ao login do estúdio" : "Sou da plataforma"}
+        </button>
       </form>
     </div>
   );

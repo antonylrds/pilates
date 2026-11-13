@@ -44,3 +44,7 @@ export function perWeekLabel(n: number, short = false): string {
   if (n === 0) return "sem recorrência";
   return short ? `${n}x/semana` : `${n}x por semana`;
 }
+
+export function roleLabel(role: string): string {
+  return role === "admin" ? "Administrador" : "Professor";
+}
