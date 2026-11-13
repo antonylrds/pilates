@@ -1,9 +1,8 @@
-from datetime import date
-
 from fastapi import APIRouter, HTTPException, status
 from sqlalchemy import String, cast, or_, select
 from sqlalchemy.orm import selectinload
 
+from app.core import clock
 from app.api.deps import Admin, Staff, apply_update, get_or_404
 from app.models.tenant import Attendance, AuditLog, ClassGroup, Enrollment, Lesson, Student, Subscription
 from app.models.tenant.enums import AttendanceStatus, SubscriptionStatus
@@ -64,7 +63,7 @@ def _detail(ctx, student: Student) -> StudentDetail:
             Attendance.student_id == student.id,
             Attendance.is_makeup.is_(True),
             Attendance.status == AttendanceStatus.PENDING,
-            Lesson.date >= date.today(),
+            Lesson.date >= clock.today(),
         )
         .order_by(Lesson.date)
     )
@@ -128,7 +127,7 @@ def create_student(data: StudentCreate, ctx: Admin):
         sub = credits.create_subscription(ctx.db, student, data.subscription)
         parts.append(f"plano {_plan_summary(sub)}")
         if data.class_group_ids:
-            change = set_schedule(ctx.db, student, data.class_group_ids, max(sub.start_date, date.today()))
+            change = set_schedule(ctx.db, student, data.class_group_ids, max(sub.start_date, clock.today()))
             parts.append("turmas padrão: " + ", ".join(change.added))
     elif data.class_group_ids:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Informe o plano para definir as turmas")
@@ -158,7 +157,7 @@ def update_student(student_id: int, data: StudentUpdate, ctx: Admin):
 def deactivate_student(student_id: int, ctx: Admin):
     student = _student(ctx, student_id)
     student.is_active = False
-    change = set_schedule(ctx.db, student, [], date.today())
+    change = set_schedule(ctx.db, student, [], clock.today())
     description = "Aluno inativado"
     if change.removed:
         description += "; turmas liberadas: " + ", ".join(change.removed)
@@ -236,7 +235,7 @@ def cancel_subscription(student_id: int, subscription_id: int, ctx: Admin):
 )
 def update_payment(student_id: int, subscription_id: int, data: SubscriptionPayment, ctx: Admin):
     subscription = _own_subscription(ctx, student_id, subscription_id)
-    paid_at = (data.paid_at or date.today()) if data.is_paid else None
+    paid_at = (data.paid_at or clock.today()) if data.is_paid else None
     if subscription.is_paid == data.is_paid and subscription.paid_at == paid_at:
         return subscription
     changes = {
@@ -271,7 +270,7 @@ def get_schedule(student_id: int, ctx: Staff):
 )
 def schedule_history(student_id: int, ctx: Staff):
     _student(ctx, student_id)
-    today = date.today()
+    today = clock.today()
 
     def status_of(e) -> str:
         if e.start_date > today:
@@ -304,7 +303,7 @@ def update_schedule(student_id: int, data: ScheduleUpdate, ctx: Admin):
     student = _student(ctx, student_id)
     if not student.is_active:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Aluno está inativo")
-    change = set_schedule(ctx.db, student, data.class_group_ids, data.effective_from or date.today())
+    change = set_schedule(ctx.db, student, data.class_group_ids, data.effective_from or clock.today())
     if change.changed:
         audit.log(ctx, student.id, audit.Action.SCHEDULE_CHANGED, change.describe(), change.as_changes())
     ctx.db.commit()

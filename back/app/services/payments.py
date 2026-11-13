@@ -11,6 +11,7 @@ from fastapi import HTTPException, status
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session, selectinload
 
+from app.core import clock
 from app.models.tenant import Payment, Subscription, Teacher
 from app.models.tenant.enums import PaymentKind, PaymentStatus
 from app.schemas.payments import DateField, PaymentCreate, PaymentTotals
@@ -48,7 +49,7 @@ def create_for_subscription(
         kind=PaymentKind.STUDENT,
         status=PaymentStatus.PAID if paid else PaymentStatus.PENDING,
         amount=subscription.final_price,
-        paid_at=(paid_at or date.today()) if paid else None,
+        paid_at=(paid_at or clock.today()) if paid else None,
         student_id=subscription.student_id,
         subscription_id=subscription.id,
         notes=notes,
@@ -80,7 +81,7 @@ def create_payment(db: Session, data: PaymentCreate) -> Payment:
         kind=PaymentKind.TEACHER,
         status=PaymentStatus.PAID if data.is_paid else PaymentStatus.PENDING,
         amount=data.amount,
-        paid_at=(data.paid_at or date.today()) if data.is_paid else None,
+        paid_at=(data.paid_at or clock.today()) if data.is_paid else None,
         teacher_id=teacher.id,
         period_start=data.period_start,
         period_end=data.period_end,
@@ -95,7 +96,7 @@ def mark_paid(payment: Payment, paid_at: date | None = None) -> None:
     if payment.status == PaymentStatus.CANCELLED:
         raise _bad("Pagamento cancelado não pode ser pago")
     payment.status = PaymentStatus.PAID
-    payment.paid_at = paid_at or payment.paid_at or date.today()
+    payment.paid_at = paid_at or payment.paid_at or clock.today()
     _sync_subscription(payment)
 
 
@@ -112,7 +113,7 @@ def cancel(payment: Payment, notes: str | None = None) -> None:
         raise _bad("Pagamento já está cancelado")
     payment.status = PaymentStatus.CANCELLED
     payment.paid_at = None
-    payment.cancelled_at = date.today()
+    payment.cancelled_at = clock.today()
     if notes:
         payment.notes = notes
     _sync_subscription(payment)
@@ -131,7 +132,7 @@ def set_subscription_paid(db: Session, subscription: Subscription, paid: bool, p
     if payment is None:
         payment = create_for_subscription(db, subscription)
     if paid:
-        mark_paid(payment, paid_at or date.today())
+        mark_paid(payment, paid_at or clock.today())
     else:
         mark_pending(payment)
     return payment
@@ -166,9 +167,6 @@ def list_payments(
     skip: int,
     limit: int,
 ) -> tuple[list[Payment], int, PaymentTotals]:
-    column = {"created": func.date(Payment.created_at), "paid": Payment.paid_at, "cancelled": Payment.cancelled_at}[
-        date_field
-    ]
     conditions = []
     if kind is not None:
         conditions.append(Payment.kind == kind)
@@ -178,10 +176,18 @@ def list_payments(
         conditions.append(Payment.teacher_id == teacher_id)
     if status_ is not None:
         conditions.append(Payment.status == status_)
-    if date_from is not None:
-        conditions.append(column >= date_from)
-    if date_to is not None:
-        conditions.append(column <= date_to)
+    if date_field == "created":
+        # created_at é gravado em UTC: compara com os limites do dia *local* convertidos para UTC.
+        if date_from is not None:
+            conditions.append(Payment.created_at >= clock.local_day_bounds_utc(date_from)[0])
+        if date_to is not None:
+            conditions.append(Payment.created_at < clock.local_day_bounds_utc(date_to)[1])
+    else:
+        column = Payment.paid_at if date_field == "paid" else Payment.cancelled_at
+        if date_from is not None:
+            conditions.append(column >= date_from)
+        if date_to is not None:
+            conditions.append(column <= date_to)
 
     items = list(
         db.scalars(

@@ -8,6 +8,7 @@ from fastapi import HTTPException, status
 from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
+from app.core import clock
 from app.models.central import Studio
 from app.models.tenant import ClassGroup, Lesson, Room, Service, ServiceContract, ServiceSession, Student, Teacher
 from app.models.tenant.enums import WEEKDAY_NAMES, WEEKDAYS, ServiceContractStatus, ServiceRecurrence, ServiceSessionStatus
@@ -116,7 +117,7 @@ def contract_service(db: Session, studio: Studio, student: Student, data: Servic
             status.HTTP_400_BAD_REQUEST,
             f"Horário deve estar entre {studio.open_hour}h e {last_start}h (sessões de 1h)",
         )
-    start = data.start_date or date.today()
+    start = data.start_date or clock.today()
     dates = session_dates(start, data.recurrence, data.occurrences)
     for day in dates:
         if day.weekday() not in WEEKDAYS:
@@ -139,7 +140,7 @@ def contract_service(db: Session, studio: Studio, student: Student, data: Servic
         room_id=room.id,
         teacher_id=data.teacher_id,
         is_paid=data.is_paid,
-        paid_at=(data.paid_at or date.today()) if data.is_paid else None,
+        paid_at=(data.paid_at or clock.today()) if data.is_paid else None,
         notes=data.notes,
         sessions=[
             ServiceSession(date=d, start_hour=data.start_hour, room_id=room.id, teacher_id=data.teacher_id)
@@ -158,7 +159,7 @@ def cancel_contract(contract: ServiceContract) -> int:
     contract.status = ServiceContractStatus.CANCELLED
     cancelled = 0
     for session in contract.sessions:
-        if session.status == ServiceSessionStatus.SCHEDULED and session.date >= date.today():
+        if session.status == ServiceSessionStatus.SCHEDULED and session.date >= clock.today():
             session.status = ServiceSessionStatus.CANCELLED
             cancelled += 1
     return cancelled
@@ -171,7 +172,7 @@ def ensure_can_manage(ctx, session: ServiceSession) -> None:
 
 
 def has_started(session: ServiceSession) -> bool:
-    return session.starts_at is not None and session.starts_at <= datetime.now()
+    return session.starts_at is not None and session.starts_at <= clock.now()
 
 
 def complete_session(ctx, session: ServiceSession, present: bool, justification: str | None) -> None:
@@ -186,7 +187,7 @@ def complete_session(ctx, session: ServiceSession, present: bool, justification:
     teacher = ctx.db.get(Teacher, session.teacher_id)
     session.status = ServiceSessionStatus.DONE if present else ServiceSessionStatus.MISSED
     session.justification = None if present else justification
-    session.completed_at = datetime.now()
+    session.completed_at = clock.now()
     session.completed_by_id = ctx.user.id
     session.share_percent = teacher.service_share_percent
     session.teacher_pay = (

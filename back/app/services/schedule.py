@@ -7,6 +7,7 @@ from fastapi import HTTPException, status
 from sqlalchemy import or_, select
 from sqlalchemy.orm import Session, selectinload
 
+from app.core import clock
 from app.models.central import Studio
 from app.models.tenant import Attendance, ClassGroup, Enrollment, Lesson, Room, Student, Teacher
 from app.models.tenant.enums import WEEKDAYS, AttendanceStatus, LessonStatus
@@ -107,7 +108,7 @@ def create_group(db: Session, studio: Studio, data: ClassGroupCreate) -> ClassGr
     capacity = data.capacity or room.capacity
     if capacity > room.capacity:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, f"Capacidade máxima da sala {room.name} é {room.capacity}")
-    start = data.start_date or date.today()
+    start = data.start_date or clock.today()
     ensure_no_conflict(
         db, room_id=room.id, teacher_id=data.teacher_id, weekday=data.weekday, hour=data.start_hour, from_date=start
     )
@@ -144,7 +145,7 @@ def update_group(db: Session, group: ClassGroup, data: ClassGroupUpdate) -> Clas
             teacher_id=teacher_id,
             weekday=group.weekday,
             hour=group.start_hour,
-            from_date=date.today(),
+            from_date=clock.today(),
             exclude_id=group.id,
         )
     old_teacher = group.teacher_id
@@ -154,7 +155,7 @@ def update_group(db: Session, group: ClassGroup, data: ClassGroupUpdate) -> Clas
         # Aulas futuras já registradas passam para o novo professor (exceto substituições pontuais).
         for lesson in db.scalars(
             select(Lesson).where(
-                Lesson.class_group_id == group.id, Lesson.date >= date.today(), Lesson.teacher_id == old_teacher
+                Lesson.class_group_id == group.id, Lesson.date >= clock.today(), Lesson.teacher_id == old_teacher
             )
         ):
             lesson.teacher_id = teacher_id
@@ -287,7 +288,7 @@ def enrollment_history(db: Session, student_id: int) -> list[Enrollment]:
 
 
 def current_enrollments(db: Session, student_id: int) -> list[Enrollment]:
-    today = date.today()
+    today = clock.today()
     return list(
         db.scalars(
             select(Enrollment)
@@ -362,7 +363,7 @@ def lesson_start(group: ClassGroup, day: date) -> datetime:
 
 
 def has_started(group: ClassGroup, day: date) -> bool:
-    return lesson_start(group, day) <= datetime.now()
+    return lesson_start(group, day) <= clock.now()
 
 
 def _entry(group: ClassGroup, day: date, lesson: Lesson | None, roster: list[Roster]) -> dict:
@@ -502,9 +503,9 @@ def upcoming_lessons(db: Session, student_id: int, days: int = 28) -> list[Upcom
 
     São as aulas que podem ser reagendadas (origem de um reagendamento).
     """
-    today = date.today()
+    today = clock.today()
     end = today + timedelta(days=days)
-    now = datetime.now()
+    now = clock.now()
     result: list[UpcomingLesson] = []
     seen: set[tuple[int, date]] = set()
 

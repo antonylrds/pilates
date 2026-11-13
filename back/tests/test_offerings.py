@@ -1,5 +1,6 @@
-from datetime import date, timedelta
+from datetime import timedelta
 
+from app.core import clock
 from tests.conftest import API, future_weekday, login, past_weekday
 
 
@@ -189,4 +190,4 @@ def test_inactive_service_cannot_be_contracted(client, studio):
     fisio = _service(studio)
     client.patch(f"{API}/services/{fisio['id']}", json={"is_active": False}, headers=studio.h)
     _contract(client, studio, studio.student("Maria"), s1, ana, expected=400, service_id=fisio["id"],
-              start_date=(date.today() + timedelta(days=30)).isoformat())
+              start_date=(clock.today() + timedelta(days=30)).isoformat())

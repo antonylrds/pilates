@@ -5,6 +5,7 @@ from decimal import Decimal
 from enum import Enum
 from typing import Any
 
+from app.core import clock
 from app.models.tenant import AuditLog
 
 FIELD_LABELS = {
@@ -64,7 +65,7 @@ def log(ctx, student_id: int, action: str, description: str, changes: dict[str, 
             user_id=ctx.user.id,
             user_name=ctx.user.name,
             # Horário local do estúdio (D-14); o padrão do banco (CURRENT_TIMESTAMP) seria UTC no SQLite.
-            created_at=datetime.now(),
+            created_at=clock.now(),
         )
     )
 

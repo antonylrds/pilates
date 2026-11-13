@@ -10,6 +10,7 @@ from decimal import Decimal
 
 from sqlalchemy import select
 
+from app.core import clock
 from app.api.deps import TenantContext
 from app.core.security import hash_password
 from app.db.base import TenantBase
@@ -70,7 +71,7 @@ def seed(slug: str, reset: bool = False) -> None:
         raise SystemExit(f"Estúdio '{slug}' não existe")
 
     rng = random.Random(42)
-    today = date.today()
+    today = clock.today()
     start = today - timedelta(days=28)
 
     with tenant_session(slug) as db:

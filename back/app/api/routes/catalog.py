@@ -1,11 +1,10 @@
 """Salas, planos, descontos e resumo do catálogo."""
 
-from datetime import date
-
 from fastapi import APIRouter, HTTPException, status
 from sqlalchemy import or_, select
 from sqlalchemy.orm import selectinload
 
+from app.core import clock
 from app.api.deps import Admin, Staff, apply_update, get_or_404
 from app.models.tenant import ClassGroup, Discount, Plan, Room, Service, ServiceContract, Subscription
 from app.models.tenant.enums import (
@@ -203,7 +202,7 @@ def catalog_overview(ctx: Staff):
         if not sub.is_paid and state in (SubscriptionUsage.IN_USE, SubscriptionUsage.QUEUED):
             usage.unpaid += 1
 
-    today = date.today()
+    today = clock.today()
     services: dict[int, ServiceUsage] = {
         s.id: ServiceUsage(service_id=s.id, active_contracts=0, upcoming_sessions=0) for s in db.scalars(select(Service))
     }
