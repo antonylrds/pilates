@@ -1194,7 +1194,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Baixa o documento (exige login) */
+        /** Baixa o documento (exige login; o acesso é registrado no histórico) */
         get: operations["download_document_api_v1_students__student_id__documents__document_id__download_get"];
         put?: never;
         post?: never;

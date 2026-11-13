@@ -22,6 +22,11 @@ resource "random_password" "postgres" {
   special = false
 }
 
+resource "random_password" "app_db" {
+  length  = 32
+  special = false
+}
+
 resource "random_password" "platform_admin" {
   length  = 24
   special = false
@@ -58,6 +63,7 @@ resource "oci_core_instance" "api" {
       cors_origins         = jsonencode(var.cors_origins)
       secret_key           = random_password.secret_key.result
       postgres_password    = random_password.postgres.result
+      app_db_password      = random_password.app_db.result
       platform_admin_email = var.platform_admin_email
       platform_admin_pass  = random_password.platform_admin.result
       compose              = base64encode(file("${path.module}/deploy/docker-compose.yml"))

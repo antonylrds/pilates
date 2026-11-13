@@ -24,6 +24,11 @@ class Settings(BaseSettings):
     # Postgres: postgresql+psycopg://user:pass@host:5432/pilates_{slug}
     tenant_database_url_template: str = "sqlite:///./data/tenants/{slug}.db"
 
+    # Papel de admin do Postgres (cria bancos e roda migrações). Se definidos, de outro usuário que as URLs acima, as
+    # requisições usam um papel sem privilégios de DDL (veja app/db/roles.py). Vazio = mesmo usuário (SQLite, dev).
+    admin_central_database_url: str | None = None
+    admin_tenant_database_url_template: str | None = None
+
     # Conexões: cada estúdio tem o próprio pool. Mantém poucas conexões ociosas por estúdio (pool_size) e descarta
     # os engines de estúdios sem uso (idle) ou além do limite (max_cached, os menos usados primeiro). No Postgres,
     # conexões ociosas ≈ estúdios em cache × pool_size: mantenha abaixo de max_connections (padrão 100).

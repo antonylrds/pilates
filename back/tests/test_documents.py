@@ -132,3 +132,30 @@ def test_requires_login_and_isolates_studios(client, platform, studio):
 
     other = make_studio(client, platform, "beta")
     assert client.get(url, headers=other).status_code == 404  # outro estúdio não enxerga (aluno não existe lá)
+
+
+def test_every_access_to_a_document_is_audited(client, studio):
+    student = studio.student("Ana")
+    doc = _upload(client, studio.h, student, name="laudo ana.pdf").json()
+
+    def accesses():
+        history = client.get(f"{API}/students/{student['id']}/history", headers=studio.h).json()
+        return [h for h in history if h["action"] == "document_accessed"]
+
+    assert accesses() == []  # enviar não é acessar
+    for _ in range(2):
+        assert client.get(f"{API}/students/{student['id']}/documents/{doc['id']}/download", headers=studio.h).status_code == 200
+    entries = accesses()
+    assert len(entries) == 2
+    assert entries[0]["user_name"] == "Dona" and "laudo ana.pdf" in entries[0]["description"]
+
+
+def test_missing_file_is_not_audited_as_access(client, studio):
+    student = studio.student("Ana")
+    doc = _upload(client, studio.h, student).json()
+    for path in Path(settings.storage_local_root).rglob("*"):
+        if path.is_file():
+            path.unlink()
+    assert client.get(f"{API}/students/{student['id']}/documents/{doc['id']}/download", headers=studio.h).status_code == 404
+    history = client.get(f"{API}/students/{student['id']}/history", headers=studio.h).json()
+    assert not any(h["action"] == "document_accessed" for h in history)

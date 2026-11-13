@@ -24,8 +24,12 @@ services:
     command: ["sh", "-c", "python -m app.cli migrate --jobs 4 && python -m app.cli init"]
     environment:
       ENVIRONMENT: production
-      CENTRAL_DATABASE_URL: postgresql+psycopg://pilates:${POSTGRES_PASSWORD}@db:5432/pilates_central
-      TENANT_DATABASE_URL_TEMPLATE: postgresql+psycopg://pilates:${POSTGRES_PASSWORD}@db:5432/pilates_{slug}
+      # Papel das requisições: só SELECT/INSERT/UPDATE/DELETE (criado e liberado pelo serviço migrate).
+      CENTRAL_DATABASE_URL: postgresql+psycopg://pilates_app:${APP_DB_PASSWORD}@db:5432/pilates_central
+      TENANT_DATABASE_URL_TEMPLATE: postgresql+psycopg://pilates_app:${APP_DB_PASSWORD}@db:5432/pilates_{slug}
+      # Admin (dono dos bancos): cria bancos de estúdio e roda migrações. Requisições usam o papel pilates_app.
+      ADMIN_CENTRAL_DATABASE_URL: postgresql+psycopg://pilates:${POSTGRES_PASSWORD}@db:5432/pilates_central
+      ADMIN_TENANT_DATABASE_URL_TEMPLATE: postgresql+psycopg://pilates:${POSTGRES_PASSWORD}@db:5432/pilates_{slug}
       SECRET_KEY: ${SECRET_KEY}
       PLATFORM_ADMIN_EMAIL: ${PLATFORM_ADMIN_EMAIL}
       PLATFORM_ADMIN_PASSWORD: ${PLATFORM_ADMIN_PASSWORD}
@@ -39,8 +43,12 @@ services:
       migrate:
         condition: service_completed_successfully
     environment:
-      CENTRAL_DATABASE_URL: postgresql+psycopg://pilates:${POSTGRES_PASSWORD}@db:5432/pilates_central
-      TENANT_DATABASE_URL_TEMPLATE: postgresql+psycopg://pilates:${POSTGRES_PASSWORD}@db:5432/pilates_{slug}
+      # Papel das requisições: só SELECT/INSERT/UPDATE/DELETE (criado e liberado pelo serviço migrate).
+      CENTRAL_DATABASE_URL: postgresql+psycopg://pilates_app:${APP_DB_PASSWORD}@db:5432/pilates_central
+      TENANT_DATABASE_URL_TEMPLATE: postgresql+psycopg://pilates_app:${APP_DB_PASSWORD}@db:5432/pilates_{slug}
+      # Admin (dono dos bancos): cria bancos de estúdio e roda migrações. Requisições usam o papel pilates_app.
+      ADMIN_CENTRAL_DATABASE_URL: postgresql+psycopg://pilates:${POSTGRES_PASSWORD}@db:5432/pilates_central
+      ADMIN_TENANT_DATABASE_URL_TEMPLATE: postgresql+psycopg://pilates:${POSTGRES_PASSWORD}@db:5432/pilates_{slug}
       ENVIRONMENT: production
       SECRET_KEY: ${SECRET_KEY}
       # Só o Caddy (mesma rede do compose) alcança a API: confia no X-Forwarded-For dele para o IP real do cliente.

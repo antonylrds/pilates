@@ -31,6 +31,7 @@ class Action:
     SERVICE_CANCELLED = "service_cancelled"
     DOCUMENT_ADDED = "document_added"
     DOCUMENT_REMOVED = "document_removed"
+    DOCUMENT_ACCESSED = "document_accessed"
 
 
 def _plain(value: Any) -> Any:

@@ -5262,7 +5262,7 @@
         "tags": [
           "documents"
         ],
-        "summary": "Baixa o documento (exige login)",
+        "summary": "Baixa o documento (exige login; o acesso é registrado no histórico)",
         "operationId": "download_document_api_v1_students__student_id__documents__document_id__download_get",
         "security": [
           {

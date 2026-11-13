@@ -9,7 +9,8 @@ from sqlalchemy import create_engine, text
 from sqlalchemy.engine import make_url
 
 from app.core.config import settings
-from app.db.engines import ensure_sqlite_dir, tenant_url
+from app.db.engines import ensure_sqlite_dir
+from app.db.roles import ensure_runtime_role, grant_runtime_access
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -42,17 +43,32 @@ def create_database(url: str) -> None:
     raise RuntimeError(f"Backend não suportado para provisionamento: {backend}")
 
 
+def admin_central_url() -> str:
+    """URL do banco central com o papel que faz DDL (a das requisições, se não houver papel separado)."""
+    return settings.admin_central_database_url or settings.central_database_url
+
+
+def admin_tenant_url(slug: str) -> str:
+    template = settings.admin_tenant_database_url_template or settings.tenant_database_url_template
+    return template.format(slug=slug.replace("-", "_"))
+
+
 def migrate_central() -> None:
-    ensure_sqlite_dir(settings.central_database_url)
-    command.upgrade(_alembic_config("central", settings.central_database_url), "head")
+    ensure_runtime_role()  # o papel precisa existir antes de receber acesso
+    url = admin_central_url()
+    ensure_sqlite_dir(url)
+    command.upgrade(_alembic_config("central", url), "head")
+    grant_runtime_access(url)
 
 
 def migrate_tenant(slug: str) -> None:
-    command.upgrade(_alembic_config("tenant", tenant_url(slug)), "head")
+    url = admin_tenant_url(slug)
+    command.upgrade(_alembic_config("tenant", url), "head")
+    grant_runtime_access(url)
 
 
 def provision_tenant(slug: str) -> None:
-    create_database(tenant_url(slug))
+    create_database(admin_tenant_url(slug))
     migrate_tenant(slug)
 
 
