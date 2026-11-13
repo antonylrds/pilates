@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING
 from sqlalchemy import ForeignKey, Numeric, String, Text, UniqueConstraint, false
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
+from app.core import clock
 from app.db.base import TenantBase, TimestampMixin, str_enum
 from app.models.tenant.enums import WEEKDAY_NAMES, AttendanceStatus
 
@@ -50,7 +51,7 @@ class ClassGroup(TenantBase, TimestampMixin):
     @property
     def enrolled_count(self) -> int:
         """Alunos fixos atuais ou futuros (ocupam vaga na turma)."""
-        today = dt.date.today()
+        today = clock.today()
         return sum(1 for e in self.enrollments if e.end_date is None or e.end_date >= today)
 
     def is_active_on(self, day: dt.date) -> bool:

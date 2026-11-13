@@ -3,6 +3,7 @@ from datetime import date
 from fastapi import APIRouter, status
 from sqlalchemy import or_, select
 
+from app.core import clock
 from app.api.deps import Admin, Staff
 from app.models.tenant import ClassGroup
 from app.schemas.people import StudentSummary
@@ -13,7 +14,7 @@ router = APIRouter(prefix="/class-groups", tags=["class groups (turmas)"])
 
 
 def _detail(group: ClassGroup) -> ClassGroupDetail:
-    today = date.today()
+    today = clock.today()
     students = sorted(
         (e.student for e in group.enrollments if e.end_date is None or e.end_date >= today),
         key=lambda s: s.name.lower(),
@@ -34,7 +35,7 @@ def list_groups(
 ):
     query = select(ClassGroup).options(*service.GROUP_LOAD).order_by(ClassGroup.weekday, ClassGroup.start_hour)
     if not include_ended:
-        query = query.where(or_(ClassGroup.end_date.is_(None), ClassGroup.end_date >= date.today()))
+        query = query.where(or_(ClassGroup.end_date.is_(None), ClassGroup.end_date >= clock.today()))
     if weekday is not None:
         query = query.where(ClassGroup.weekday == weekday)
     if room_id:
@@ -79,4 +80,4 @@ def update_group(group_id: int, data: ClassGroupUpdate, ctx: Admin):
 )
 def end_group(group_id: int, ctx: Admin, end_date: date | None = None):
     group = service.load_group(ctx.db, group_id)
-    service.end_group(ctx.db, group, end_date or date.today())
+    service.end_group(ctx.db, group, end_date or clock.today())

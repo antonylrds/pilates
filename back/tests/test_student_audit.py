@@ -1,5 +1,6 @@
-from datetime import date, timedelta
+from datetime import timedelta
 
+from app.core import clock
 from tests.conftest import API, LONG_AGO, login, past_weekday
 
 
@@ -29,7 +30,7 @@ def test_create_student_with_paid_plan_and_schedule_is_logged(client, studio):
     assert entry["action"] == "student_created" and entry["user_name"] == "Dona"
     assert "2x" in entry["description"] and "pago em 01/11/2026" in entry["description"]
     assert "Segunda 07h" in entry["description"] and "Quarta 07h" in entry["description"]
-    assert entry["created_at"].startswith(date.today().isoformat())
+    assert entry["created_at"].startswith(clock.today().isoformat())
 
 
 def test_unpaid_plan_then_mark_as_paid(client, studio):
@@ -41,7 +42,7 @@ def test_unpaid_plan_then_mark_as_paid(client, studio):
     r = client.patch(
         f"{API}/students/{student['id']}/subscriptions/{sub['id']}/payment", json={"is_paid": True}, headers=studio.h
     )
-    assert r.json()["is_paid"] is True and r.json()["paid_at"] == date.today().isoformat()
+    assert r.json()["is_paid"] is True and r.json()["paid_at"] == clock.today().isoformat()
     # repetir sem mudança não gera registro
     client.patch(f"{API}/students/{student['id']}/subscriptions/{sub['id']}/payment", json={"is_paid": True}, headers=studio.h)
 
@@ -81,7 +82,7 @@ def test_schedule_change_keeps_history_and_logs_who_and_when(client, studio):
     # outro admin muda o horário
     studio.post("/users", {"name": "Recepção", "email": "rec@alpha.com", "password": "secret123", "role": "admin"})
     rec = login(client, "alpha", "rec@alpha.com")
-    effective = date.today() + timedelta(days=1)
+    effective = clock.today() + timedelta(days=1)
     r = client.put(
         f"{API}/students/{maria['id']}/schedule",
         json={"class_group_ids": [wed["id"]], "effective_from": effective.isoformat()},
@@ -93,7 +94,7 @@ def test_schedule_change_keeps_history_and_logs_who_and_when(client, studio):
     history = client.get(f"{API}/students/{maria['id']}/schedule/history", headers=studio.h).json()
     by_group = {h["class_group_id"]: h for h in history}
     assert by_group[mon["id"]]["start_date"] == LONG_AGO
-    assert by_group[mon["id"]]["end_date"] == date.today().isoformat()
+    assert by_group[mon["id"]]["end_date"] == clock.today().isoformat()
     assert by_group[wed["id"]]["start_date"] == effective.isoformat() and by_group[wed["id"]]["status"] == "future"
 
     entry = _history(client, studio, maria)[0]

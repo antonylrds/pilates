@@ -7,6 +7,7 @@ from fastapi import HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.core import clock
 from app.models.central import Studio
 from app.models.tenant import Attendance, Discount, Lesson, Notification, Plan, Student, Subscription
 from app.models.tenant.enums import AttendanceStatus, DiscountKind, NotificationKind, SubscriptionStatus
@@ -49,7 +50,7 @@ def create_subscription(db: Session, student: Student, data: SubscriptionCreate)
         discount_id=discount.id if discount else None,
         plan_name=plan.name,
         discount_name=discount.name if discount else None,
-        start_date=data.start_date or date.today(),
+        start_date=data.start_date or clock.today(),
         total_classes=plan.total_classes,
         sessions_per_week=plan.sessions_per_week,
         base_price=plan.price,

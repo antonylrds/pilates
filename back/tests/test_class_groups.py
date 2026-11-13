@@ -1,5 +1,6 @@
-from datetime import date, timedelta
+from datetime import timedelta
 
+from app.core import clock
 from tests.conftest import API, future_weekday
 
 
@@ -48,7 +49,7 @@ def test_capacity_cannot_exceed_room(client, studio):
 def test_end_group_frees_slot(client, studio):
     room, teacher = studio.room(), studio.teacher()
     g = _create(client, studio, room, teacher, 0, 7).json()
-    end = date.today() + timedelta(days=1)
+    end = clock.today() + timedelta(days=1)
     assert client.delete(f"{API}/class-groups/{g['id']}", params={"end_date": end.isoformat()}, headers=studio.h).status_code == 204
     # nova turma no mesmo slot começando após o encerramento
     r = client.post(

@@ -3,6 +3,7 @@ from datetime import date, timedelta
 import pytest
 from fastapi.testclient import TestClient
 
+from app.core import clock
 from app.core.config import settings
 from app.core.security import hash_password
 from app.db.engines import central_session, registry
@@ -71,20 +72,20 @@ def admin(client, platform):
 # ---------- datas ----------
 def past_weekday(weekday: int, weeks_ago: int = 1) -> date:
     """Data passada (antes de hoje) no dia da semana informado."""
-    d = date.today() - timedelta(days=1)
+    d = clock.today() - timedelta(days=1)
     while d.weekday() != weekday:
         d -= timedelta(days=1)
     return d - timedelta(weeks=weeks_ago - 1)
 
 
 def future_weekday(weekday: int, weeks_ahead: int = 1) -> date:
-    d = date.today() + timedelta(days=1)
+    d = clock.today() + timedelta(days=1)
     while d.weekday() != weekday:
         d += timedelta(days=1)
     return d + timedelta(weeks=weeks_ahead - 1)
 
 
-LONG_AGO = (date.today() - timedelta(days=90)).isoformat()
+LONG_AGO = (clock.today() - timedelta(days=90)).isoformat()
 
 
 # ---------- montagem de cenário ----------

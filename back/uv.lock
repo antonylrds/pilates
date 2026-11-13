@@ -1087,6 +1087,7 @@ dependencies = [
     { name = "pydantic-settings" },
     { name = "pyjwt" },
     { name = "sqlalchemy" },
+    { name = "tzdata" },
 ]
 
 [package.optional-dependencies]
@@ -1113,6 +1114,7 @@ requires-dist = [
     { name = "pydantic-settings", specifier = ">=2.6" },
     { name = "pyjwt", specifier = ">=2.10" },
     { name = "sqlalchemy", specifier = ">=2.0.36" },
+    { name = "tzdata", specifier = ">=2026.6" },
 ]
 provides-extras = ["postgres", "s3"]
 

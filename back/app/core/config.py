@@ -8,6 +8,8 @@ class Settings(BaseSettings):
 
     app_name: str = "Pilates Studio API"
     api_prefix: str = "/api/v1"
+    # Fuso dos estúdios: define "hoje" e "agora" (o servidor roda em UTC). Ver app/core/clock.py.
+    timezone: str = "America/Sao_Paulo"
 
     # Banco central: cadastro de estúdios e usuários da plataforma.
     central_database_url: str = "sqlite:///./data/central.db"

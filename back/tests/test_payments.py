@@ -1,5 +1,6 @@
-from datetime import date, timedelta
+from datetime import timedelta
 
+from app.core import clock
 from tests.conftest import API, LONG_AGO, login
 
 
@@ -37,7 +38,7 @@ def test_adding_plan_to_existing_student_creates_payment(client, studio):
                     json={"plan_id": plan["id"], "is_paid": True}, headers=studio.h)
     assert r.status_code == 201, r.text
     payments = _list(client, studio, student_id=student["id"])["items"]
-    assert [(p["status"], p["paid_at"]) for p in payments] == [("paid", date.today().isoformat())]
+    assert [(p["status"], p["paid_at"]) for p in payments] == [("paid", clock.today().isoformat())]
 
 
 def test_pay_pending_cancel_keep_subscription_in_sync(client, studio):
@@ -60,7 +61,7 @@ def test_pay_pending_cancel_keep_subscription_in_sync(client, studio):
 
     r = client.post(f"{API}/payments/{payment['id']}/cancel", json={"notes": "Aluno desistiu"}, headers=studio.h)
     body = r.json()
-    assert (body["status"], body["cancelled_at"], body["notes"]) == ("cancelled", date.today().isoformat(), "Aluno desistiu")
+    assert (body["status"], body["cancelled_at"], body["notes"]) == ("cancelled", clock.today().isoformat(), "Aluno desistiu")
     # pagamento cancelado é terminal
     assert client.post(f"{API}/payments/{payment['id']}/pay", headers=studio.h).status_code == 400
     assert client.post(f"{API}/payments/{payment['id']}/pending", headers=studio.h).status_code == 400
@@ -165,7 +166,7 @@ def test_filters_by_student_status_and_date_range(client, studio):
     assert [p["student"]["name"] for p in october["items"]] == ["Caio"] and october["count"] == 1
     assert october["totals"]["paid"] == "100.00"
 
-    today = date.today()
+    today = clock.today()
     created = _list(client, studio, date_from=today.isoformat(), date_to=today.isoformat())
     assert created["count"] == 3
     assert _list(client, studio, date_from=(today + timedelta(days=1)).isoformat())["count"] == 0

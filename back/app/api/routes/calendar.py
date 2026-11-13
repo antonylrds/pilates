@@ -1,9 +1,10 @@
 """Calendário e aulas (ocorrências das turmas por data): detalhes, finalização, reagendamento e cancelamento."""
 
-from datetime import date, datetime, timedelta
+from datetime import date, timedelta
 
 from fastapi import APIRouter, HTTPException, status
 
+from app.core import clock
 from app.api.deps import Staff, get_or_404
 from app.models.tenant import Teacher
 from app.models.tenant.enums import LessonStatus
@@ -37,7 +38,7 @@ def get_calendar(
     teacher_id: int | None = None,
 ):
     if date_from is None:
-        today = date.today()
+        today = clock.today()
         date_from = today - timedelta(days=today.weekday())
     date_to = date_to or date_from + timedelta(days=4)
     return schedule.calendar(ctx.db, date_from, date_to, room_id, teacher_id)
@@ -49,7 +50,7 @@ def get_calendar(
     summary="Aulas que já começaram e aguardam finalização (professor vê só as suas)",
 )
 def pending_lessons(ctx: Staff, date_from: date | None = None, date_to: date | None = None):
-    today = date.today()
+    today = clock.today()
     date_to = min(date_to or today, today)
     date_from = date_from or date_to - timedelta(days=30)
     teacher_id = None
@@ -57,7 +58,7 @@ def pending_lessons(ctx: Staff, date_from: date | None = None, date_to: date | N
         teacher_id = ctx.user.teacher_id
         if teacher_id is None:
             return []
-    now = datetime.now()
+    now = clock.now()
     entries = schedule.calendar(ctx.db, date_from, date_to, teacher_id=teacher_id)
     return [e for e in entries if e.status == LessonStatus.CONFIRMED and e.starts_at <= now]
 

@@ -4,12 +4,13 @@ Regra central: presenças e faltas só são registradas quando a aula é **concl
 Aulas não concluídas não debitam aulas do plano nem entram no pagamento do professor.
 """
 
-from datetime import date, datetime
+from datetime import date
 
 from fastapi import HTTPException, status
 from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
+from app.core import clock
 from app.models.tenant import Attendance, ClassGroup, Lesson, ServiceSession, Student, Teacher
 from app.models.tenant.enums import AttendanceStatus, ServiceSessionStatus
 from app.schemas.schedule import CompletionItem
@@ -87,7 +88,7 @@ def _move(
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "A aula de destino é a mesma da origem")
 
     target_group = load_group(db, target_group_id)
-    if lesson_start(target_group, target_day) <= datetime.now():
+    if lesson_start(target_group, target_day) <= clock.now():
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "A reposição deve ser em uma aula que ainda não começou")
     target = get_or_create_lesson(db, target_group, target_day)
     if target.is_cancelled:
@@ -108,7 +109,7 @@ def _move(
         origin.attendances.append(source)
     source.status = AttendanceStatus.RESCHEDULED
     source.justification = justification
-    source.marked_at = datetime.now()
+    source.marked_at = clock.now()
     source.marked_by_id = ctx.user.id
     credits.release_credit(db, source)
 
@@ -186,7 +187,7 @@ def complete_lesson(ctx, group: ClassGroup, day: date, items: list[CompletionIte
         )
 
     consuming = credits.consuming_statuses(ctx.studio)
-    now = datetime.now()
+    now = clock.now()
     for student_id, item in given.items():
         entry = expected[student_id]
         if item.status == AttendanceStatus.RESCHEDULED:
@@ -298,7 +299,7 @@ def add_drop_in(ctx, group: ClassGroup, day: date, student_id: int, justificatio
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Aluno não encontrado ou inativo")
     if not group.runs_on(day):
         raise HTTPException(status.HTTP_400_BAD_REQUEST, f"A turma {group.display_name} não tem aula em {day:%d/%m/%Y}")
-    if lesson_start(group, day) <= datetime.now():
+    if lesson_start(group, day) <= clock.now():
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "A aula avulsa deve ser em uma aula que ainda não começou")
     if credits.drop_in_available(db, student_id) <= 0:
         raise HTTPException(

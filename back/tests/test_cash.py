@@ -1,10 +1,11 @@
-from datetime import date, timedelta
+from datetime import timedelta
 
+from app.core import clock
 from tests.conftest import API, LONG_AGO, future_weekday, login, past_weekday
 
 
 def test_cash_report_receipts_teacher_payments_and_pending(client, studio):
-    today = date.today()
+    today = clock.today()
     inside, outside = (today - timedelta(days=5)).isoformat(), (today - timedelta(days=60)).isoformat()
     period = {"date_from": (today - timedelta(days=10)).isoformat(), "date_to": today.isoformat()}
 
@@ -75,6 +76,6 @@ def test_cash_report_is_admin_only(client, studio):
     studio.post("/users", {"name": "Ana", "email": "ana@alpha.com", "password": "secret123", "role": "teacher",
                            "teacher_id": ana["id"]})
     headers = login(client, "alpha", "ana@alpha.com")
-    today = date.today().isoformat()
+    today = clock.today().isoformat()
     r = client.get(f"{API}/reports/cash", params={"date_from": today, "date_to": today}, headers=headers)
     assert r.status_code == 403

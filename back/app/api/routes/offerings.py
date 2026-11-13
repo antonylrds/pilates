@@ -1,11 +1,10 @@
 """Serviços avulsos: catálogo (/services) e contratações dos alunos (/students/{id}/services)."""
 
-from datetime import date
-
 from fastapi import APIRouter, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
+from app.core import clock
 from app.api.deps import Admin, Staff, apply_update, get_or_404
 from app.models.tenant import Service, ServiceContract, ServiceSession, Student
 from app.models.tenant.enums import ServiceContractStatus, ServiceSessionStatus
@@ -143,7 +142,7 @@ def update_contract(student_id: int, contract_id: int, data: ServiceContractUpda
     c = _contract(ctx, student_id, contract_id)
     values = data.model_dump(exclude_unset=True)
     if "is_paid" in values:
-        values["paid_at"] = (values.get("paid_at") or c.paid_at or date.today()) if values["is_paid"] else None
+        values["paid_at"] = (values.get("paid_at") or c.paid_at or clock.today()) if values["is_paid"] else None
     changes = audit.diff(c, values)
     if changes:
         for field, value in values.items():
