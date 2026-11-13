@@ -5,12 +5,12 @@ from typing import Annotated, Any, TypeVar
 import jwt
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
-from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
 from app.core.security import decode_access_token
 from app.db.engines import central_session, tenant_session
+from app.db.studio_cache import studio_cache
 from app.models.central import PlatformUser, Studio
 from app.models.tenant import User
 from app.models.tenant.enums import UserRole
@@ -80,8 +80,7 @@ def get_tenant(token: Annotated[str, Depends(tenant_oauth)]) -> Generator[Tenant
     except (KeyError, ValueError):
         raise _unauthorized()
 
-    with central_session() as central:
-        studio = central.scalar(select(Studio).where(Studio.slug == slug))
+    studio = studio_cache.get(slug)
     if studio is None or not studio.is_active:
         raise HTTPException(status.HTTP_403_FORBIDDEN, "Estúdio inativo ou inexistente")
 

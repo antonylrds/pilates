@@ -9,6 +9,7 @@ from sqlalchemy import select
 from app.api.deps import CentralDb, PlatformAdmin, apply_update, get_or_404
 from app.core.ratelimit import LoginAttempt
 from app.core.security import check_password, create_access_token
+from app.db.studio_cache import studio_cache
 from app.models.central import PlatformUser, Studio
 from app.schemas.studio import PlatformLogin, PlatformToken, StudioCreate, StudioRead, StudioUpdate
 from app.services.studios import create_studio
@@ -65,4 +66,5 @@ def update_studio(studio_id: int, data: StudioUpdate, db: CentralDb, _: Platform
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "close_hour deve ser maior que open_hour")
     db.commit()
     db.refresh(studio)
+    studio_cache.invalidate(studio.slug)
     return studio

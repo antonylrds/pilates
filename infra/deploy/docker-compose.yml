@@ -13,12 +13,31 @@ services:
       interval: 5s
       retries: 10
 
+  # Etapa única de cada deploy: migra o banco central e o de cada estúdio (em paralelo) e garante o usuário da
+  # plataforma. Se algum estúdio falhar, o serviço sai com erro e a API não sobe (a lista de falhas fica no log).
+  migrate:
+    image: ${API_IMAGE}
+    restart: "no"
+    depends_on:
+      db:
+        condition: service_healthy
+    command: ["sh", "-c", "python -m app.cli migrate --jobs 4 && python -m app.cli init"]
+    environment:
+      ENVIRONMENT: production
+      CENTRAL_DATABASE_URL: postgresql+psycopg://pilates:${POSTGRES_PASSWORD}@db:5432/pilates_central
+      TENANT_DATABASE_URL_TEMPLATE: postgresql+psycopg://pilates:${POSTGRES_PASSWORD}@db:5432/pilates_{slug}
+      SECRET_KEY: ${SECRET_KEY}
+      PLATFORM_ADMIN_EMAIL: ${PLATFORM_ADMIN_EMAIL}
+      PLATFORM_ADMIN_PASSWORD: ${PLATFORM_ADMIN_PASSWORD}
+
   api:
     image: ${API_IMAGE}
     restart: unless-stopped
     depends_on:
       db:
         condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
     environment:
       CENTRAL_DATABASE_URL: postgresql+psycopg://pilates:${POSTGRES_PASSWORD}@db:5432/pilates_central
       TENANT_DATABASE_URL_TEMPLATE: postgresql+psycopg://pilates:${POSTGRES_PASSWORD}@db:5432/pilates_{slug}

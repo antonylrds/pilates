@@ -24,6 +24,16 @@ class Settings(BaseSettings):
     # Postgres: postgresql+psycopg://user:pass@host:5432/pilates_{slug}
     tenant_database_url_template: str = "sqlite:///./data/tenants/{slug}.db"
 
+    # Conexões: cada estúdio tem o próprio pool. Mantém poucas conexões ociosas por estúdio (pool_size) e descarta
+    # os engines de estúdios sem uso (idle) ou além do limite (max_cached, os menos usados primeiro). No Postgres,
+    # conexões ociosas ≈ estúdios em cache × pool_size: mantenha abaixo de max_connections (padrão 100).
+    tenant_pool_size: int = 1
+    tenant_pool_max_overflow: int = 2
+    tenant_engine_idle_seconds: int = 600
+    tenant_engine_max_cached: int = 50
+    # Cache (por processo) do cadastro de estúdios usado em toda requisição autenticada. 0 desliga.
+    studio_cache_seconds: int = 30
+
     # Gere com: python -c "import secrets; print(secrets.token_urlsafe(48))"
     secret_key: str = DEV_SECRET_KEY
     jwt_algorithm: str = "HS256"

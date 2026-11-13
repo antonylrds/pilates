@@ -67,7 +67,7 @@ alcançaria). Depois que o workflow terminar, na VM:
 cd /opt/pilates && docker compose pull && docker compose up -d
 ```
 
-As migrações (`app.cli migrate`) rodam na subida do container.
+As migrações **não** rodam na subida da API: o serviço `migrate` do compose (`app.cli migrate --jobs 4` + `app.cli init`) roda a cada deploy (quando a imagem muda, o `docker compose up -d` recria o serviço e o executa), antes da API, e migra os estúdios em paralelo. Se algum estúdio falhar, o `migrate` sai com erro, lista os que falharam no log (`docker compose logs migrate`) e a API não sobe; os demais já migrados ficam migrados.
 
 ## Backup (obrigatório antes de usar com dados reais)
 

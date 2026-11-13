@@ -21,7 +21,7 @@ uv run fastapi dev app/main.py --port 8010  # http://localhost:8010/docs
 > O front repassa `/api` para ela em desenvolvimento.
 
 - Testes: `uv run pytest`
-- Migrar todos os bancos após atualizar o código: `uv run python -m app.cli migrate`
+- Migrar todos os bancos após atualizar o código: `uv run python -m app.cli migrate [--jobs 4]` (um estúdio com erro não impede os outros; o comando termina com código 1 e lista os que falharam). Na imagem Docker a API **não** migra ao subir: rode este comando como etapa do deploy (veja `infra/`).
 - Nova migração (após alterar models):
   - central: `uv run alembic -n central -x url=sqlite:///./tmp.db revision --autogenerate -m "..."`
   - estúdio: `uv run alembic -n tenant -x url=sqlite:///./tmp.db revision --autogenerate -m "..."`

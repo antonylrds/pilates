@@ -18,5 +18,7 @@ RUN useradd --system --uid 10001 app && mkdir -p /app/data && chown -R app /app/
 USER app
 
 EXPOSE 8000
-# Migra os bancos (central + estúdios), garante o usuário da plataforma e sobe a API.
-CMD ["sh", "-c", "python -m app.cli migrate && python -m app.cli init && exec fastapi run app/main.py --host 0.0.0.0 --port 8000 --proxy-headers"]
+# Só sobe a API. As migrações (python -m app.cli migrate --jobs 4) e a criação do usuário da plataforma
+# (python -m app.cli init) são uma etapa separada do deploy: com várias réplicas elas não podem competir, e com
+# muitos estúdios atrasariam a subida. Veja o serviço `migrate` em infra/deploy/docker-compose.yml.
+CMD ["fastapi", "run", "app/main.py", "--host", "0.0.0.0", "--port", "8000", "--proxy-headers"]

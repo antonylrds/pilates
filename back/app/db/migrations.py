@@ -1,5 +1,6 @@
 """Criação de bancos e execução de migrações (central e por estúdio)."""
 
+from concurrent.futures import ProcessPoolExecutor
 from pathlib import Path
 
 from alembic import command
@@ -53,3 +54,20 @@ def migrate_tenant(slug: str) -> None:
 def provision_tenant(slug: str) -> None:
     create_database(tenant_url(slug))
     migrate_tenant(slug)
+
+
+def _migrate_one(slug: str) -> str | None:
+    """Migra um estúdio; devolve a mensagem de erro (ou None se deu certo) em vez de levantar."""
+    try:
+        migrate_tenant(slug)
+        return None
+    except Exception as exc:  # um estúdio com problema não pode impedir a migração dos outros
+        return f"{type(exc).__name__}: {exc}"
+
+
+def migrate_tenants(slugs: list[str], jobs: int = 1) -> dict[str, str | None]:
+    """Migra os estúdios (em série ou em ``jobs`` processos; o Alembic não é thread-safe) e devolve slug → erro."""
+    if jobs <= 1 or len(slugs) <= 1:
+        return {slug: _migrate_one(slug) for slug in slugs}
+    with ProcessPoolExecutor(max_workers=min(jobs, len(slugs))) as pool:
+        return dict(zip(slugs, pool.map(_migrate_one, slugs)))
