@@ -5,6 +5,7 @@ from sqlalchemy import or_, select
 
 from app.api.deps import Admin, Staff
 from app.db.engines import central_session
+from app.db.studio_cache import studio_cache
 from app.models.central import Studio
 from app.models.tenant import ClassGroup
 from app.schemas.studio import StudioRead, StudioSettingsUpdate
@@ -39,4 +40,5 @@ def update_studio(data: StudioSettingsUpdate, ctx: Admin):
             setattr(studio, field, value)
         central.commit()
         central.refresh(studio)
-        return studio
+    studio_cache.invalidate(studio.slug)
+    return studio

@@ -24,8 +24,8 @@ jobs:
         with:
           enable-cache: true
           cache-dependency-glob: back/uv.lock
-      - run: uv sync --frozen
-      - run: uv run pytest
+      - run: uv sync --frozen --extra postgres
+      - run: uv run --extra postgres pytest
 
   image:
     # Só publica a partir da main (ou manualmente); PRs apenas rodam os testes.
