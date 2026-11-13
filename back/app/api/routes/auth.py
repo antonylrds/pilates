@@ -1,11 +1,12 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy import select
 
 from app.api.deps import Staff
-from app.core.security import create_access_token, hash_password, verify_password
+from app.core.ratelimit import LoginAttempt
+from app.core.security import check_password, create_access_token, hash_password, verify_password
 from app.db.engines import central_session, tenant_session
 from app.models.central import Studio
 from app.models.tenant import User
@@ -16,18 +17,29 @@ from app.schemas.studio import StudioRead
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 
-def _authenticate(slug: str, email: str, password: str) -> Token:
+def _authenticate(request: Request, slug: str, email: str, password: str) -> Token:
+    """Login no estúdio. A resposta é a mesma para estúdio, e-mail ou senha inválidos (e com o mesmo custo de
+    tempo); só depois de a senha conferir é que se revela que o estúdio ou o usuário está inativo."""
+    slug = slug.strip().lower()
+    attempt = LoginAttempt(request, "studio", f"{slug}:{email}")
+    attempt.check()
     invalid = HTTPException(status.HTTP_401_UNAUTHORIZED, "Estúdio, e-mail ou senha incorretos")
+
     with central_session() as central:
-        studio = central.scalar(select(Studio).where(Studio.slug == slug.strip().lower()))
+        studio = central.scalar(select(Studio).where(Studio.slug == slug))
     if studio is None:
+        check_password(password, None)
+        attempt.failed()
         raise invalid
-    if not studio.is_active:
-        raise HTTPException(status.HTTP_403_FORBIDDEN, "Estúdio inativo")
+
     with tenant_session(studio.slug) as db:
         user = db.scalar(select(User).where(User.email == email.lower()))
-        if user is None or not verify_password(password, user.hashed_password):
+        if not check_password(password, user.hashed_password if user else None):
+            attempt.failed()
             raise invalid
+        attempt.succeeded()
+        if not studio.is_active:
+            raise HTTPException(status.HTTP_403_FORBIDDEN, "Estúdio inativo")
         if not user.is_active:
             raise HTTPException(status.HTTP_403_FORBIDDEN, "Usuário inativo")
         token = create_access_token(user.id, {"scope": "tenant", "tenant": studio.slug, "role": user.role.value})
@@ -35,15 +47,15 @@ def _authenticate(slug: str, email: str, password: str) -> Token:
 
 
 @router.post("/login", response_model=Token, summary="Login no estúdio (JSON) — front/mobile")
-def login(data: LoginRequest):
-    return _authenticate(data.studio, data.email, data.password)
+def login(data: LoginRequest, request: Request):
+    return _authenticate(request, data.studio, data.email, data.password)
 
 
 @router.post("/token", response_model=Token, summary="Login OAuth2 (Swagger): client_id = slug do estúdio")
-def login_form(form: Annotated[OAuth2PasswordRequestForm, Depends()]):
+def login_form(request: Request, form: Annotated[OAuth2PasswordRequestForm, Depends()]):
     if not form.client_id:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Informe o slug do estúdio em client_id")
-    return _authenticate(form.client_id, form.username, form.password)
+    return _authenticate(request, form.client_id, form.username, form.password)
 
 
 @router.get("/me", response_model=Me)

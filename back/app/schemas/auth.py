@@ -16,7 +16,7 @@ class LoginRequest(BaseModel):
 class UserCreate(BaseModel):
     name: str = Field(min_length=2, max_length=120)
     email: EmailStr
-    password: str = Field(min_length=6, max_length=128)
+    password: str = Field(min_length=8, max_length=128)
     role: UserRole = UserRole.TEACHER
     teacher_id: int | None = Field(None, description="Obrigatório para usuários com papel teacher")
 
@@ -24,7 +24,7 @@ class UserCreate(BaseModel):
 class UserUpdate(BaseModel):
     name: str | None = Field(None, min_length=2, max_length=120)
     email: EmailStr | None = None
-    password: str | None = Field(None, min_length=6, max_length=128)
+    password: str | None = Field(None, min_length=8, max_length=128)
     role: UserRole | None = None
     teacher_id: int | None = None
     is_active: bool | None = None
@@ -54,4 +54,4 @@ class Me(BaseModel):
 
 class PasswordChange(BaseModel):
     current_password: str
-    new_password: str = Field(min_length=6, max_length=128)
+    new_password: str = Field(min_length=8, max_length=128)

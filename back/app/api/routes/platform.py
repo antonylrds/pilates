@@ -2,12 +2,13 @@
 
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy import select
 
 from app.api.deps import CentralDb, PlatformAdmin, apply_update, get_or_404
-from app.core.security import create_access_token, verify_password
+from app.core.ratelimit import LoginAttempt
+from app.core.security import check_password, create_access_token
 from app.models.central import PlatformUser, Studio
 from app.schemas.studio import PlatformLogin, PlatformToken, StudioCreate, StudioRead, StudioUpdate
 from app.services.studios import create_studio
@@ -15,21 +16,25 @@ from app.services.studios import create_studio
 router = APIRouter(prefix="/platform", tags=["platform"])
 
 
-def _login(db: CentralDb, email: str, password: str) -> PlatformToken:
+def _login(request: Request, db: CentralDb, email: str, password: str) -> PlatformToken:
+    attempt = LoginAttempt(request, "platform", email)
+    attempt.check()
     user = db.scalar(select(PlatformUser).where(PlatformUser.email == email.lower()))
-    if user is None or not user.is_active or not verify_password(password, user.hashed_password):
+    if not check_password(password, user.hashed_password if user else None) or not user.is_active:
+        attempt.failed()
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "E-mail ou senha incorretos")
+    attempt.succeeded()
     return PlatformToken(access_token=create_access_token(user.id, {"scope": "platform"}))
 
 
 @router.post("/auth/login", response_model=PlatformToken)
-def login(data: PlatformLogin, db: CentralDb):
-    return _login(db, data.email, data.password)
+def login(data: PlatformLogin, request: Request, db: CentralDb):
+    return _login(request, db, data.email, data.password)
 
 
 @router.post("/auth/token", response_model=PlatformToken, include_in_schema=False)
-def login_form(form: Annotated[OAuth2PasswordRequestForm, Depends()], db: CentralDb):
-    return _login(db, form.username, form.password)
+def login_form(request: Request, form: Annotated[OAuth2PasswordRequestForm, Depends()], db: CentralDb):
+    return _login(request, db, form.username, form.password)
 
 
 @router.get("/studios", response_model=list[StudioRead])

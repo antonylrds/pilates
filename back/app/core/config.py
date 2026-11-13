@@ -1,12 +1,19 @@
 from typing import Literal
 
+from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+# Valores de desenvolvimento: aceitos só com ENVIRONMENT=dev (veja Settings._no_dev_secrets_in_production).
+DEV_SECRET_KEY = "dev-only-insecure-key-troque-em-producao-0123456789"
+DEV_PLATFORM_ADMIN_PASSWORD = "root12345"
 
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8-sig", extra="ignore")
 
     app_name: str = "Pilates Studio API"
+    # "production" recusa subir com os segredos de desenvolvimento (SECRET_KEY e senha do admin da plataforma).
+    environment: Literal["dev", "production"] = "dev"
     api_prefix: str = "/api/v1"
     # Fuso dos estúdios: define "hoje" e "agora" (o servidor roda em UTC). Ver app/core/clock.py.
     timezone: str = "America/Sao_Paulo"
@@ -18,9 +25,14 @@ class Settings(BaseSettings):
     tenant_database_url_template: str = "sqlite:///./data/tenants/{slug}.db"
 
     # Gere com: python -c "import secrets; print(secrets.token_urlsafe(48))"
-    secret_key: str = "dev-only-insecure-key-troque-em-producao-0123456789"
+    secret_key: str = DEV_SECRET_KEY
     jwt_algorithm: str = "HS256"
     access_token_expire_minutes: int = 60 * 24
+
+    # Limite de tentativas de login que falharam (em memória, por processo): por IP+conta e por IP, na janela.
+    login_max_attempts: int = 5
+    login_max_attempts_per_ip: int = 30
+    login_window_seconds: int = 15 * 60
 
     # Lista JSON no .env, ex.: CORS_ORIGINS=["http://localhost:5173"]
     cors_origins: list[str] = ["http://localhost:5173", "http://localhost:3000", "http://localhost:8081"]
@@ -38,7 +50,20 @@ class Settings(BaseSettings):
     # Superusuário da plataforma (cria/gerencia estúdios). Usado por: python -m app.cli init
     platform_admin_name: str = "Plataforma"
     platform_admin_email: str = "root@pilates.app"
-    platform_admin_password: str = "root12345"
+    platform_admin_password: str = DEV_PLATFORM_ADMIN_PASSWORD
+
+    @model_validator(mode="after")
+    def _no_dev_secrets_in_production(self):
+        if self.environment != "production":
+            return self
+        problems = []
+        if self.secret_key == DEV_SECRET_KEY or len(self.secret_key) < 32:
+            problems.append("SECRET_KEY deve ser definida com pelo menos 32 caracteres (não use a de desenvolvimento)")
+        if self.platform_admin_password == DEV_PLATFORM_ADMIN_PASSWORD:
+            problems.append("PLATFORM_ADMIN_PASSWORD não pode ser a senha padrão de desenvolvimento")
+        if problems:
+            raise ValueError("Configuração insegura para produção: " + "; ".join(problems))
+        return self
 
 
 settings = Settings()

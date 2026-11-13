@@ -5,6 +5,7 @@ from fastapi.testclient import TestClient
 
 from app.core import clock
 from app.core.config import settings
+from app.core.ratelimit import limiter
 from app.core.security import hash_password
 from app.db.engines import central_session, registry
 from app.db.migrations import migrate_central
@@ -22,6 +23,7 @@ def isolated_databases(tmp_path, monkeypatch):
     monkeypatch.setattr(settings, "storage_local_root", f"{base}/files")
     monkeypatch.setattr(settings, "tenant_database_url_template", f"sqlite:///{base}/tenant_{{slug}}.db")
     registry.dispose_all()
+    limiter.clear()
     migrate_central()
     with central_session() as db:
         db.add(PlatformUser(name="Root", email="root@test.com", hashed_password=hash_password("root12345")))

@@ -31,7 +31,7 @@ class StudioCreate(BaseModel):
     # Primeiro usuário admin do estúdio
     admin_name: str = Field(min_length=2, max_length=120)
     admin_email: EmailStr
-    admin_password: str = Field(min_length=6, max_length=128)
+    admin_password: str = Field(min_length=8, max_length=128)
 
     @model_validator(mode="after")
     def _hours(self):

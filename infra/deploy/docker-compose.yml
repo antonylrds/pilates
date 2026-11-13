@@ -22,7 +22,10 @@ services:
     environment:
       CENTRAL_DATABASE_URL: postgresql+psycopg://pilates:${POSTGRES_PASSWORD}@db:5432/pilates_central
       TENANT_DATABASE_URL_TEMPLATE: postgresql+psycopg://pilates:${POSTGRES_PASSWORD}@db:5432/pilates_{slug}
+      ENVIRONMENT: production
       SECRET_KEY: ${SECRET_KEY}
+      # Só o Caddy (mesma rede do compose) alcança a API: confia no X-Forwarded-For dele para o IP real do cliente.
+      FORWARDED_ALLOW_IPS: "*"
       CORS_ORIGINS: ${CORS_ORIGINS}
       PLATFORM_ADMIN_EMAIL: ${PLATFORM_ADMIN_EMAIL}
       PLATFORM_ADMIN_PASSWORD: ${PLATFORM_ADMIN_PASSWORD}
